@@ -24,10 +24,18 @@ jobs:
           username: ubuntu
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
+            # 安装 Node.js（如果没有）
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+            node -v
+            npm -v
             cd /home/ubuntu/eggplant-butler-final/backend
-            npm init -y > /dev/null 2>&1
-            npm install express cors > /dev/null 2>&1
+            npm init -y
+            npm install express cors
             pkill -f "node server" || true
-            nohup node server.js > app.log 2>&1 &
-            sleep 2
+            setsid nohup node server.js > app.log 2>&1 &
+            sleep 3
+            curl -s http://localhost:3000/api/health || echo "服务未启动"
             echo "部署完成"
