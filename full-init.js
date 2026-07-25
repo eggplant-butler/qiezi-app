@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -21,26 +21,15 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 
 const DATA_DIR = path.join(__dirname, '../data');
 
-// ---------- 通用存储 API ----------
-app.get('/api/:module', (req, res) => {
-  const file = path.join(DATA_DIR, req.params.module + '.json');
-  if (!fs.existsSync(file)) return res.json([]);
-  res.json(JSON.parse(fs.readFileSync(file, 'utf8')));
-});
-
-app.post('/api/:module', (req, res) => {
-  const file = path.join(DATA_DIR, req.params.module + '.json');
-  fs.writeFileSync(file, JSON.stringify(req.body, null, 2));
-  res.json({ success: true });
-});
+// ---------- 健康检查 (必须在通用路由前) ----------
+app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '2.0-final' }));
 
 // ---------- 高级洞察引擎 (含情绪熔断) ----------
 app.get('/api/insights/:module', (req, res) => {
   const module = req.params.module;
   const file = path.join(DATA_DIR, module + '.json');
   let data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
-  
-  // 读取情绪数据，判断是否触发熔断（低情绪时不发批判性提醒）
+
   const emotionFile = path.join(DATA_DIR, 'emotion.json');
   let lastEmotion = 5;
   if (fs.existsSync(emotionFile)) {
@@ -54,14 +43,11 @@ app.get('/api/insights/:module', (req, res) => {
     const total = data.reduce((s, r) => s + (r.type === 'expense' ? -r.amount : r.amount), 0);
     if (total < 0) insights.push({ type: 'warning', msg: '本月已超支 ' + Math.abs(total) + ' 元，建议复盘' });
     else insights.push({ type: 'info', msg: '本月结余 ' + total + ' 元，表现优秀！' });
-  } else if (module === 'habit') {
+  } else if (module === 'habit' && !isMeltdown) {
     const done = data.filter(d => d.done).length;
     const total = data.length || 1;
-    if (done/total < 0.3 && !isMeltdown) {
-      insights.push({ type: 'warning', msg: '近期打卡率偏低，是不是遇到什么困难了？' });
-    } else {
-      insights.push({ type: 'info', msg: '打卡率 ' + Math.round(done/total*100) + '%，继续加油！' });
-    }
+    if (done/total < 0.3) insights.push({ type: 'warning', msg: '近期打卡率偏低，是不是遇到什么困难了？' });
+    else insights.push({ type: 'info', msg: '打卡率 ' + Math.round(done/total*100) + '%，继续加油！' });
   }
   if (isMeltdown) {
     insights = [{ type: 'gentle', msg: '今天心情似乎不太好，先休息一下吧，我明天再提醒你。' }];
@@ -69,22 +55,20 @@ app.get('/api/insights/:module', (req, res) => {
   res.json({ insights });
 });
 
-// ---------- 自然语言语音指令 ----------
+// ---------- 自然语言语音指令 (必须在通用路由前) ----------
 app.post('/api/voice', (req, res) => {
   const text = req.body.text || '';
   let result = { action: 'unknown', message: '没听清，能再说一遍吗？' };
 
-  // 1. 快速记账：记一笔吃饭50块
   const match1 = text.match(/记一笔(.*?)(\\d+)块/);
   if (match1) {
-    result = { 
-      action: 'add_record', 
-      module: 'finance', 
+    result = {
+      action: 'add_record',
+      module: 'finance',
       data: { category: match1[1].trim(), amount: -parseInt(match1[2]), type: 'expense', date: new Date().toISOString().slice(0,10) },
       message: '已记录：' + match1[1] + ' 消费 ' + match1[2] + ' 元'
     };
   }
-  // 2. 记录心情：今天心情8分
   const match2 = text.match(/心情(\\d+)分/);
   if (match2) {
     result = {
@@ -94,28 +78,27 @@ app.post('/api/voice', (req, res) => {
       message: '已记录今日心情：' + match2[1] + ' 分'
     };
   }
-  // 3. 添加字段指令：在财务管理增加"商家"字段
-  const match3 = text.match(/在(.+)增加[""](.+)[""]字段/);
-  if (match3) {
-    const moduleName = match3[1].trim();
-    const fieldName = match3[2].trim();
-    result = {
-      action: 'add_field',
-      module: moduleName,
-      field: fieldName,
-      message: '已记录需求：请在 ' + moduleName + ' 增加 "' + fieldName + '" 字段（需重启生效）'
-    };
-  }
   res.json(result);
 });
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '2.0-final' }));
+// ---------- 通用存储 API (必须放在最后) ----------
+app.get('/api/:module', (req, res) => {
+  const file = path.join(DATA_DIR, req.params.module + '.json');
+  if (!fs.existsSync(file)) return res.json([]);
+  res.json(JSON.parse(fs.readFileSync(file, 'utf8')));
+});
+
+app.post('/api/:module', (req, res) => {
+  const file = path.join(DATA_DIR, req.params.module + '.json');
+  fs.writeFileSync(file, JSON.stringify(req.body, null, 2));
+  res.json({ success: true });
+});
 
 app.listen(PORT, '0.0.0.0', () => console.log('茄子管家运行在端口 ' + PORT));
 `;
 fs.writeFileSync(path.join(root, 'backend/server.js'), serverJS);
 
-// ===================== 2. 生成前端 index.html =====================
+// ===================== 2. 生成前端 index.html (17个模块) =====================
 const modulesMeta = [
   { id: 'finance', label: '财务管理', icon: '💰', fields: ['date','type','category','amount','merchant','note'] },
   { id: 'habit', label: '习惯打卡', icon: '✅', fields: ['date','habit','done','duration'] },
@@ -175,14 +158,9 @@ const frontendHTML = `
       <h1>🍆 茄子管家</h1>
       <button class="voice-btn" id="voiceBtn">🎤</button>
     </div>
-    
-    <div class="scene-tips" id="sceneTips">
-      ⏰ 早上好！今天有 3 件待办，记得查看日程。
-    </div>
-
+    <div class="scene-tips" id="sceneTips">⏰ 早上好！今天有 3 件待办，记得查看日程。</div>
     <div class="grid" id="moduleGrid"></div>
   </div>
-
   <div class="detail-page" id="detailPage">
     <button class="back-btn" id="backBtn">‹ 返回</button>
     <h2 id="detailTitle">模块</h2>
@@ -190,7 +168,6 @@ const frontendHTML = `
     <div id="recordList"></div>
     <button class="add-btn" id="addRecordBtn">+</button>
   </div>
-
   <div class="modal" id="modal">
     <div class="modal-box">
       <h3 id="modalTitle">添加记录</h3>
@@ -198,9 +175,8 @@ const frontendHTML = `
       <button id="saveRecord">保存</button>
     </div>
   </div>
-
   <script>
-    const modules = ` + JSON.stringify(modulesMeta) + `;
+    const modules = ${JSON.stringify(modulesMeta)};
     let currentModule = null;
     let currentData = [];
 
@@ -234,7 +210,7 @@ const frontendHTML = `
         .then(r => r.json())
         .then(data => {
           if (data.insights && data.insights.length > 0) {
-            area.innerHTML = data.insights.map(i => 
+            area.innerHTML = data.insights.map(i =>
               '<div class="insight-card">💡 ' + i.msg + '</div>'
             ).join('');
           } else {
@@ -337,9 +313,7 @@ fs.writeFileSync(path.join(root, 'frontend/index.html'), frontendHTML);
 
 // ===================== 3. 生成一键部署脚本 deploy.sh =====================
 const deploySH = `#!/bin/bash
-# 茄子管家 一键部署脚本
 set -e
-
 read -p "请输入你的服务器公网IP: " SERVER_IP
 read -p "请输入SSH用户名 (默认ubuntu): " SSH_USER
 SSH_USER=\${SSH_USER:-ubuntu}
@@ -353,47 +327,23 @@ ssh \${SSH_USER}@\${SERVER_IP} << 'ENDSSH'
   mkdir -p eggplant-butler-final
   tar -xzf eggplant.tar.gz -C eggplant-butler-final
   cd eggplant-butler-final/backend
-  
   npm init -y
   npm install express cors
-  
   pkill -f "node server" || true
-  
   nohup node server.js > app.log 2>&1 &
-  
-  echo "配置Nginx反代..."
-  sudo tee /etc/nginx/sites-available/eggplant > /dev/null << EOF
-server {
-    listen 80;
-    server_name _;
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \\$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \\$host;
-    }
-}
-EOF
-  sudo ln -sf /etc/nginx/sites-available/eggplant /etc/nginx/sites-enabled/
-  sudo rm -f /etc/nginx/sites-enabled/default
-  sudo nginx -t && sudo systemctl restart nginx
-  
-  echo "部署完成！访问 http://\${SERVER_IP} 即可使用"
+  echo "部署完成！服务已启动"
 ENDSSH
-
-echo "✅ 茄子管家已上线！"
+echo "✅ 茄子管家已上线！访问 http://\${SERVER_IP} 即可使用"
 `;
 fs.writeFileSync(path.join(root, 'deploy.sh'), deploySH);
+fs.chmodSync(path.join(root, 'deploy.sh'), '755');
 
-// ===================== 4. 生成 GitHub Actions 自动部署流水线 =====================
+// ===================== 4. 生成 GitHub Actions 流水线 =====================
 const workflowYML = `
 name: Auto Deploy
-
 on:
   push:
     branches: [ main ]
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -407,7 +357,7 @@ jobs:
           key: \${{ secrets.SSH_KEY }}
           source: "backend,frontend,data"
           target: "/home/ubuntu/eggplant-butler-final/"
-      - name: Restart Service
+      - name: Install and Restart
         uses: appleboy/ssh-action@v0.1.5
         with:
           host: \${{ secrets.SERVER_IP }}
@@ -415,37 +365,16 @@ jobs:
           key: \${{ secrets.SSH_KEY }}
           script: |
             cd /home/ubuntu/eggplant-butler-final/backend
+            npm init -y > /dev/null 2>&1
+            npm install express cors > /dev/null 2>&1
             pkill -f "node server" || true
             nohup node server.js > app.log 2>&1 &
 `;
 fs.writeFileSync(path.join(root, '.github/workflows/deploy.yml'), workflowYML);
 
-// ===================== 5. 生成 README 及辅助文件 =====================
-const readme = `
-# 茄子管家 · 终极进化版
-
-## 已包含
-- 17个生活管理模块（含生活基础设施）
-- 语音控制（Web Speech API）
-- 情绪熔断机制
-- 场景雷达
-- GitHub Actions 自动部署
-
-## 手动部署步骤
-1. 运行 bash deploy.sh
-2. 输入服务器IP和密码
-3. 访问 http://你的IP
-
-## 后续更新
-修改代码后 push 到 GitHub main 分支，自动部署。
-`;
-fs.writeFileSync(path.join(root, 'README.md'), readme);
-
-// 给 deploy.sh 加执行权限
-fs.chmodSync(path.join(root, 'deploy.sh'), '755');
+// ===================== 5. 生成 README =====================
+fs.writeFileSync(path.join(root, 'README.md'), '# 茄子管家 · 终极进化版\n\n已包含17个模块、语音控制、情绪熔断、自动部署。\n\n运行 bash deploy.sh 一键部署。');
 
 console.log('✅ 茄子管家终极版已生成在 ./eggplant-butler-final');
-console.log('📦 接下来：');
-console.log('1. cd eggplant-butler-final');
-console.log('2. bash deploy.sh');
-console.log('🌐 部署完成后，打开浏览器访问你的服务器IP即可使用！');
+console.log('📦 接下来执行：');
+console.log('cd eggplant-butler-final && bash deploy.sh');

@@ -37,14 +37,9 @@
       <h1>🍆 茄子管家</h1>
       <button class="voice-btn" id="voiceBtn">🎤</button>
     </div>
-    
-    <div class="scene-tips" id="sceneTips">
-      ⏰ 早上好！今天有 3 件待办，记得查看日程。
-    </div>
-
+    <div class="scene-tips" id="sceneTips">⏰ 早上好！今天有 3 件待办，记得查看日程。</div>
     <div class="grid" id="moduleGrid"></div>
   </div>
-
   <div class="detail-page" id="detailPage">
     <button class="back-btn" id="backBtn">‹ 返回</button>
     <h2 id="detailTitle">模块</h2>
@@ -52,7 +47,6 @@
     <div id="recordList"></div>
     <button class="add-btn" id="addRecordBtn">+</button>
   </div>
-
   <div class="modal" id="modal">
     <div class="modal-box">
       <h3 id="modalTitle">添加记录</h3>
@@ -60,7 +54,6 @@
       <button id="saveRecord">保存</button>
     </div>
   </div>
-
   <script>
     const modules = [{"id":"finance","label":"财务管理","icon":"💰","fields":["date","type","category","amount","merchant","note"]},{"id":"habit","label":"习惯打卡","icon":"✅","fields":["date","habit","done","duration"]},{"id":"schedule","label":"动态日程","icon":"📅","fields":["date","timeSlot","title","priority","status"]},{"id":"health","label":"健康管理","icon":"💪","fields":["date","sleepHours","water","steps","weight"]},{"id":"pet","label":"宠物护理","icon":"🐱","fields":["date","petName","eventType","note","nextDue"]},{"id":"emotion","label":"情绪管理","icon":"😊","fields":["date","score","tags","note"]},{"id":"note","label":"闪念笔记","icon":"📝","fields":["date","content","category","pinned"]},{"id":"contact","label":"社交人脉","icon":"👥","fields":["name","phone","birthday","company","lastContact"]},{"id":"work","label":"工作引擎","icon":"💼","fields":["date","client","task","duration","review"]},{"id":"reading","label":"阅读模块","icon":"📚","fields":["bookName","author","pages","progress","rating"]},{"id":"wish","label":"愿望清单","icon":"🎯","fields":["title","targetAmount","savedAmount","deadline"]},{"id":"happy","label":"小确幸","icon":"🎉","fields":["date","content","category","image"]},{"id":"housework","label":"家务引擎","icon":"🧹","fields":["task","area","frequency","lastDone","nextDue"]},{"id":"inventory","label":"库存买菜","icon":"🛒","fields":["item","category","quantity","expiryDate"]},{"id":"weather","label":"天气助手","icon":"🌤️","fields":["city","date","temp","condition","advice"]},{"id":"settings","label":"设置","icon":"⚙️","fields":["theme","modules","backup"]},{"id":"infra","label":"生活基础设施","icon":"🏠","fields":["type","name","expiryDate","phone","note"]}];
     let currentModule = null;
@@ -96,7 +89,7 @@
         .then(r => r.json())
         .then(data => {
           if (data.insights && data.insights.length > 0) {
-            area.innerHTML = data.insights.map(i => 
+            area.innerHTML = data.insights.map(i =>
               '<div class="insight-card">💡 ' + i.msg + '</div>'
             ).join('');
           } else {
