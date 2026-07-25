@@ -28,14 +28,16 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '2.0-fina
 app.get('/api/insights/:module', (req, res) => {
   const module = req.params.module;
   const file = path.join(DATA_DIR, module + '.json');
-  let data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
-
+  let rawData = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
+  let data = Array.isArray(rawData) ? rawData : [];
+  let emotionRaw = [];
   const emotionFile = path.join(DATA_DIR, 'emotion.json');
-  let lastEmotion = 5;
   if (fs.existsSync(emotionFile)) {
-    const emotions = JSON.parse(fs.readFileSync(emotionFile, 'utf8'));
-    if (emotions.length > 0) lastEmotion = emotions[emotions.length-1].score || 5;
+    const eRaw = JSON.parse(fs.readFileSync(emotionFile, 'utf8'));
+    emotionRaw = Array.isArray(eRaw) ? eRaw : [];
   }
+  let lastEmotion = 5;
+  if (emotionRaw.length > 0) lastEmotion = emotionRaw[emotionRaw.length-1].score || 5;
   const isMeltdown = lastEmotion <= 3;
 
   let insights = [];
