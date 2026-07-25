@@ -9,20 +9,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Deploy to Server
+      - name: 上传代码到服务器
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ubuntu
-          key: ${{ secrets.SSH_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
           source: "backend,frontend,data"
           target: "/home/ubuntu/eggplant-butler-final/"
-      - name: Install Dependencies and Restart Service
+      - name: 安装依赖并启动服务
         uses: appleboy/ssh-action@v0.1.5
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ubuntu
-          key: ${{ secrets.SSH_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
           script: |
             cd /home/ubuntu/eggplant-butler-final/backend
             npm init -y > /dev/null 2>&1
@@ -30,4 +30,4 @@ jobs:
             pkill -f "node server" || true
             nohup node server.js > app.log 2>&1 &
             sleep 2
-            echo "Service started"
+            echo "部署完成"
