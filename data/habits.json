@@ -1,0 +1,36 @@
+{
+  "habits": [
+    {
+      "id": 1,
+      "name": "早起",
+      "icon": "🌅",
+      "target": "每天7点前起床",
+      "streak": 0,
+      "completedDates": []
+    },
+    {
+      "id": 2,
+      "name": "运动",
+      "icon": "💪",
+      "target": "每天运动30分钟",
+      "streak": 0,
+      "completedDates": []
+    },
+    {
+      "id": 3,
+      "name": "阅读",
+      "icon": "📚",
+      "target": "每天阅读30页",
+      "streak": 0,
+      "completedDates": []
+    },
+    {
+      "id": 4,
+      "name": "喝水",
+      "icon": "💧",
+      "target": "每天喝8杯水",
+      "streak": 0,
+      "completedDates": []
+    }
+  ]
+}

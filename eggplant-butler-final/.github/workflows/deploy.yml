@@ -1,3 +1,4 @@
+
 name: Auto Deploy
 
 on:
@@ -17,7 +18,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "backend,frontend,data"
           target: "/home/ubuntu/eggplant-butler-final/"
-      - name: Install Dependencies and Restart Service
+      - name: Restart Service
         uses: appleboy/ssh-action@v0.1.5
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -25,9 +26,5 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /home/ubuntu/eggplant-butler-final/backend
-            npm init -y > /dev/null 2>&1
-            npm install express cors > /dev/null 2>&1
             pkill -f "node server" || true
             nohup node server.js > app.log 2>&1 &
-            sleep 2
-            echo "Service started"

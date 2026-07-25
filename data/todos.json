@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "text": "完成项目设计稿",
+      "completed": false,
+      "priority": "high",
+      "date": "2026-07-25"
+    },
+    {
+      "id": 2,
+      "text": "买菜",
+      "completed": false,
+      "priority": "medium",
+      "date": "2026-07-25"
+    },
+    {
+      "id": 3,
+      "text": "给猫铲屎",
+      "completed": true,
+      "priority": "low",
+      "date": "2026-07-24"
+    }
+  ]
+}
