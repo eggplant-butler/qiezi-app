@@ -1,3 +1,4 @@
+
 name: Auto Deploy
 on:
   push:
@@ -22,10 +23,17 @@ jobs:
           username: ubuntu
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+            sudo npm install -g pm2
             cd /home/ubuntu/eggplant-butler-final/backend
-            npm init -y > /dev/null 2>&1
-            npm install express cors > /dev/null 2>&1
-            pkill -f "node server" || true
-            nohup node server.js > app.log 2>&1 &
-            sleep 2
-            echo "部署完成"
+            npm init -y
+            npm install express cors
+            pm2 delete eggplant 2>/dev/null || true
+            pm2 start server.js --name eggplant
+            pm2 save
+            sleep 3
+            curl -s http://localhost:3000/api/health || echo "服务未启动"
+            echo "===部署完成==="

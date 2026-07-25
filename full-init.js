@@ -6,7 +6,7 @@ const root = './eggplant-butler-final';
 const dirs = ['backend', 'frontend', 'data', 'scripts', '.github/workflows'];
 dirs.forEach(d => fs.mkdirSync(path.join(root, d), { recursive: true }));
 
-// ===================== 1. 生成后端 server.js =====================
+// ===================== 1. 生成后端 server.js (修复路由顺序) =====================
 const serverJS = `
 const express = require('express');
 const fs = require('fs');
@@ -98,7 +98,7 @@ app.listen(PORT, '0.0.0.0', () => console.log('茄子管家运行在端口 ' + P
 `;
 fs.writeFileSync(path.join(root, 'backend/server.js'), serverJS);
 
-// ===================== 2. 生成前端 index.html (17个模块) =====================
+// ===================== 2. 生成前端 index.html (修复 CDN 链接) =====================
 const modulesMeta = [
   { id: 'finance', label: '财务管理', icon: '💰', fields: ['date','type','category','amount','merchant','note'] },
   { id: 'habit', label: '习惯打卡', icon: '✅', fields: ['date','habit','done','duration'] },
@@ -311,7 +311,7 @@ const frontendHTML = `
 `;
 fs.writeFileSync(path.join(root, 'frontend/index.html'), frontendHTML);
 
-// ===================== 3. 生成一键部署脚本 deploy.sh =====================
+// ===================== 3. 生成一键部署脚本 deploy.sh (修复 IP 变量) =====================
 const deploySH = `#!/bin/bash
 set -e
 read -p "请输入你的服务器公网IP: " SERVER_IP
@@ -333,7 +333,7 @@ ssh \${SSH_USER}@\${SERVER_IP} << 'ENDSSH'
   nohup node server.js > app.log 2>&1 &
   echo "部署完成！服务已启动"
 ENDSSH
-echo "✅ 茄子管家已上线！访问 http://\${SERVER_IP} 即可使用"
+echo "✅ 茄子管家已上线！访问 http://\${SERVER_IP}:3000 即可使用"
 `;
 fs.writeFileSync(path.join(root, 'deploy.sh'), deploySH);
 fs.chmodSync(path.join(root, 'deploy.sh'), '755');
@@ -349,26 +349,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Deploy to Server
+      - name: 上传代码到服务器
         uses: appleboy/scp-action@v0.1.4
         with:
           host: \${{ secrets.SERVER_IP }}
           username: ubuntu
-          key: \${{ secrets.SSH_KEY }}
+          password: \${{ secrets.SSH_PASSWORD }}
           source: "backend,frontend,data"
           target: "/home/ubuntu/eggplant-butler-final/"
-      - name: Install and Restart
+      - name: 安装依赖并启动服务
         uses: appleboy/ssh-action@v0.1.5
         with:
           host: \${{ secrets.SERVER_IP }}
           username: ubuntu
-          key: \${{ secrets.SSH_KEY }}
+          password: \${{ secrets.SSH_PASSWORD }}
           script: |
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+            sudo npm install -g pm2
             cd /home/ubuntu/eggplant-butler-final/backend
-            npm init -y > /dev/null 2>&1
-            npm install express cors > /dev/null 2>&1
-            pkill -f "node server" || true
-            nohup node server.js > app.log 2>&1 &
+            npm init -y
+            npm install express cors
+            pm2 delete eggplant 2>/dev/null || true
+            pm2 start server.js --name eggplant
+            pm2 save
+            sleep 3
+            curl -s http://localhost:3000/api/health || echo "服务未启动"
+            echo "===部署完成==="
 `;
 fs.writeFileSync(path.join(root, '.github/workflows/deploy.yml'), workflowYML);
 

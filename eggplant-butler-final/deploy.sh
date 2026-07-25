@@ -19,4 +19,4 @@ ssh ${SSH_USER}@${SERVER_IP} << 'ENDSSH'
   nohup node server.js > app.log 2>&1 &
   echo "部署完成！服务已启动"
 ENDSSH
-echo "✅ 茄子管家已上线！访问 http://${SERVER_IP} 即可使用"
+echo "✅ 茄子管家已上线！访问 http://${SERVER_IP}:3000 即可使用"
