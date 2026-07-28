@@ -268,10 +268,20 @@ function loadRecords(){
 function renderList(){
   var list=document.getElementById('recordList');
   if(currentData.length===0){list.innerHTML='<div class="empty-state">📭 还没有记录</div>';return;}
-  list.innerHTML=currentData.slice().reverse().map(function(r){
+  list.innerHTML=currentData.slice().reverse().map(function(r,idx){
+    var realIndex=currentData.length-1-idx;
     var summary=Object.keys(r).filter(function(k){return k!=='date'&&k!=='note'}).slice(0,3).map(function(k){return r[k]}).join(' · ');
-    return '<div class="list-item"><div class="main"><div class="title">'+summary+'</div><div class="sub">'+(r.note||'')+'</div></div><div class="right"><div class="date">'+(r.date||'')+'</div></div></div>';
+    return '<div class="list-item"><div class="main"><div class="title">'+summary+'</div><div class="sub">'+(r.note||'')+'</div></div><div class="right"><div class="date">'+(r.date||'')+'</div><button onclick="deleteRecord('+realIndex+')" style="background:none;border:none;color:var(--red);font-size:12px;margin-top:4px;cursor:pointer">删除</button></div></div>';
   }).join('');
+}
+
+function deleteRecord(index){
+  if(!confirm('确认删除这条记录？'))return;
+  currentData.splice(index,1);
+  apiFetch('/api/'+currentModule,{method:'POST',body:JSON.stringify(currentData)}).then(function(){
+    renderList();
+    showToast('已删除');
+  });
 }
 
 document.getElementById('backBtn').onclick=function(){document.getElementById('detailPage').classList.remove('active')};
