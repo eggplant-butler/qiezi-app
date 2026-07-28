@@ -31,11 +31,17 @@ jobs:
             fi
             # 安装 pm2
             sudo npm install -g pm2
+            # 清理占用3000端口的进程（Python旧服务等）
+            sudo fuser -k 3000/tcp 2>/dev/null || true
+            sudo pkill -f "python.*server" 2>/dev/null || true
+            sudo pkill -f "node.*server" 2>/dev/null || true
+            # 停止所有旧pm2进程
+            pm2 delete all 2>/dev/null || true
+            # 部署新服务
             cd /home/ubuntu/eggplant-butler-final/backend
             npm init -y
             npm install express cors
             # 用 pm2 启动并持久化
-            pm2 delete eggplant 2>/dev/null || true
             pm2 start server.js --name eggplant
             pm2 save
             pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
