@@ -1,34 +1,45 @@
-
 <!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>茄子管家·进化体</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>茄子管家·专属定制版</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; font-family: -apple-system, sans-serif; }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,sans-serif; }
     body { background:#f5f7fa; padding:16px; padding-bottom:80px; }
-    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
-    .header h1 { font-size:24px; font-weight:700; }
-    .voice-btn { background:#4F46E5; color:white; border:none; width:50px; height:50px; border-radius:50%; font-size:24px; box-shadow:0 4px 12px rgba(79,70,229,0.4); cursor:pointer; }
-    .scene-tips { background:white; border-radius:16px; padding:16px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.05); border-left:4px solid #4F46E5; }
-    .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-    .card { background:white; border-radius:16px; padding:16px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.05); cursor:pointer; transition:0.2s; }
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .header h1 { font-size:22px; font-weight:700; }
+    .voice-btn { background:#4F46E5; color:#fff; border:none; width:48px; height:48px; border-radius:50%; font-size:22px; box-shadow:0 4px 12px rgba(79,70,229,0.4); cursor:pointer; }
+    .scene-tips { background:#fff; border-radius:14px; padding:14px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.05); border-left:4px solid #4F46E5; font-size:14px; }
+    .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .card { background:#fff; border-radius:14px; padding:14px 6px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.05); cursor:pointer; transition:0.15s; }
     .card:active { transform:scale(0.95); }
-    .card .icon { font-size:32px; margin-bottom:6px; }
-    .card .name { font-size:13px; color:#333; }
+    .card .icon { font-size:28px; margin-bottom:4px; }
+    .card .name { font-size:11px; color:#333; line-height:1.3; }
     .detail-page { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:#f5f7fa; z-index:100; overflow-y:auto; padding:16px; }
     .detail-page.active { display:block; }
-    .back-btn { background:none; border:none; font-size:24px; margin-bottom:16px; cursor:pointer; }
-    .list-item { background:white; border-radius:12px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
-    .add-btn { position:fixed; bottom:20px; right:20px; background:#4F46E5; color:white; border:none; width:60px; height:60px; border-radius:50%; font-size:30px; box-shadow:0 4px 16px rgba(79,70,229,0.4); cursor:pointer; z-index:200; }
-    .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:300; justify-content:center; align-items:center; }
+    .back-btn { background:none; border:none; font-size:22px; margin-bottom:12px; cursor:pointer; color:#4F46E5; }
+    .detail-title { font-size:20px; font-weight:700; margin-bottom:12px; }
+    .insight-card { background:#FFF9E6; border-radius:12px; padding:12px; margin-bottom:8px; border-left:4px solid #F59E0B; font-size:14px; }
+    .insight-card.warning { background:#FEF2F2; border-left-color:#EF4444; }
+    .insight-card.success { background:#F0FDF4; border-left-color:#22C55E; }
+    .insight-card.gentle { background:#FDF4FF; border-left-color:#A855F7; }
+    .list-item { background:#fff; border-radius:12px; padding:12px; margin-bottom:8px; box-shadow:0 1px 4px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; }
+    .list-item .main-text { font-weight:500; font-size:14px; }
+    .list-item .sub-text { color:#999; font-size:12px; }
+    .del-btn { background:#FEF2F2; border:none; color:#EF4444; border-radius:8px; padding:4px 10px; font-size:12px; cursor:pointer; }
+    .add-btn { position:fixed; bottom:20px; right:20px; background:#4F46E5; color:#fff; border:none; width:56px; height:56px; border-radius:50%; font-size:28px; box-shadow:0 4px 16px rgba(79,70,229,0.4); cursor:pointer; z-index:200; }
+    .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:300; justify-content:center; align-items:flex-end; }
     .modal.active { display:flex; }
-    .modal-box { background:white; width:90%; max-width:400px; border-radius:20px; padding:24px; }
-    .modal-box input, .modal-box select { width:100%; padding:12px; margin-bottom:12px; border:1px solid #ddd; border-radius:8px; }
-    .modal-box button { background:#4F46E5; color:white; border:none; padding:12px; border-radius:8px; width:100%; font-weight:600; }
-    .insight-card { background:#FFF9E6; border-radius:12px; padding:12px; margin:12px 0; border-left:4px solid #F59E0B; }
+    .modal-box { background:#fff; width:100%; border-radius:24px 24px 0 0; padding:20px; padding-bottom:40px; max-height:85vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .modal-box h3 { margin-bottom:16px; font-size:18px; }
+    .form-group { margin-bottom:14px; }
+    .form-group label { display:block; font-size:13px; color:#666; margin-bottom:6px; font-weight:500; }
+    .form-group input, .form-group select, .form-group textarea { width:100%; padding:12px; border:1px solid #e0e0e0; border-radius:10px; font-size:15px; outline:none; -webkit-appearance:none; background:#fff; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:#4F46E5; }
+    .form-group textarea { height:80px; resize:none; }
+    .save-btn { background:#4F46E5; color:#fff; border:none; padding:14px; border-radius:12px; width:100%; font-weight:600; font-size:16px; margin-top:8px; cursor:pointer; }
+    .empty-tip { text-align:center; color:#999; padding:40px 0; font-size:14px; }
   </style>
 </head>
 <body>
@@ -40,34 +51,184 @@
     <div class="scene-tips" id="sceneTips">⏰ 早上好！今天有 3 件待办，记得查看日程。</div>
     <div class="grid" id="moduleGrid"></div>
   </div>
+
   <div class="detail-page" id="detailPage">
     <button class="back-btn" id="backBtn">‹ 返回</button>
-    <h2 id="detailTitle">模块</h2>
+    <div class="detail-title" id="detailTitle">模块</div>
     <div id="insightArea"></div>
     <div id="recordList"></div>
     <button class="add-btn" id="addRecordBtn">+</button>
   </div>
+
   <div class="modal" id="modal">
     <div class="modal-box">
       <h3 id="modalTitle">添加记录</h3>
       <div id="modalFields"></div>
-      <button id="saveRecord">保存</button>
+      <button class="save-btn" id="saveRecord">保存</button>
     </div>
   </div>
+
   <script>
-    const modules = [{"id":"finance","label":"财务管理","icon":"💰","fields":["date","type","category","amount","merchant","note"]},{"id":"habit","label":"习惯打卡","icon":"✅","fields":["date","habit","done","duration"]},{"id":"schedule","label":"动态日程","icon":"📅","fields":["date","timeSlot","title","priority","status"]},{"id":"health","label":"健康管理","icon":"💪","fields":["date","sleepHours","water","steps","weight"]},{"id":"pet","label":"宠物护理","icon":"🐱","fields":["date","petName","eventType","note","nextDue"]},{"id":"emotion","label":"情绪管理","icon":"😊","fields":["date","score","tags","note"]},{"id":"note","label":"闪念笔记","icon":"📝","fields":["date","content","category","pinned"]},{"id":"contact","label":"社交人脉","icon":"👥","fields":["name","phone","birthday","company","lastContact"]},{"id":"work","label":"工作引擎","icon":"💼","fields":["date","client","task","duration","review"]},{"id":"reading","label":"阅读模块","icon":"📚","fields":["bookName","author","pages","progress","rating"]},{"id":"wish","label":"愿望清单","icon":"🎯","fields":["title","targetAmount","savedAmount","deadline"]},{"id":"happy","label":"小确幸","icon":"🎉","fields":["date","content","category","image"]},{"id":"housework","label":"家务引擎","icon":"🧹","fields":["task","area","frequency","lastDone","nextDue"]},{"id":"inventory","label":"库存买菜","icon":"🛒","fields":["item","category","quantity","expiryDate"]},{"id":"weather","label":"天气助手","icon":"🌤️","fields":["city","date","temp","condition","advice"]},{"id":"settings","label":"设置","icon":"⚙️","fields":["theme","modules","backup"]},{"id":"infra","label":"生活基础设施","icon":"🏠","fields":["type","name","expiryDate","phone","note"]}];
+    // ========== 全部模块定义（中文字段） ==========
+    const modules = [
+      {id:'finance',label:'财务管理',icon:'💰',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'type',type:'select',label:'收支类型',options:['支出','收入']},
+        {key:'category',type:'select',label:'分类',options:['餐饮','购物','交通','娱乐','工资','提成','红包','其他']},
+        {key:'amount',type:'number',label:'金额(元)'},
+        {key:'merchant',type:'text',label:'商家/来源'},
+        {key:'isCommission',type:'select',label:'是否提成',options:['否','是']},
+        {key:'intent',type:'select',label:'消费意图',options:['必需消费','享乐消费','投资自己','人情往来']},
+        {key:'note',type:'textarea',label:'备注'}
+      ]},
+      {id:'sleep',label:'睡眠实验室',icon:'😴',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'sleepHours',type:'number',label:'睡眠时长(小时)'},
+        {key:'wakeCount',type:'number',label:'夜醒次数'},
+        {key:'feeling',type:'select',label:'晨起感受',options:['1','2','3','4','5']},
+        {key:'dream',type:'text',label:'梦境记录'}
+      ]},
+      {id:'menstrual',label:'经期记录',icon:'🌸',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'cycleDay',type:'number',label:'周期第几天'},
+        {key:'flow',type:'select',label:'流量',options:['少','中','多']},
+        {key:'pain',type:'select',label:'疼痛程度',options:['1','2','3','4','5']},
+        {key:'mood',type:'select',label:'情绪',options:['平静','烦躁','低落','开心']}
+      ]},
+      {id:'supplement',label:'营养补充',icon:'💊',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'name',type:'text',label:'补充品名称'},
+        {key:'taken',type:'select',label:'是否已服用',options:['是','否']},
+        {key:'note',type:'textarea',label:'备注'}
+      ]},
+      {id:'habit',label:'习惯打卡',icon:'✅',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'habit',type:'text',label:'习惯名称'},
+        {key:'done',type:'select',label:'完成状态',options:['已完成','未完成']},
+        {key:'duration',type:'number',label:'时长(分钟)'},
+        {key:'note',type:'textarea',label:'心得'}
+      ]},
+      {id:'schedule',label:'日程管理',icon:'📅',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'timeSlot',type:'select',label:'时间段',options:['上午','下午','晚上','全天']},
+        {key:'title',type:'text',label:'日程标题'},
+        {key:'quadrant',type:'select',label:'四象限',options:['重要紧急','重要不紧急','紧急不重要','不重要不紧急']},
+        {key:'status',type:'select',label:'状态',options:['待办','进行中','已完成']}
+      ]},
+      {id:'emotion',label:'情绪管理',icon:'😊',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'score',type:'select',label:'情绪评分',options:['1','2','3','4','5']},
+        {key:'tags',type:'select',label:'情绪标签',options:['开心','平静','焦虑','烦躁','难过','愤怒']},
+        {key:'note',type:'textarea',label:'心情日记'}
+      ]},
+      {id:'note',label:'闪念笔记',icon:'📝',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'content',type:'textarea',label:'笔记内容'},
+        {key:'category',type:'select',label:'分类',options:['工作','生活','灵感','学习']},
+        {key:'pinned',type:'select',label:'是否置顶',options:['否','是']}
+      ]},
+      {id:'contact',label:'社交人脉',icon:'👥',fields:[
+        {key:'name',type:'text',label:'姓名'},
+        {key:'phone',type:'text',label:'电话'},
+        {key:'company',type:'text',label:'公司'},
+        {key:'role',type:'text',label:'职位'},
+        {key:'birthday',type:'date',label:'生日'},
+        {key:'lastContact',type:'date',label:'上次联系'},
+        {key:'note',type:'textarea',label:'备注'}
+      ]},
+      {id:'family',label:'家庭责任',icon:'🏠',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'member',type:'text',label:'家庭成员'},
+        {key:'event',type:'text',label:'事项'},
+        {key:'type',type:'select',label:'类型',options:['健康提醒','问候','礼物','陪伴']},
+        {key:'note',type:'textarea',label:'备注'}
+      ]},
+      {id:'work',label:'工作引擎',icon:'💼',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'client',type:'text',label:'客户/项目'},
+        {key:'task',type:'text',label:'任务内容'},
+        {key:'duration',type:'number',label:'用时(小时)'},
+        {key:'okr',type:'text',label:'关联OKR'},
+        {key:'review',type:'textarea',label:'复盘'}
+      ]},
+      {id:'skill',label:'技能图谱',icon:'🎓',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'skillName',type:'text',label:'技能名称'},
+        {key:'level',type:'select',label:'掌握程度',options:['入门','熟悉','熟练','精通']},
+        {key:'hours',type:'number',label:'累计练习(小时)'},
+        {key:'note',type:'textarea',label:'学习心得'}
+      ]},
+      {id:'wish',label:'愿望清单',icon:'🎯',fields:[
+        {key:'title',type:'text',label:'愿望名称'},
+        {key:'targetAmount',type:'number',label:'目标金额(元)'},
+        {key:'savedAmount',type:'number',label:'已存金额(元)'},
+        {key:'deadline',type:'date',label:'截止日期'},
+        {key:'status',type:'select',label:'状态',options:['进行中','已完成','已搁置']}
+      ]},
+      {id:'reading',label:'阅读模块',icon:'📚',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'bookName',type:'text',label:'书名'},
+        {key:'author',type:'text',label:'作者'},
+        {key:'pages',type:'number',label:'阅读页数'},
+        {key:'progress',type:'number',label:'进度(%)'},
+        {key:'rating',type:'select',label:'评分',options:['1','2','3','4','5']}
+      ]},
+      {id:'happy',label:'小确幸',icon:'🎉',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'content',type:'textarea',label:'开心的事'},
+        {key:'category',type:'select',label:'类型',options:['美食','旅行','亲情','友情','工作','其他']}
+      ]},
+      {id:'housework',label:'家务引擎',icon:'🧹',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'task',type:'text',label:'家务任务'},
+        {key:'area',type:'select',label:'区域',options:['客厅','卧室','厨房','卫生间','阳台']},
+        {key:'frequency',type:'select',label:'频率',options:['每天','每周','每月']},
+        {key:'status',type:'select',label:'状态',options:['待办','已完成']}
+      ]},
+      {id:'inventory',label:'库存买菜',icon:'🛒',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'item',type:'text',label:'物品名称'},
+        {key:'category',type:'select',label:'分类',options:['蔬菜','水果','肉类','日用品','零食']},
+        {key:'quantity',type:'text',label:'数量'},
+        {key:'expiryDate',type:'date',label:'保质期'}
+      ]},
+      {id:'weather',label:'天气助手',icon:'🌤️',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'city',type:'text',label:'城市'},
+        {key:'temp',type:'text',label:'温度(℃)'},
+        {key:'condition',type:'select',label:'天气状况',options:['晴','多云','阴','雨','雪']},
+        {key:'advice',type:'textarea',label:'出行建议'}
+      ]},
+      {id:'infra',label:'生活基础设施',icon:'🔧',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'type',type:'select',label:'类型',options:['水电','燃气','宽带','物业','保险']},
+        {key:'name',type:'text',label:'服务商'},
+        {key:'amount',type:'number',label:'金额(元)'},
+        {key:'expiryDate',type:'date',label:'到期日期'},
+        {key:'phone',type:'text',label:'客服电话'}
+      ]},
+      {id:'commute',label:'通勤碎片',icon:'🚇',fields:[
+        {key:'date',type:'date',label:'日期'},
+        {key:'duration',type:'number',label:'通勤时长(分钟)'},
+        {key:'activity',type:'select',label:'做的事',options:['听书','听播客','背单词','刷手机','休息']},
+        {key:'note',type:'textarea',label:'收获'}
+      ]}
+    ];
+
     let currentModule = null;
     let currentData = [];
 
+    // ========== 渲染模块卡片 ==========
     const grid = document.getElementById('moduleGrid');
     modules.forEach(m => {
       const div = document.createElement('div');
       div.className = 'card';
       div.innerHTML = '<div class="icon">' + m.icon + '</div><div class="name">' + m.label + '</div>';
-      div.onclick = () => openModule(m.id);
+      div.onclick = function() { openModule(m.id); };
       grid.appendChild(div);
     });
 
+    // ========== 打开模块 ==========
     async function openModule(id) {
       currentModule = id;
       const meta = modules.find(m => m.id === id);
@@ -78,102 +239,161 @@
       renderList(id);
     }
 
+    // ========== 加载数据 ==========
     async function loadData(id) {
-      const res = await fetch('/api/' + id);
-      currentData = await res.json();
+      try {
+        const res = await fetch('/api/' + id);
+        currentData = await res.json();
+      } catch(e) {
+        currentData = [];
+      }
     }
 
+    // ========== 渲染洞察 ==========
     function renderInsights(id) {
       const area = document.getElementById('insightArea');
       fetch('/api/insights/' + id)
         .then(r => r.json())
         .then(data => {
           if (data.insights && data.insights.length > 0) {
-            area.innerHTML = data.insights.map(i =>
-              '<div class="insight-card">💡 ' + i.msg + '</div>'
-            ).join('');
+            area.innerHTML = data.insights.map(i => {
+              const cls = i.type || 'info';
+              return '<div class="insight-card ' + cls + '">' + i.msg + '</div>';
+            }).join('');
           } else {
-            area.innerHTML = '<div class="insight-card">💡 继续记录，我会给你更多建议。</div>';
+            area.innerHTML = '<div class="insight-card">📊 继续记录，我会给你更多建议。</div>';
           }
+        })
+        .catch(() => {
+          area.innerHTML = '<div class="insight-card">📊 继续记录，我会给你更多建议。</div>';
         });
     }
 
+    // ========== 渲染列表 ==========
     function renderList(id) {
       const list = document.getElementById('recordList');
       const meta = modules.find(m => m.id === id);
-      if (currentData.length === 0) {
-        list.innerHTML = '<div style="text-align:center;color:#999;padding:40px;">还没有记录，点 + 添加一条</div>';
+      if (!currentData || currentData.length === 0) {
+        list.innerHTML = '<div class="empty-tip">还没有记录，点 + 添加一条</div>';
         return;
       }
-      list.innerHTML = currentData.slice().reverse().map(row => {
-        const fields = meta.fields.slice(0, 4);
-        const label = fields.map(f => f + ':' + (row[f] || '—')).join(' ');
-        return '<div class="list-item"><span>' + label + '</span><span style="color:#999;font-size:12px;">' + (row.date || '') + '</span></div>';
+      list.innerHTML = currentData.slice().reverse().map((row, idx) => {
+        const realIdx = currentData.length - 1 - idx;
+        const mainFields = meta.fields.slice(0, 2);
+        const mainText = mainFields.map(f => f.label + ':' + (row[f.key] !== undefined ? row[f.key] : '—')).join('  ');
+        return '<div class="list-item"><div><div class="main-text">' + mainText + '</div><div class="sub-text">' + (row.date || '') + '</div></div><button class="del-btn" onclick="delRecord(' + realIdx + ')">删除</button></div>';
       }).join('');
     }
 
-    document.getElementById('backBtn').onclick = () => {
+    // ========== 删除记录 ==========
+    async function delRecord(idx) {
+      currentData.splice(idx, 1);
+      try {
+        await fetch('/api/' + currentModule, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(currentData)
+        });
+      } catch(e) {}
+      renderList(currentModule);
+      renderInsights(currentModule);
+    }
+
+    // ========== 返回 ==========
+    document.getElementById('backBtn').onclick = function() {
       document.getElementById('detailPage').classList.remove('active');
     };
 
-    document.getElementById('addRecordBtn').onclick = () => {
-      const modal = document.getElementById('modal');
+    // ========== 打开添加弹窗 ==========
+    document.getElementById('addRecordBtn').onclick = function() {
       const meta = modules.find(m => m.id === currentModule);
       const fieldsDiv = document.getElementById('modalFields');
       fieldsDiv.innerHTML = meta.fields.map(f => {
-        if (f === 'date') return '<input type="date" id="field_' + f + '" value="' + new Date().toISOString().slice(0,10) + '" placeholder="' + f + '">';
-        if (f === 'done') return '<select id="field_' + f + '"><option value="true">已完成</option><option value="false">未完成</option></select>';
-        return '<input type="text" id="field_' + f + '" placeholder="请输入 ' + f + '">';
+        let inputHtml = '';
+        if (f.type === 'date') {
+          inputHtml = '<input type="date" id="field_' + f.key + '" value="' + new Date().toISOString().slice(0,10) + '">';
+        } else if (f.type === 'select') {
+          inputHtml = '<select id="field_' + f.key + '">' + f.options.map(o => '<option value="' + o + '">' + o + '</option>').join('') + '</select>';
+        } else if (f.type === 'textarea') {
+          inputHtml = '<textarea id="field_' + f.key + '" placeholder="请输入' + f.label + '"></textarea>';
+        } else if (f.type === 'number') {
+          inputHtml = '<input type="number" id="field_' + f.key + '" placeholder="请输入' + f.label + '">';
+        } else {
+          inputHtml = '<input type="text" id="field_' + f.key + '" placeholder="请输入' + f.label + '">';
+        }
+        return '<div class="form-group"><label>' + f.label + '</label>' + inputHtml + '</div>';
       }).join('');
       document.getElementById('modalTitle').textContent = '添加 ' + meta.label;
-      modal.classList.add('active');
+      document.getElementById('modal').classList.add('active');
+      setTimeout(function() {
+        var firstInput = fieldsDiv.querySelector('input, textarea, select');
+        if (firstInput) firstInput.focus();
+      }, 200);
     };
 
-    document.getElementById('saveRecord').onclick = async () => {
+    // ========== 保存记录 ==========
+    document.getElementById('saveRecord').onclick = async function() {
       const meta = modules.find(m => m.id === currentModule);
       const obj = {};
       meta.fields.forEach(f => {
-        const el = document.getElementById('field_' + f);
-        if (el) obj[f] = el.value;
+        const el = document.getElementById('field_' + f.key);
+        if (el) obj[f.key] = el.value;
       });
+      if (!obj.date) obj.date = new Date().toISOString().slice(0,10);
       currentData.push(obj);
-      await fetch('/api/' + currentModule, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentData)
-      });
+      try {
+        await fetch('/api/' + currentModule, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(currentData)
+        });
+      } catch(e) {}
       document.getElementById('modal').classList.remove('active');
       renderList(currentModule);
       renderInsights(currentModule);
     };
 
-    document.getElementById('voiceBtn').onclick = () => {
+    // ========== 点击遮罩关闭弹窗 ==========
+    document.getElementById('modal').addEventListener('click', function(e) {
+      if (e.target === document.getElementById('modal')) {
+        document.getElementById('modal').classList.remove('active');
+      }
+    });
+
+    // ========== 语音控制 ==========
+    document.getElementById('voiceBtn').onclick = function() {
       if (!('webkitSpeechRecognition' in window)) {
-        alert('请使用 Chrome 或 Safari 浏览器');
+        alert('请使用 Chrome 或 Safari 浏览器使用语音功能');
         return;
       }
       const recognition = new webkitSpeechRecognition();
       recognition.lang = 'zh-CN';
-      recognition.onresult = async (event) => {
+      recognition.onresult = async function(event) {
         const text = event.results[0][0].transcript;
-        const res = await fetch('/api/voice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
-        });
-        const result = await res.json();
-        alert(result.message || '已执行：' + text);
-        if (result.action === 'add_record' && result.module) {
-          if (currentModule === result.module) {
-            await loadData(result.module);
-            renderList(result.module);
-            renderInsights(result.module);
+        try {
+          const res = await fetch('/api/voice', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({text: text})
+          });
+          const result = await res.json();
+          alert(result.message || '已执行：' + text);
+          if (result.action === 'add_record' && result.module) {
+            const file = await fetch('/api/' + result.module);
+            currentData = await file.json();
+            if (currentModule === result.module) {
+              renderList(result.module);
+              renderInsights(result.module);
+            }
           }
+        } catch(e) {
+          alert('语音识别失败，请重试');
         }
       };
       recognition.start();
     };
 
+    // ========== 场景提醒 ==========
     function updateScene() {
       const h = new Date().getHours();
       const tip = document.getElementById('sceneTips');

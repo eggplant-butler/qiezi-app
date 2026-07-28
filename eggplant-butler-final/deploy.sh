@@ -4,7 +4,7 @@ read -p "请输入你的服务器公网IP: " SERVER_IP
 read -p "请输入SSH用户名 (默认ubuntu): " SSH_USER
 SSH_USER=${SSH_USER:-ubuntu}
 
-echo "打包上传中..."
+echo "📦 打包上传中..."
 tar -czf eggplant.tar.gz backend frontend data
 scp eggplant.tar.gz ${SSH_USER}@${SERVER_IP}:/home/ubuntu/
 ssh ${SSH_USER}@${SERVER_IP} << 'ENDSSH'
@@ -13,10 +13,9 @@ ssh ${SSH_USER}@${SERVER_IP} << 'ENDSSH'
   mkdir -p eggplant-butler-final
   tar -xzf eggplant.tar.gz -C eggplant-butler-final
   cd eggplant-butler-final/backend
-  npm init -y
-  npm install express cors
+  npm install
   pkill -f "node server" || true
   nohup node server.js > app.log 2>&1 &
-  echo "部署完成！服务已启动"
+  echo "✅ 部署完成！访问 `http://${SERVER_IP}` 即可使用"
 ENDSSH
-echo "✅ 茄子管家已上线！访问 http://${SERVER_IP}:3000 即可使用"
+echo "🎉 茄子管家已上线！"
