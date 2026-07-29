@@ -34,6 +34,64 @@ function writeData(m, d) {
 // ============ 修复：health 和 insights 必须在通用路由前 ============
 app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.1' }));
 
+// ============ 今日之问 API ============
+const QUESTION_POOL = [
+  '今天你是在消费还是在投资？',
+  '今天做的哪件事让你离目标更近了一步？',
+  '如果今天重来，你会改变什么？',
+  '你今天有没有照顾好自己的身体或情绪？',
+  '今天有什么让你感到感恩的事？',
+  '你今天有没有做一件让自己骄傲的事？',
+  '今天你有没有说出一句该说的话？',
+  '今天你学到了什么新东西？',
+  '今天你最大的精力消耗是什么？',
+  '今天你最大的情绪波动是什么？',
+  '今天你是不是在用行动面对你的目标？',
+  '今天你有没有为自己留出安静的时间？',
+  '今天你有没有跟值得的人说一句值得的话？',
+  '今天你有没有做一件真正对健康有益的事？',
+  '今天有没有一个决策你希望做得更好？',
+  '今天你是不是太忙而忘记照顾自己了？',
+  '今天你是在靠近目标还是在远离它？',
+  '今天你有没有放下什么？',
+  '今天你有没有做一件让未来更自由的事？',
+  '今天你过得怎么样——真实的那种？'
+];
+
+app.get('/api/daily-question', (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  const qs = readData('daily_questions');
+  const exist = qs.find(q => q.date === today);
+  if (exist) return res.json({ question: exist.question, answer: exist.answer, date: today });
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0)) / 86400000);
+  const idx = dayOfYear % QUESTION_POOL.length;
+  const q = QUESTION_POOL[idx];
+  const newItem = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), question:q, date:today, answer:null, depthScore:null };
+  qs.push(newItem);
+  writeData('daily_questions', qs);
+  res.json({ question:q, answer:null, date:today });
+});
+
+app.post('/api/daily-question/answer', (req, res) => {
+  const { answer, date } = req.body;
+  if (!answer) return res.json({ success:false, message:'回答不能为空' });
+  const qs = readData('daily_questions');
+  const target = qs.find(q => q.date === date);
+  if (!target) return res.json({ success:false, message:'未找到今日问题' });
+  target.answer = answer;
+  target.depthScore = Math.min(5, Math.max(1, Math.ceil(answer.length / 20)));
+  target.answeredAt = new Date().toISOString();
+  writeData('daily_questions', qs);
+  const diary = readData('diary');
+  diary.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), content:'📝 今日之问回答：'+answer, date, rating:target.depthScore, source:'daily_question' });
+  writeData('diary', diary);
+  res.json({ success:true, message:'回答已保存', depthScore:target.depthScore });
+});
+
+app.get('/api/daily-question/history', (req, res) => {
+  res.json(readData('daily_questions').sort((a,b) => a.date < b.date ? 1 : -1));
+});
+
 app.get('/api/insights', (req, res) => {
   const all = {};
   const modules = ['finance','sleep','exercise','emotion','diet','diary','photo','think','work','body','relation','growth','spirit','home','travel'];

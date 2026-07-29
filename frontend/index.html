@@ -119,6 +119,19 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 <div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="togglePrivacy()">👁️</button><button onclick="switchTab('me')">⚙️</button></div></div>
 <div class="greet"><div class="d" id="todayD"></div><div class="t"><span id="greetT">加载中...</span><span class="phase-badge" id="phaseBadge">🌱 萌芽期</span></div></div>
 
+<div id="dailyQuestionArea" style="background:rgba(255,255,255,0.04);border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:4px solid #A78BFA;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:11px;color:#94A3B8;">💭 今日之问</span>
+    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="viewQuestionHistory()">历史</span>
+  </div>
+  <div id="dailyQuestionText" style="font-size:15px;color:#F1F5F9;font-weight:500;margin-bottom:8px;">加载中...</div>
+  <div style="display:flex;gap:8px;">
+    <input type="text" id="dailyQuestionInput" placeholder="写下你的回答..." style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;outline:none;">
+    <button onclick="submitDailyAnswer()" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">回答</button>
+  </div>
+  <div id="dailyAnswerDisplay" style="margin-top:8px;font-size:13px;color:#94A3B8;display:none;"></div>
+</div>
+
 <div class="growth-bar" id="growthBar">
 <div class="row"><span class="phase" id="phaseLabel">🌱 萌芽期</span><span class="progress" id="progressLabel">0%</span></div>
 <div class="bar"><div class="fill" id="growthFill" style="width:0%"></div></div>
@@ -221,6 +234,63 @@ async function initApp() {
   await fetchInsights();
   renderHome();
   renderInsight();
+  loadDailyQuestion();
+}
+
+async function loadDailyQuestion() {
+  try {
+    var r = await fetch('/api/daily-question');
+    var d = await r.json();
+    var textEl = document.getElementById('dailyQuestionText');
+    if (textEl) textEl.textContent = d.question;
+    var disp = document.getElementById('dailyAnswerDisplay');
+    var inp = document.getElementById('dailyQuestionInput');
+    if (d.answer) {
+      if (disp) { disp.style.display = 'block'; disp.textContent = '✅ 已回答：' + d.answer; }
+      if (inp) { inp.value = ''; inp.placeholder = '已回答，明天再来'; inp.disabled = true; }
+    } else {
+      if (disp) disp.style.display = 'none';
+      if (inp) { inp.disabled = false; inp.placeholder = '写下你的回答...'; }
+    }
+  } catch(e) { console.warn('加载今日之问失败', e); }
+}
+
+async function submitDailyAnswer() {
+  var inp = document.getElementById('dailyQuestionInput');
+  if (!inp) return;
+  var ans = inp.value.trim();
+  if (!ans) { alert('请先写下你的回答'); return; }
+  try {
+    var today = new Date().toISOString().split('T')[0];
+    var r = await fetch('/api/daily-question/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answer: ans, date: today })
+    });
+    var d = await r.json();
+    if (d.success) {
+      alert('✅ 回答已保存！深度评分：' + d.depthScore + '/5');
+      loadDailyQuestion();
+      if (typeof renderOverview === 'function') renderOverview();
+    } else {
+      alert('保存失败：' + d.message);
+    }
+  } catch(e) { alert('网络错误，请重试'); }
+}
+
+function viewQuestionHistory() {
+  fetch('/api/daily-question/history')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var history = data.slice(0, 10);
+      var msg = '📚 最近问答历史：\n\n';
+      history.forEach(function(q) {
+        var answer = q.answer || '未回答';
+        msg += '📅 ' + q.date + '\n❓ ' + q.question + '\n💬 ' + answer + '\n\n';
+      });
+      alert(msg);
+    })
+    .catch(function(e) { alert('加载历史失败'); });
 }
 
 function renderHome(){
@@ -363,10 +433,139 @@ function renderDetail(id){
   }).join('')+'</div>';
 }
 
+// 模块专属表单定义
+var MODAL_FORMS = {
+  finance: {
+    title: '财务记录',
+    fields: [
+      {key:'type', label:'类型', type:'select', options:['支出','收入']},
+      {key:'amount', label:'金额(¥)', type:'number', placeholder:'0.00'},
+      {key:'category', label:'分类', type:'select', options:['餐饮','交通','购物','娱乐','医疗','教育','工资','奖金','其他']},
+      {key:'content', label:'备注', type:'text', placeholder:'简要说明'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  sleep: {
+    title: '睡眠记录',
+    fields: [
+      {key:'hours', label:'时长(小时)', type:'number', placeholder:'如 7.5'},
+      {key:'quality', label:'质量', type:'select', options:['很差','差','一般','好','很好']},
+      {key:'content', label:'备注', type:'text', placeholder:'睡眠状况描述'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  exercise: {
+    title: '锻炼记录',
+    fields: [
+      {key:'type', label:'类型', type:'select', options:['跑步','骑行','游泳','力量','瑜伽','拉伸','其他']},
+      {key:'duration', label:'时长(分钟)', type:'number', placeholder:'30'},
+      {key:'intensity', label:'强度', type:'select', options:['轻松','中等','剧烈']},
+      {key:'content', label:'备注', type:'text', placeholder:'感受说明'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  emotion: {
+    title: '情绪记录',
+    fields: [
+      {key:'rating', label:'情绪评分(1-10)', type:'select', options:['1','2','3','4','5','6','7','8','9','10']},
+      {key:'content', label:'描述', type:'text', placeholder:'心情如何？'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  diet: {
+    title: '饮食记录',
+    fields: [
+      {key:'meal', label:'餐次', type:'select', options:['早餐','午餐','晚餐','加餐']},
+      {key:'content', label:'食物', type:'text', placeholder:'如：鸡胸肉沙拉'},
+      {key:'calories', label:'卡路里', type:'number', placeholder:'可选'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  photo: {
+    title: '摄影记录',
+    fields: [
+      {key:'title', label:'作品名称', type:'text', placeholder:'作品标题'},
+      {key:'content', label:'描述', type:'text', placeholder:'拍摄地点、设备、心得'},
+      {key:'quality', label:'质量(1-5)', type:'select', options:['1','2','3','4','5']},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  think: {
+    title: '思考记录',
+    fields: [
+      {key:'content', label:'思考内容', type:'textarea', placeholder:'你的想法、决策、复盘...'},
+      {key:'rating', label:'深度(1-5)', type:'select', options:['1','2','3','4','5']},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  diary: {
+    title: '日记',
+    fields: [
+      {key:'content', label:'日记内容', type:'textarea', placeholder:'记录今天的经历、感受...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  }
+};
+
+function getFormConfig(sceneId){
+  if(MODAL_FORMS[sceneId]) return MODAL_FORMS[sceneId];
+  return null;
+}
+
+function renderFormHtml(sceneId, item){
+  var config = getFormConfig(sceneId);
+  if(!config) return null;
+  var html = '';
+  config.fields.forEach(function(f){
+    var val = item ? (item[f.key] || '') : '';
+    if(f.type === 'date' && !val) val = TODAY;
+    html += '<label>'+f.label+'</label>';
+    if(f.type === 'select'){
+      html += '<select id="f_'+f.key+'">';
+      html += '<option value="">请选择</option>';
+      f.options.forEach(function(opt){
+        var v = String(opt);
+        var selected = String(val) === v ? ' selected' : '';
+        html += '<option value="'+opt+'"'+selected+'>'+opt+'</option>';
+      });
+      html += '</select>';
+    } else if(f.type === 'textarea'){
+      html += '<textarea id="f_'+f.key+'" rows="3" placeholder="'+(f.placeholder||'')+'">'+val+'</textarea>';
+    } else {
+      html += '<input id="f_'+f.key+'" type="'+f.type+'" placeholder="'+(f.placeholder||'')+'" value="'+val+'">';
+    }
+  });
+  return html;
+}
+
+function readFormData(sceneId){
+  var config = getFormConfig(sceneId);
+  var data = {};
+  if(!config){
+    data.content = document.getElementById('f_c').value.trim();
+    data.date = document.getElementById('f_d').value;
+    data.rating = document.getElementById('f_r').value;
+    data.note = document.getElementById('f_n').value;
+    return data;
+  }
+  config.fields.forEach(function(f){
+    var el = document.getElementById('f_'+f.key);
+    if(el) data[f.key] = el.value;
+  });
+  return data;
+}
+
 function openAdd(){
   editId=null;
-  document.getElementById('modalTitle').textContent='添加记录';
-  document.getElementById('modalBody').innerHTML='<label>内容</label><input id="f_c" placeholder="记录内容"><label>日期</label><input type="date" id="f_d" value="'+TODAY+'"><label>评分(可选)</label><select id="f_r"><option value="">无</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select><label>备注</label><textarea id="f_n" rows="2"></textarea>';
+  var config = getFormConfig(curScene);
+  var title = config ? config.title : '添加记录';
+  document.getElementById('modalTitle').textContent = title;
+  var formHtml = renderFormHtml(curScene, null);
+  if(formHtml){
+    document.getElementById('modalBody').innerHTML = formHtml;
+  } else {
+    document.getElementById('modalBody').innerHTML = '<label>内容</label><input id="f_c" placeholder="记录内容"><label>日期</label><input type="date" id="f_d" value="'+TODAY+'"><label>评分(可选)</label><select id="f_r"><option value="">无</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select><label>备注</label><textarea id="f_n" rows="2"></textarea>';
+  }
   document.getElementById('modal').classList.add('act');
 }
 
@@ -375,24 +574,35 @@ function editRec(sceneId,id){
   var item=data.find(function(x){ return String(x.id)===String(id); });
   if(!item) return;
   editId=item.id;
-  document.getElementById('modalTitle').textContent='编辑记录';
-  document.getElementById('modalBody').innerHTML='<label>内容</label><input id="f_c" value="'+(item.content||'')+'"><label>日期</label><input type="date" id="f_d" value="'+(item.date||TODAY)+'"><label>评分</label><select id="f_r"><option value="">无</option>'+[1,2,3,4,5].map(function(r){ return '<option '+(item.rating==r?'selected':'')+'>'+r+'</option>'; }).join('')+'</select><label>备注</label><textarea id="f_n" rows="2">'+(item.note||'')+'</textarea>';
+  var config = getFormConfig(sceneId);
+  var title = config ? '编辑'+config.title : '编辑记录';
+  document.getElementById('modalTitle').textContent = title;
+  var formHtml = renderFormHtml(sceneId, item);
+  if(formHtml){
+    document.getElementById('modalBody').innerHTML = formHtml;
+  } else {
+    document.getElementById('modalBody').innerHTML = '<label>内容</label><input id="f_c" value="'+(item.content||'')+'"><label>日期</label><input type="date" id="f_d" value="'+(item.date||TODAY)+'"><label>评分</label><select id="f_r"><option value="">无</option>'+[1,2,3,4,5].map(function(r){ return '<option '+(item.rating==r?'selected':'')+'>'+r+'</option>'; }).join('')+'</select><label>备注</label><textarea id="f_n" rows="2">'+(item.note||'')+'</textarea>';
+  }
   document.getElementById('modal').classList.add('act');
 }
 
 async function saveRecord(){
-  var c=document.getElementById('f_c').value.trim();
-  if(!c){ alert('请填写内容'); return; }
-  var d=document.getElementById('f_d').value;
-  var r=document.getElementById('f_r').value;
-  var n=document.getElementById('f_n').value;
+  var config = getFormConfig(curScene);
+  var formData = readFormData(curScene);
+  if(!config){
+    var c = formData.content;
+    if(!c){ alert('请填写内容'); return; }
+  } else {
+    var required = config.fields.find(function(f){ return f.key === 'content' || f.key === 'amount' || f.key === 'hours'; });
+    if(required && !formData[required.key]){ alert('请填写'+required.label); return; }
+  }
   var data=Array.isArray(dataCache[curScene])?dataCache[curScene]:(dataCache[curScene]=[]);
   if(editId){
-    var item=data.find(function(x){ return x.id===editId });
-    if(item){ item.content=c; item.date=d; item.rating=r; item.note=n; }
+    var item=data.find(function(x){ return String(x.id)===String(editId); });
+    if(item){ Object.assign(item, formData); }
     await apiSave(curScene,data);
   } else {
-    var newItem = {id:genId(), content:c, date:d, rating:r, note:n, created:new Date().toISOString()};
+    var newItem = Object.assign({id:genId(), created:new Date().toISOString()}, formData);
     data.push(newItem);
     await apiSave(curScene,data);
   }
