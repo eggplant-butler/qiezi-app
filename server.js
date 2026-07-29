@@ -300,6 +300,149 @@ function generateInsights(data) {
   return result;
 }
 
+// ============================================================
+// 闪念笔记 API
+// ============================================================
+const MODULE_KEYWORDS = {
+  finance: ['花了','买了','消费','支出','收入','工资','提成','付了','付款','转账','支付宝','微信','账单','预算','省钱','存款','借款','还钱','欠款','利息','股票','理财','基金','保险','报销','发票'],
+  sleep: ['睡了','醒','困','失眠','做梦','作息','熬夜','打盹','午休','睡不着','睡眠','困倦','疲惫','午睡','通宵','半夜','凌晨'],
+  exercise: ['跑了','走了','跳了','练了','运动','力量','瑜伽','健身','出汗','拉伸','骑行','游泳','跑步','走路','散步','俯卧撑','仰卧起坐','深蹲','平板支撑'],
+  emotion: ['感觉','心情','开心','焦虑','平静','烦躁','情绪','状态','难过','兴奋','抑郁','紧张','放松','疲惫','压力','委屈','愤怒','喜悦','悲伤','恐惧'],
+  diet: ['吃了','喝了','早餐','午餐','晚餐','加餐','水果','零食','咖啡','饮','水','外卖','堂食','自己做饭','蔬菜','肉','鱼','蛋','奶'],
+  photo: ['拍了','相机','镜头','快门','光圈','街拍','人像','构图','调色','摄影','照片','修图','后期'],
+  think: ['想了','复盘','决定','判断','认为','反思','方向','目标','纠结','思考','权衡','选择','犹豫','决策','总结','感悟','领悟']
+};
+
+app.post('/api/quick-note', (req, res) => {
+  const { content } = req.body;
+  if (!content) return res.json({ success: false, message: '内容不能为空' });
+  let suggested = 'diary';
+  let maxScore = 0;
+  for (const [module, keywords] of Object.entries(MODULE_KEYWORDS)) {
+    let score = 0;
+    for (const kw of keywords) { if (content.includes(kw)) score++; }
+    if (score > maxScore) { maxScore = score; suggested = module; }
+  }
+  const notes = readData('quick_notes');
+  const note = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    content, createdAt: new Date().toISOString(), date: new Date().toISOString().split('T')[0],
+    classified: false, suggestedModule: suggested, accepted: false
+  };
+  notes.push(note);
+  writeData('quick_notes', notes);
+  const moduleNames = { finance:'财务', sleep:'睡眠', exercise:'锻炼', emotion:'情绪', diet:'饮食', photo:'摄影', think:'认知思考', diary:'日记' };
+  res.json({
+    success: true, noteId: note.id,
+    message: `✅ 已保存，建议归入「${moduleNames[suggested] || '日记'}」`,
+    suggested, suggestedName: moduleNames[suggested] || '日记'
+  });
+});
+
+app.get('/api/quick-notes', (req, res) => {
+  res.json(readData('quick_notes').sort((a,b) => a.createdAt < b.createdAt ? 1 : -1));
+});
+
+app.post('/api/quick-note/classify', (req, res) => {
+  const { noteId, targetModule } = req.body;
+  const notes = readData('quick_notes');
+  const note = notes.find(n => n.id === noteId);
+  if (!note) return res.json({ success: false, message: '未找到笔记' });
+  note.classified = true; note.targetModule = targetModule; note.accepted = true;
+  note.classifiedAt = new Date().toISOString();
+  writeData('quick_notes', notes);
+  const targetData = readData(targetModule);
+  targetData.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    content: note.content, date: note.date, source: 'quick_note', createdAt: note.createdAt
+  });
+  writeData(targetModule, targetData);
+  res.json({ success: true, message: `✅ 已归类到 ${targetModule}` });
+});
+
+// ============================================================
+// 缴费管理 API
+// ============================================================
+app.post('/api/bill', (req, res) => {
+  const { name, amount, dueDate, period, category, note } = req.body;
+  if (!name || !amount || !dueDate) return res.json({ success: false, message: '请填写完整信息' });
+  const bills = readData('bills');
+  const bill = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    name, amount: parseFloat(amount), dueDate, period: period || '每月',
+    category: category || '生活', note: note || '', paid: false,
+    createdAt: new Date().toISOString()
+  };
+  bills.push(bill); writeData('bills', bills);
+  res.json({ success: true, bill });
+});
+
+app.get('/api/bills', (req, res) => {
+  const now = new Date(), today = now.toISOString().split('T')[0];
+  const processed = readData('bills').map(b => {
+    const due = new Date(b.dueDate);
+    const days = Math.ceil((due - now) / 86400000);
+    return { ...b, daysRemaining: days, status: b.paid ? 'paid' : (days < 0 ? 'overdue' : (days <= 7 ? 'upcoming' : 'normal')) };
+  });
+  res.json(processed.sort((a,b) => a.daysRemaining - b.daysRemaining));
+});
+
+app.post('/api/bill/pay', (req, res) => {
+  const { billId } = req.body;
+  const bills = readData('bills');
+  const bill = bills.find(b => b.id === billId);
+  if (!bill) return res.json({ success: false, message: '未找到账单' });
+  bill.paid = true; bill.paidAt = new Date().toISOString();
+  writeData('bills', bills);
+  const finance = readData('finance');
+  finance.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    type: '支出', category: bill.category || '生活缴费', amount: bill.amount,
+    date: new Date().toISOString().split('T')[0], merchant: bill.name,
+    note: `💳 缴费：${bill.name}`, source: 'bill'
+  });
+  writeData('finance', finance);
+  res.json({ success: true, message: `✅ ${bill.name} 已标记为已缴` });
+});
+
+app.delete('/api/bill/:id', (req, res) => {
+  const bills = readData('bills');
+  writeData('bills', bills.filter(b => b.id !== req.params.id));
+  res.json({ success: true });
+});
+
+// ============================================================
+// 阅读打卡 API
+// ============================================================
+app.post('/api/reading', (req, res) => {
+  const { bookName, author, progress, date, duration, totalPages, currentPage } = req.body;
+  if (!bookName) return res.json({ success: false, message: '请输入书名' });
+  const readings = readData('reading');
+  readings.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    bookName, author: author || '', progress: progress || 0, date: date || new Date().toISOString().split('T')[0],
+    duration: parseInt(duration) || 0, totalPages: parseInt(totalPages) || 0, currentPage: parseInt(currentPage) || 0,
+    createdAt: new Date().toISOString()
+  });
+  writeData('reading', readings);
+  res.json({ success: true });
+});
+
+app.get('/api/readings', (req, res) => {
+  res.json(readData('reading').sort((a,b) => a.date < b.date ? 1 : -1));
+});
+
+app.get('/api/reading/stats', (req, res) => {
+  const readings = readData('reading');
+  const now = new Date(), today = now.toISOString().split('T')[0];
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const monthReadings = readings.filter(r => r.date >= monthStart && r.date <= today);
+  const totalDays = new Set(readings.map(r => r.date)).size;
+  const monthDays = new Set(monthReadings.map(r => r.date)).size;
+  const books = new Set(readings.map(r => r.bookName));
+  res.json({ totalReadings: readings.length, totalDays, monthDays, totalBooks: books.size, todayRead: readings.some(r => r.date === today) });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🍆 茄子管家 v5.1 运行在 http://localhost:${PORT}`);
 });

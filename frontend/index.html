@@ -147,6 +147,39 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 <div class="input-area"><input type="text" id="nlInput" placeholder="说一句话记录... 如：中午吃了鸡胸肉沙拉"><button onclick="nlSubmit()">发送</button></div>
 <div class="focus-grid" id="focusGrid"></div>
 <div class="quick-modules" id="quickModules"></div>
+
+<!-- ====== 闪念笔记 ====== -->
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">💭 闪念笔记</span>
+    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="showQuickNotes()">查看全部</span>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <input type="text" id="quickNoteInput" placeholder="随便记一下... 系统会自动归类" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;outline:none;">
+    <button onclick="submitQuickNote()" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记</button>
+  </div>
+  <div id="quickNoteFeedback" style="margin-top:6px;font-size:12px;color:#94A3B8;"></div>
+</div>
+
+<!-- ====== 缴费管理 ====== -->
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">💰 待缴费</span>
+    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="openAddBill()">+ 添加</span>
+  </div>
+  <div id="billsList" style="font-size:13px;color:#94A3B8;min-height:20px;">加载中...</div>
+</div>
+
+<!-- ====== 阅读打卡 ====== -->
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">📚 阅读打卡</span>
+    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="openAddReading()">+ 添加</span>
+  </div>
+  <div id="readingStats" style="display:flex;gap:16px;font-size:12px;color:#94A3B8;margin-bottom:4px;"></div>
+  <div id="readingToday" style="font-size:13px;color:#CBD5E1;"></div>
+</div>
+
 <div id="homeCorrelations"></div>
 <div id="homeSuggestions"></div>
 </div>
@@ -235,6 +268,8 @@ async function initApp() {
   renderHome();
   renderInsight();
   loadDailyQuestion();
+  loadBills();
+  loadReading();
 }
 
 async function loadDailyQuestion() {
@@ -709,6 +744,121 @@ function togglePrivacy(){ privacyOn=!privacyOn; alert(privacyOn?'👁️ 隐私�
   var s=localStorage.getItem('qzos_pwd'); if(s) PWD=s;
   document.getElementById('pwdI').focus();
 })();
+
+// ============================================================
+// 闪念笔记 JS
+// ============================================================
+async function submitQuickNote() {
+  var input = document.getElementById('quickNoteInput');
+  var text = input.value.trim();
+  if (!text) { alert('请写下你的想法'); return; }
+  try {
+    var res = await fetch('/api/quick-note', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: text })
+    });
+    var data = await res.json();
+    if (data.success) {
+      document.getElementById('quickNoteFeedback').textContent = data.message;
+      input.value = '';
+      setTimeout(function() { document.getElementById('quickNoteFeedback').textContent = ''; }, 5000);
+    } else {
+      alert('保存失败：' + data.message);
+    }
+  } catch(e) { alert('网络错误'); }
+}
+
+function showQuickNotes() {
+  fetch('/api/quick-notes')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var notes = data.slice(0, 15);
+      var msg = '📋 闪念笔记（最近15条）：\n\n';
+      notes.forEach(function(n) {
+        var status = n.classified ? '✅ 已归类' : '💡 建议归入「' + (n.suggestedName || n.suggestedModule) + '」';
+        msg += '📝 ' + n.content + '\n' + status + '\n\n';
+      });
+      alert(msg);
+    })
+    .catch(function(e) { alert('加载失败'); });
+}
+
+// ============================================================
+// 缴费管理 JS
+// ============================================================
+async function loadBills() {
+  try {
+    var res = await fetch('/api/bills');
+    var bills = await res.json();
+    var container = document.getElementById('billsList');
+    var unpaid = bills.filter(function(b) { return !b.paid; });
+    if (unpaid.length === 0) {
+      container.innerHTML = '<span style="color:#22C55E;">✅ 暂无待缴费账单</span>';
+      return;
+    }
+    container.innerHTML = unpaid.slice(0, 5).map(function(b) {
+      var statusText = b.status === 'overdue' ? '🔴 已过期' : (b.status === 'upcoming' ? '🟡 即将到期' : '⚪');
+      var daysText = b.daysRemaining < 0 ? '已过期' + Math.abs(b.daysRemaining) + '天' : '剩余' + b.daysRemaining + '天';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="color:' + (b.status === 'overdue' ? '#EF4444' : b.status === 'upcoming' ? '#FBBF24' : '#CBD5E1') + '">' + b.name + ' ¥' + b.amount + '</span><span style="font-size:11px;color:#64748B;">' + daysText + '</span></div>';
+    }).join('');
+  } catch(e) { document.getElementById('billsList').textContent = '加载失败'; }
+}
+
+function openAddBill() {
+  var name = prompt('📝 账单名称（如：电费）：');
+  if (!name) return;
+  var amount = prompt('💰 金额（元）：');
+  if (!amount || isNaN(amount)) return;
+  var dueDate = prompt('📅 到期日期（格式：YYYY-MM-DD）：');
+  if (!dueDate) return;
+  fetch('/api/bill', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, amount: parseFloat(amount), dueDate: dueDate, period: '每月', category: '生活' })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) { alert('✅ 账单已添加'); loadBills(); }
+    else alert('添加失败：' + data.message);
+  })
+  .catch(function(e) { alert('网络错误'); });
+}
+
+// ============================================================
+// 阅读打卡 JS
+// ============================================================
+async function loadReading() {
+  try {
+    var stats = await fetch('/api/reading/stats').then(function(r) { return r.json(); });
+    var readings = await fetch('/api/readings').then(function(r) { return r.json(); });
+    document.getElementById('readingStats').innerHTML =
+      '<span>📅 本月 ' + stats.monthDays + ' 天</span><span>📚 ' + stats.totalBooks + ' 本书</span><span>📖 ' + stats.totalReadings + ' 次</span>';
+    var today = new Date().toISOString().split('T')[0];
+    var todayReading = readings.find(function(r) { return r.date === today; });
+    document.getElementById('readingToday').textContent = todayReading
+      ? '📖 今日已读《' + todayReading.bookName + '》' + (todayReading.progress || 0) + '%'
+      : '⏰ 今天还没阅读，去读一会儿吧';
+  } catch(e) { console.warn('阅读加载失败', e); }
+}
+
+function openAddReading() {
+  var bookName = prompt('📚 书名：');
+  if (!bookName) return;
+  var author = prompt('✍️ 作者（可选）：') || '';
+  var progress = prompt('📊 进度（%）：') || 0;
+  fetch('/api/reading', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookName: bookName, author: author, progress: parseInt(progress) || 0, date: new Date().toISOString().split('T')[0] })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) { alert('✅ 阅读打卡成功'); loadReading(); }
+    else alert('添加失败：' + data.message);
+  })
+  .catch(function(e) { alert('网络错误'); });
+}
 </script>
 </body>
 </html>
