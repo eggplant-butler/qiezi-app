@@ -226,7 +226,7 @@ async function initApp() {
 function renderHome(){
   var g = document.getElementById('focusGrid');
   g.innerHTML = FOCUS.map(function(f){
-    var data = dataCache[f.id] || [];
+    var data = Array.isArray(dataCache[f.id]) ? dataCache[f.id] : [];
     var progress = Math.min(100, data.length * 5);
     var statusMap = {active:'活跃', learning:'学习中', steady:'稳定', paused:'暂停'};
     return '<div class="focus-card" onclick="openScene(\''+f.id+'\')"><div class="top"><span class="ic">'+f.icon+'</span><span class="status '+f.status+'">'+statusMap[f.status]+'</span></div><div class="nm">'+f.label+'</div><div class="br">'+f.desc+' · '+data.length+'条</div><div class="progress"><div class="fill" style="width:'+progress+'%"></div></div></div>';
@@ -234,7 +234,7 @@ function renderHome(){
 
   var m = document.getElementById('quickModules');
   m.innerHTML = CORE_MODULES.map(function(mod){
-    var cnt = (dataCache[mod.id] || []).length;
+    var cnt = Array.isArray(dataCache[mod.id]) ? dataCache[mod.id].length : 0;
     return '<div class="quick-module" onclick="openScene(\''+mod.id+'\')"><span class="ic">'+mod.icon+'</span><div class="nm">'+mod.label+'</div><div class="cnt">'+cnt+'条</div></div>';
   }).join('');
 
@@ -337,11 +337,19 @@ function switchTab(t){
   else if(t==='me') renderMe();
 }
 
-function openScene(id){ curScene=id; var s=SCENES.find(function(x){ return x.id===id }) || {name:id, icon:'📄'}; document.getElementById('detailTitle').textContent = s.icon+' '+s.name; document.getElementById('detail').classList.add('act'); renderDetail(id); }
+function openScene(id){
+  curScene=id;
+  var s=SCENES.find(function(x){ return x.id===id });
+  if(!s) s=CORE_MODULES.find(function(x){ return x.id===id });
+  if(!s) s={name:id, icon:'📄'};
+  document.getElementById('detailTitle').textContent = (s.icon||'📄')+' '+(s.label||s.name||id);
+  document.getElementById('detail').classList.add('act');
+  renderDetail(id);
+}
 function closeDetail(){ document.getElementById('detail').classList.remove('act'); curScene=null; }
 
 function renderDetail(id){
-  var data=dataCache[id]||[];
+  var data=Array.isArray(dataCache[id])?dataCache[id]:[];
   var c=document.getElementById('detailContent');
   if(!data.length){ c.innerHTML='<div class="empty"><span class="ic">📭</span>还没有记录，点 + 添加</div>'; return; }
   c.innerHTML='<div>'+data.slice().reverse().map(function(item){
@@ -450,7 +458,7 @@ function renderInsight(){
     });
     html += '</div>';
   }
-  if(insightsCache.monthly){
+  if(insightsCache.monthly && insightsCache.monthly.mood){
     var m = insightsCache.monthly;
     html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;margin-bottom:12px">';
     html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">📅 月度总结</div>';

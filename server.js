@@ -19,7 +19,13 @@ if (fs.existsSync(path.join(__dirname, 'frontend'))) {
 // ============ 数据读写 ============
 function readData(m) {
   const f = path.join(DATA_DIR, m + '.json');
-  return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : [];
+  if (!fs.existsSync(f)) return [];
+  try {
+    const d = JSON.parse(fs.readFileSync(f, 'utf8'));
+    if (Array.isArray(d)) return d;
+    if (d && Array.isArray(d.records)) return d.records;
+    return [];
+  } catch (e) { return []; }
 }
 function writeData(m, d) {
   fs.writeFileSync(path.join(DATA_DIR, m + '.json'), JSON.stringify(d, null, 2));
