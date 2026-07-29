@@ -180,6 +180,18 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
   <div id="readingToday" style="font-size:13px;color:#CBD5E1;"></div>
 </div>
 
+<!-- ====== 家务引擎 ====== -->
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🧹 家务</span>
+    <span style="display:flex;gap:6px;align-items:center;">
+      <span id="houseworkModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(139,92,246,0.15);color:#A78BFA;">正常</span>
+      <button onclick="switchHouseworkMode()" style="background:transparent;border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:2px 8px;color:#94A3B8;font-size:10px;cursor:pointer;">切换</button>
+    </span>
+  </div>
+  <div id="houseworkList" style="font-size:13px;color:#94A3B8;min-height:20px;">加载中...</div>
+</div>
+
 <div id="homeCorrelations"></div>
 <div id="homeSuggestions"></div>
 </div>
@@ -270,6 +282,7 @@ async function initApp() {
   loadDailyQuestion();
   loadBills();
   loadReading();
+  loadHousework();
 }
 
 async function loadDailyQuestion() {
@@ -857,6 +870,60 @@ function openAddReading() {
     if (data.success) { alert('✅ 阅读打卡成功'); loadReading(); }
     else alert('添加失败：' + data.message);
   })
+  .catch(function(e) { alert('网络错误'); });
+}
+
+// ============================================================
+// 家务引擎 JS
+// ============================================================
+async function loadHousework() {
+  try {
+    var res = await fetch('/api/housework');
+    var data = await res.json();
+    var modeNames = { normal: '正常', busy: '🔴 忙', rest: '🟢 闲' };
+    document.getElementById('houseworkModeBadge').textContent = modeNames[data.mode] || '正常';
+    var urgent = data.urgent || [];
+    var html = '';
+    if (urgent.length > 0) {
+      html += '<div style="color:#EF4444;font-size:11px;margin-bottom:4px;">⚠️ 逾期任务</div>';
+      urgent.slice(0, 3).forEach(function(t) {
+        html += '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="color:#EF4444;">' + t.task + '</span><button onclick="completeHousework(\'' + t.id + '\')" style="background:transparent;border:1px solid rgba(255,255,255,0.06);border-radius:4px;padding:0 8px;color:#94A3B8;font-size:10px;cursor:pointer;">完成</button></div>';
+      });
+    } else if (data.mode !== 'busy') {
+      html += '<div style="color:#22C55E;font-size:12px;">✅ 今日所有任务已完成</div>';
+    } else {
+      html += '<div style="color:#94A3B8;font-size:12px;">📌 忙模式：只显示紧急任务</div>';
+    }
+    document.getElementById('houseworkList').innerHTML = html || '<span style="color:#64748B;font-size:12px;">暂无待做任务</span>';
+  } catch(e) { document.getElementById('houseworkList').textContent = '加载失败'; }
+}
+
+function completeHousework(id) {
+  if (!confirm('确认已完成？')) return;
+  fetch('/api/housework/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ taskId: id })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { if (data.success) { alert(data.message); loadHousework(); } })
+  .catch(function(e) { alert('网络错误'); });
+}
+
+function switchHouseworkMode() {
+  var modes = ['normal', 'busy', 'rest'];
+  var labels = ['正常', '忙（只做紧急）', '闲（全部做）'];
+  var choice = prompt('选择模式：\n1. 正常\n2. 忙（只做紧急任务）\n3. 闲（全部任务）', '1');
+  if (!choice) return;
+  var idx = parseInt(choice) - 1;
+  if (idx < 0 || idx > 2) return;
+  fetch('/api/housework/mode', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: modes[idx] })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { if (data.success) { alert(data.message); loadHousework(); } })
   .catch(function(e) { alert('网络错误'); });
 }
 </script>

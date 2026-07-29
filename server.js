@@ -443,6 +443,90 @@ app.get('/api/reading/stats', (req, res) => {
   res.json({ totalReadings: readings.length, totalDays, monthDays, totalBooks: books.size, todayRead: readings.some(r => r.date === today) });
 });
 
+// ============================================================
+// 家务引擎 API
+// ============================================================
+const HOUSE_TASKS = [
+  { task: '扫地', area: '客厅', frequency: '每日' },
+  { task: '拖地', area: '客厅', frequency: '每日' },
+  { task: '洗碗', area: '厨房', frequency: '每日' },
+  { task: '整理厨房台面', area: '厨房', frequency: '每日' },
+  { task: '铺床', area: '卧室', frequency: '每日' },
+  { task: '擦桌子', area: '卧室', frequency: '每周' },
+  { task: '换床单', area: '卧室', frequency: '每两周' },
+  { task: '清理卫生间', area: '卫生间', frequency: '每周' },
+  { task: '倒垃圾', area: '卫生间', frequency: '每日' },
+  { task: '拖阳台', area: '阳台', frequency: '每周' },
+  { task: '整理衣柜', area: '卧室', frequency: '每月' },
+  { task: '擦窗', area: '客厅', frequency: '每月' }
+];
+
+app.get('/api/housework', (req, res) => {
+  const chores = readData('housework');
+  const modeData = readData('housework_mode');
+  const mode = modeData[0]?.mode || 'normal';
+  const now = new Date();
+  const processed = chores.map(c => {
+    const last = c.lastDone || '2026-01-01';
+    const daysSince = Math.floor((now - new Date(last)) / 86400000);
+    const freqMap = { '每日': 1, '每周': 7, '每两周': 14, '每月': 30 };
+    const threshold = freqMap[c.frequency] || 1;
+    const overdue = daysSince >= threshold;
+    return { ...c, daysSince, overdue, status: overdue ? '待做' : '已完成' };
+  });
+  const grouped = {};
+  processed.forEach(c => {
+    if (!grouped[c.area]) grouped[c.area] = [];
+    grouped[c.area].push(c);
+  });
+  const sorted = processed.sort((a,b) => {
+    if (a.overdue && !b.overdue) return -1;
+    if (!a.overdue && b.overdue) return 1;
+    return a.daysSince - b.daysSince;
+  });
+  const urgent = sorted.filter(c => c.overdue);
+  const daily = sorted.filter(c => c.frequency === '每日' && !c.overdue);
+  res.json({ grouped, urgent, daily, mode, all: sorted });
+});
+
+app.post('/api/housework/complete', (req, res) => {
+  const { taskId } = req.body;
+  const chores = readData('housework');
+  const task = chores.find(c => c.id === taskId);
+  if (!task) return res.json({ success: false, message: '未找到任务' });
+  task.lastDone = new Date().toISOString().split('T')[0];
+  task.completedAt = new Date().toISOString();
+  writeData('housework', chores);
+  res.json({ success: true, message: `✅ ${task.task} 已完成！` });
+});
+
+app.post('/api/housework/mode', (req, res) => {
+  const { mode } = req.body;
+  if (!['normal', 'busy', 'rest'].includes(mode)) return res.json({ success: false, message: '无效模式' });
+  writeData('housework_mode', [{ mode, updatedAt: new Date().toISOString() }]);
+  const modeNames = { normal: '正常', busy: '忙', rest: '闲' };
+  res.json({ success: true, message: `✅ 已切换至「${modeNames[mode]}」模式` });
+});
+
+app.post('/api/housework/add', (req, res) => {
+  const { task, area, frequency } = req.body;
+  if (!task || !area || !frequency) return res.json({ success: false, message: '请填写完整信息' });
+  const chores = readData('housework');
+  const newTask = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    task, area, frequency, lastDone: null, createdAt: new Date().toISOString()
+  };
+  chores.push(newTask);
+  writeData('housework', chores);
+  res.json({ success: true, task: newTask });
+});
+
+app.delete('/api/housework/:id', (req, res) => {
+  const chores = readData('housework');
+  writeData('housework', chores.filter(c => c.id !== req.params.id));
+  res.json({ success: true });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🍆 茄子管家 v5.1 运行在 http://localhost:${PORT}`);
 });
