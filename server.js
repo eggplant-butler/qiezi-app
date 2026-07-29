@@ -383,8 +383,10 @@ async function switchTab(t){
 // 场景详情
 async function openScene(id){
   curScene=id;
-  var s=SCENES.find(function(x){return x.id===id})||CORE_MODULES.find(function(x){return x.id===id})||{name:id,icon:'📄'};
-  document.getElementById('detailTitle').textContent=s.icon+' '+s.name;
+  var s=SCENES.find(function(x){return x.id===id})||CORE_MODULES.find(function(x){return x.id===id})||{};
+  var name=s.name||s.label||id;
+  var icon=s.icon||'📄';
+  document.getElementById('detailTitle').textContent=icon+' '+name;
   document.getElementById('detail').classList.add('act');
   await renderDetail(id);
 }
