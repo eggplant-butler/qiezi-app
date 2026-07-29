@@ -298,18 +298,20 @@ async function renderHome(){
     var data=await loadData(f.id)||[];
     var progress=Math.min(100,data.length*5);
     var statusMap={active:'活跃',learning:'学习中',steady:'稳定',paused:'暂停'};
-    html+='<div class="focus-card" onclick="openScene(\\''+f.id+'\\')"><div class="top"><span class="ic">'+f.icon+'</span><span class="status '+f.status+'">'+statusMap[f.status]+'</span></div><div class="nm">'+f.label+'</div><div class="br">'+f.desc+' · '+data.length+'条</div><div class="progress"><div class="fill" style="width:'+progress+'%"></div></div></div>';
+    html+='<div class="focus-card" data-sid="'+f.id+'"><div class="top"><span class="ic">'+f.icon+'</span><span class="status '+f.status+'">'+statusMap[f.status]+'</span></div><div class="nm">'+f.label+'</div><div class="br">'+f.desc+' · '+data.length+'条</div><div class="progress"><div class="fill" style="width:'+progress+'%"></div></div></div>';
   }
   g.innerHTML=html;
+  g.querySelectorAll('.focus-card').forEach(function(el){el.onclick=function(){openScene(this.dataset.sid)}});
   
   var m=document.getElementById('quickModules');
   var mhtml='';
   for(var j=0;j<CORE_MODULES.length;j++){
     var mod=CORE_MODULES[j];
     var d=await loadData(mod.id)||[];
-    mhtml+='<div class="quick-module" onclick="openScene(\\''+mod.id+'\\')"><span class="ic">'+mod.icon+'</span><div class="nm">'+mod.label+'</div><div class="cnt">'+d.length+'条</div></div>';
+    mhtml+='<div class="quick-module" data-mid="'+mod.id+'"><span class="ic">'+mod.icon+'</span><div class="nm">'+mod.label+'</div><div class="cnt">'+d.length+'条</div></div>';
   }
   m.innerHTML=mhtml;
+  m.querySelectorAll('.quick-module').forEach(function(el){el.onclick=function(){openScene(this.dataset.mid)}});
   
   var n=new Date();
   document.getElementById('todayD').textContent=n.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
@@ -398,8 +400,13 @@ async function renderDetail(id){
     if(item.amount)l+=' ¥'+item.amount;
     if(item.rating)s+=' · 评分'+item.rating;
     if(item.status)s+=' · '+item.status;
-    return '<div class="rec"><div><div class="tt">'+l+'</div><div class="sb">'+s+'</div></div><div class="ac"><button onclick="editRec(\\''+id+'\\',\\''+item.id+'\\')">✏️</button><button class="dl" onclick="delRec(\\''+id+'\\',\\''+item.id+'\\')">🗑️</button></div></div>';
+    return '<div class="rec" data-rid="'+item.id+'"><div><div class="tt">'+l+'</div><div class="sb">'+s+'</div></div><div class="ac"><button class="edit-btn">✏️</button><button class="dl del-btn">🗑️</button></div></div>';
   }).join('')+'</div>';
+  c.querySelectorAll('.rec').forEach(function(el){
+    var rid=el.dataset.rid;
+    el.querySelector('.edit-btn').onclick=function(){editRec(id,rid)};
+    el.querySelector('.del-btn').onclick=function(){delRec(id,rid)};
+  });
 }
 
 function openAdd(){
@@ -409,11 +416,11 @@ function openAdd(){
   document.getElementById('modal').classList.add('act');
 }
 
-async function editRec(sceneId,id){
+async function editRec(sceneId,recId){
   var data=await loadData(sceneId)||[];
-  var item=data.find(function(x){return x.id===id});
+  var item=data.find(function(x){return x.id===recId});
   if(!item)return;
-  editId=id;
+  editId=recId;
   document.getElementById('modalTitle').textContent='编辑记录';
   document.getElementById('modalBody').innerHTML='<label>内容</label><input id="f_c" value="'+(item.content||item.name||'')+'"><label>日期</label><input type="date" id="f_d" value="'+(item.date||TODAY)+'"><label>评分</label><select id="f_r"><option value="">无</option>'+[1,2,3,4,5].map(function(r){return '<option '+(item.rating==r?'selected':'')+'>'+r+'</option>';}).join('')+'</select><label>备注</label><textarea id="f_n" rows="2">'+(item.note||'')+'</textarea>';
   document.getElementById('modal').classList.add('act');
@@ -436,9 +443,9 @@ async function saveRecord(){
   await renderDetail(curScene);
 }
 
-async function delRec(sceneId,id){
+async function delRec(sceneId,recId){
   if(!confirm('确定删除？'))return;
-  await apiDel(sceneId,id);
+  await apiDel(sceneId,recId);
   clearCache(sceneId);
   await renderDetail(sceneId);
 }
@@ -452,9 +459,10 @@ async function renderRecord(){
   for(var i=0;i<SCENES.length;i++){
     var s=SCENES[i];
     var data=await loadData(s.id)||[];
-    html+='<div class="space-item" onclick="openScene(\\''+s.id+'\\')"><div class="top"><span class="nm">'+s.icon+' '+s.name+'</span><span class="cnt">'+data.length+'条</span></div><div class="sub">'+s.brief+'</div></div>';
+    html+='<div class="space-item" data-rid="'+s.id+'"><div class="top"><span class="nm">'+s.icon+' '+s.name+'</span><span class="cnt">'+data.length+'条</span></div><div class="sub">'+s.brief+'</div></div>';
   }
   c.innerHTML=html;
+  c.querySelectorAll('.space-item').forEach(function(el){el.onclick=function(){openScene(el.dataset.rid)}});
 }
 
 // 洞察页
