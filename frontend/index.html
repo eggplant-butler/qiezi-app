@@ -371,10 +371,10 @@ function openAdd(){
 }
 
 function editRec(sceneId,id){
-  var data=dataCache[sceneId]||[];
-  var item=data.find(function(x){ return x.id===id });
+  var data=Array.isArray(dataCache[sceneId])?dataCache[sceneId]:[];
+  var item=data.find(function(x){ return String(x.id)===String(id); });
   if(!item) return;
-  editId=id;
+  editId=item.id;
   document.getElementById('modalTitle').textContent='编辑记录';
   document.getElementById('modalBody').innerHTML='<label>内容</label><input id="f_c" value="'+(item.content||'')+'"><label>日期</label><input type="date" id="f_d" value="'+(item.date||TODAY)+'"><label>评分</label><select id="f_r"><option value="">无</option>'+[1,2,3,4,5].map(function(r){ return '<option '+(item.rating==r?'selected':'')+'>'+r+'</option>'; }).join('')+'</select><label>备注</label><textarea id="f_n" rows="2">'+(item.note||'')+'</textarea>';
   document.getElementById('modal').classList.add('act');
@@ -404,7 +404,7 @@ async function saveRecord(){
 async function delRec(sceneId,id){
   if(!confirm('确定删除？')) return;
   var data=Array.isArray(dataCache[sceneId])?dataCache[sceneId]:[];
-  dataCache[sceneId]=data.filter(function(x){ return x.id!==id; });
+  dataCache[sceneId]=data.filter(function(x){ return String(x.id)!==String(id); });
   await apiSave(sceneId,dataCache[sceneId]);
   renderDetail(sceneId);
   renderHome();
