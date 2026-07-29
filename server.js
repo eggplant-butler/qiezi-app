@@ -18,7 +18,25 @@ MODULES.forEach(m => {
   if (!fs.existsSync(file)) fs.writeFileSync(file, '[]');
 });
 
-// 通用CRUD API
+// 健康检查（必须在通用路由前）
+app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.0', time: new Date().toISOString() }));
+
+// 统计接口（必须在通用路由前）
+app.get('/api/stats', (req, res) => {
+  const stats = {};
+  MODULES.forEach(m => {
+    const file = path.join(DATA_DIR, m + '.json');
+    try {
+      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+      stats[m] = Array.isArray(data) ? data.length : 0;
+    } catch (e) {
+      stats[m] = 0;
+    }
+  });
+  res.json(stats);
+});
+
+// 通用CRUD API（必须放在具体路由之后）
 app.get('/api/:module', (req, res) => {
   const file = path.join(DATA_DIR, req.params.module + '.json');
   if (!fs.existsSync(file)) return res.json([]);
@@ -70,24 +88,6 @@ app.delete('/api/:module/:id', (req, res) => {
   data = data.filter(item => item.id !== req.params.id);
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
   res.json({ success: true });
-});
-
-// 健康检查
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.0', time: new Date().toISOString() }));
-
-// 统计接口
-app.get('/api/stats', (req, res) => {
-  const stats = {};
-  MODULES.forEach(m => {
-    const file = path.join(DATA_DIR, m + '.json');
-    try {
-      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-      stats[m] = Array.isArray(data) ? data.length : 0;
-    } catch (e) {
-      stats[m] = 0;
-    }
-  });
-  res.json(stats);
 });
 
 // v5.0 前端
