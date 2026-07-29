@@ -192,6 +192,24 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
   <div id="houseworkList" style="font-size:13px;color:#94A3B8;min-height:20px;">加载中...</div>
 </div>
 
+<!-- ====== 社交人脉 ====== -->
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">👥 社交</span>
+    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="openAddContact()">+ 添加</span>
+  </div>
+  <div id="socialList" style="font-size:13px;color:#94A3B8;min-height:20px;">加载中...</div>
+</div>
+
+<!-- ====== 成就系统 ====== -->
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🏆 成就</span>
+    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="viewAchievements()">查看全部</span>
+  </div>
+  <div id="achievementList" style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;min-height:20px;">加载中...</div>
+</div>
+
 <div id="homeCorrelations"></div>
 <div id="homeSuggestions"></div>
 </div>
@@ -283,6 +301,8 @@ async function initApp() {
   loadBills();
   loadReading();
   loadHousework();
+  loadSocial();
+  loadAchievements();
 }
 
 async function loadDailyQuestion() {
@@ -925,6 +945,75 @@ function switchHouseworkMode() {
   .then(function(r) { return r.json(); })
   .then(function(data) { if (data.success) { alert(data.message); loadHousework(); } })
   .catch(function(e) { alert('网络错误'); });
+}
+
+// ============================================================
+// 社交人脉 JS
+// ============================================================
+async function loadSocial() {
+  try {
+    var res = await fetch('/api/contacts');
+    var contacts = await res.json();
+    var container = document.getElementById('socialList');
+    if (contacts.length === 0) {
+      container.innerHTML = '<span style="color:#64748B;font-size:12px;">还没有联系人，点 + 添加</span>';
+      return;
+    }
+    var top = contacts.slice(0, 3);
+    container.innerHTML = top.map(function(c) {
+      var badge = '';
+      if (c.daysUntilBirthday !== null && c.daysUntilBirthday <= 7) badge = '🎂 ';
+      if (c.daysSinceContact !== null && c.daysSinceContact > 30) badge = '📅 ';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="color:#CBD5E1;">' + badge + c.name + '</span><span style="font-size:11px;color:#64748B;">' + c.relation + '</span></div>';
+    }).join('');
+  } catch(e) { document.getElementById('socialList').textContent = '加载失败'; }
+}
+
+function openAddContact() {
+  var name = prompt('👤 姓名：');
+  if (!name) return;
+  var relation = prompt('📌 关系（家人/朋友/同事）：') || '朋友';
+  var birthday = prompt('🎂 生日（格式：YYYY-MM-DD，可选）：') || '';
+  fetch('/api/contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, relation: relation, birthday: birthday, phone: '', note: '' })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { if (data.success) { alert('✅ 联系人已添加'); loadSocial(); } })
+  .catch(function(e) { alert('网络错误'); });
+}
+
+// ============================================================
+// 成就系统 JS
+// ============================================================
+async function loadAchievements() {
+  try {
+    var res = await fetch('/api/achievements');
+    var data = await res.json();
+    var container = document.getElementById('achievementList');
+    if (data.unlockedCount === 0) {
+      container.innerHTML = '<span style="color:#64748B;font-size:12px;">继续努力，解锁第一个成就 🏆</span>';
+      return;
+    }
+    container.innerHTML = data.unlocked.slice(0, 4).map(function(a) {
+      return '<span style="background:rgba(167,139,250,0.1);border-radius:12px;padding:2px 10px;font-size:11px;color:#A78BFA;">' + a.name + '</span>';
+    }).join('');
+  } catch(e) { document.getElementById('achievementList').textContent = '加载失败'; }
+  try { await fetch('/api/achievements/check', { method: 'POST' }); } catch(e) {}
+}
+
+function viewAchievements() {
+  fetch('/api/achievements')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var msg = '🏆 成就墙\n\n已解锁 ' + data.unlockedCount + '/' + data.total + '\n\n';
+      data.all.forEach(function(a) {
+        msg += (a.unlocked ? '✅ ' : '🔒 ') + a.name + ' — ' + a.condition + '\n';
+      });
+      alert(msg);
+    })
+    .catch(function(e) { alert('加载失败'); });
 }
 </script>
 </body>

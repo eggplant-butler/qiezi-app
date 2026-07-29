@@ -527,6 +527,163 @@ app.delete('/api/housework/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ============================================================
+// 社交人脉 API
+// ============================================================
+app.post('/api/contact', (req, res) => {
+  const { name, relation, birthday, phone, note } = req.body;
+  if (!name) return res.json({ success: false, message: '请输入姓名' });
+  const contacts = readData('contacts');
+  contacts.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    name, relation: relation || '朋友', birthday: birthday || null,
+    phone: phone || '', note: note || '', lastContact: null,
+    interactions: [], createdAt: new Date().toISOString()
+  });
+  writeData('contacts', contacts);
+  res.json({ success: true });
+});
+
+app.get('/api/contacts', (req, res) => {
+  const contacts = readData('contacts');
+  const now = new Date();
+  const processed = contacts.map(c => {
+    let daysUntilBirthday = null;
+    if (c.birthday) {
+      const bday = new Date(c.birthday);
+      const thisYear = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
+      daysUntilBirthday = Math.ceil((thisYear - now) / 86400000);
+      if (daysUntilBirthday < 0) {
+        const nextYear = new Date(now.getFullYear() + 1, bday.getMonth(), bday.getDate());
+        daysUntilBirthday = Math.ceil((nextYear - now) / 86400000);
+      }
+    }
+    const lastContact = c.interactions?.length > 0 ? c.interactions[c.interactions.length - 1].date : null;
+    const daysSinceContact = lastContact ? Math.floor((now - new Date(lastContact)) / 86400000) : null;
+    return { ...c, daysUntilBirthday, daysSinceContact, lastContact, interactionCount: c.interactions?.length || 0 };
+  });
+  const sorted = processed.sort((a,b) => {
+    if (a.daysUntilBirthday !== null && b.daysUntilBirthday !== null) return a.daysUntilBirthday - b.daysUntilBirthday;
+    if (a.daysUntilBirthday !== null) return -1;
+    if (b.daysUntilBirthday !== null) return 1;
+    return (a.daysSinceContact || 999) - (b.daysSinceContact || 999);
+  });
+  res.json(sorted);
+});
+
+app.post('/api/contact/interact', (req, res) => {
+  const { contactId, content, rating } = req.body;
+  if (!contactId) return res.json({ success: false, message: '请选择联系人' });
+  const contacts = readData('contacts');
+  const contact = contacts.find(c => c.id === contactId);
+  if (!contact) return res.json({ success: false, message: '未找到联系人' });
+  if (!contact.interactions) contact.interactions = [];
+  contact.interactions.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    date: new Date().toISOString().split('T')[0],
+    content: content || '互动记录', rating: parseInt(rating) || 3,
+    createdAt: new Date().toISOString()
+  });
+  contact.lastContact = new Date().toISOString().split('T')[0];
+  writeData('contacts', contacts);
+  if (parseInt(rating) <= 2) {
+    const emotion = readData('emotion');
+    emotion.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      date: new Date().toISOString().split('T')[0], rating: parseInt(rating),
+      tags: ['社交', contact.name], note: `与 ${contact.name} 互动，感受评分 ${rating}/5`, source: 'social'
+    });
+    writeData('emotion', emotion);
+  }
+  res.json({ success: true, message: `✅ 已记录与 ${contact.name} 的互动` });
+});
+
+app.delete('/api/contact/:id', (req, res) => {
+  writeData('contacts', readData('contacts').filter(c => c.id !== req.params.id));
+  res.json({ success: true });
+});
+
+// ============================================================
+// 成就系统 API
+// ============================================================
+const ACHIEVEMENTS_DEF = [
+  { id: 'a1', name: '🌱 萌芽者', condition: '连续记录7天', check: (d) => d.consecutiveDays >= 7 },
+  { id: 'a2', name: '🌿 坚持者', condition: '连续记录30天', check: (d) => d.consecutiveDays >= 30 },
+  { id: 'a3', name: '🌳 扎根者', condition: '连续记录90天', check: (d) => d.consecutiveDays >= 90 },
+  { id: 'a4', name: '📚 书虫', condition: '读完5本书', check: (d) => d.booksRead >= 5 },
+  { id: 'a5', name: '💪 行动派', condition: '完成30次锻炼', check: (d) => d.exercises >= 30 },
+  { id: 'a6', name: '🧠 思考者', condition: '回答7次今日之问', check: (d) => d.questionsAnswered >= 7 },
+  { id: 'a7', name: '💰 储户', condition: '储蓄目标达成1个', check: (d) => d.savingsGoals >= 1 },
+  { id: 'a8', name: '📸 记录者', condition: '拍摄50张作品', check: (d) => d.photos >= 50 },
+  { id: 'a9', name: '❤️ 温暖者', condition: '记录10次感恩瞬间', check: (d) => d.gratitudes >= 10 },
+  { id: 'a10', name: '🗣️ 连接者', condition: '与5位朋友保持联系', check: (d) => d.contactsMaintained >= 5 }
+];
+
+app.get('/api/achievements', (req, res) => {
+  const achieved = readData('achievements');
+  const unlocked = achieved.filter(a => a.unlocked);
+  const all = ACHIEVEMENTS_DEF.map(def => {
+    const existing = achieved.find(a => a.id === def.id);
+    return { ...def, unlocked: existing?.unlocked || false, unlockedAt: existing?.unlockedAt || null };
+  });
+  res.json({ all, unlocked: all.filter(a => a.unlocked), total: ACHIEVEMENTS_DEF.length, unlockedCount: unlocked.length });
+});
+
+app.post('/api/achievements/check', (req, res) => {
+  const emotion = readData('emotion');
+  const sleep = readData('sleep');
+  const exercise = readData('exercise');
+  const reading = readData('reading');
+  const questions = readData('daily_questions');
+  const wish = readData('wish');
+  const photo = readData('photo');
+  const diary = readData('diary');
+  const contacts = readData('contacts');
+  
+  const allDates = new Set();
+  emotion.forEach(e => allDates.add(e.date));
+  sleep.forEach(s => allDates.add(s.date));
+  exercise.forEach(ex => allDates.add(ex.date));
+  const dates = Array.from(allDates).sort();
+  
+  let maxStreak = 0, currentStreak = 0;
+  for (let i = 0; i < dates.length; i++) {
+    const d = new Date(dates[i]);
+    const prev = i > 0 ? new Date(dates[i-1]) : null;
+    if (prev && (d - prev) / 86400000 === 1) { currentStreak++; }
+    else { currentStreak = 1; }
+    if (currentStreak > maxStreak) maxStreak = currentStreak;
+  }
+  
+  const userData = {
+    consecutiveDays: maxStreak,
+    booksRead: reading.filter(r => (r.progress || 0) >= 100).length,
+    exercises: exercise.length,
+    questionsAnswered: questions.filter(q => q.answer).length,
+    savingsGoals: wish.filter(w => w.status === '已完成').length,
+    photos: photo.length,
+    gratitudes: diary.filter(d => d.content && d.content.includes('感恩')).length,
+    contactsMaintained: contacts.filter(c => c.interactions && c.interactions.length >= 2).length
+  };
+  
+  const achievements = readData('achievements');
+  let newUnlocked = 0;
+  ACHIEVEMENTS_DEF.forEach(def => {
+    const existing = achievements.find(a => a.id === def.id);
+    if (!existing || !existing.unlocked) {
+      if (def.check(userData)) {
+        const entry = existing || { id: def.id, name: def.name, condition: def.condition };
+        entry.unlocked = true;
+        entry.unlockedAt = new Date().toISOString();
+        if (!existing) achievements.push(entry);
+        newUnlocked++;
+      }
+    }
+  });
+  if (newUnlocked > 0) writeData('achievements', achievements);
+  res.json({ newUnlocked, totalUnlocked: achievements.filter(a => a.unlocked).length, achievements });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🍆 茄子管家 v5.1 运行在 http://localhost:${PORT}`);
 });
