@@ -234,8 +234,8 @@ var SCENES=[
 var FOCUS=[
 {id:'work',label:'工作收入',icon:'💼',desc:'稳定收入·增长路径',status:'active'},
 {id:'photo',label:'摄影能力',icon:'📷',desc:'技能积累·表达出口',status:'learning'},
-{id:'health',label:'身体健康',icon:'💪',desc:'能量基础·一切前提',status:'steady'},
-{id:'mind',label:'认知思考',icon:'🧠',desc:'决策质量·成长引擎',status:'learning'}
+{id:'body',label:'身体健康',icon:'💪',desc:'能量基础·一切前提',status:'steady'},
+{id:'think',label:'认知思考',icon:'🧠',desc:'决策质量·成长引擎',status:'learning'}
 ];
 var CORE_MODULES=[
 {id:'finance',label:'财务',icon:'💰'},{id:'sleep',label:'睡眠',icon:'😴'},
@@ -265,7 +265,10 @@ async function getStats(){
 
 var dataCache={};
 async function loadData(module){
-  if(!dataCache[module])dataCache[module]=await apiGet(module);
+  if(!dataCache[module]){
+    var d=await apiGet(module);
+    dataCache[module]=Array.isArray(d)?d:[];
+  }
   return dataCache[module];
 }
 function clearCache(module){if(module)delete dataCache[module];else dataCache={}}
@@ -370,6 +373,8 @@ async function parseNL(text){
 async function switchTab(t){
   document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('act')});
   document.querySelectorAll('.pg').forEach(function(el){el.classList.remove('act')});
+  document.getElementById('detail').classList.remove('act');
+  curScene=null;
   var tabNames={home:'首页',record:'记录',insight:'洞察',me:'我'};
   document.querySelectorAll('.tab').forEach(function(el){
     if(el.textContent.trim().indexOf(tabNames[t])!==-1)el.classList.add('act');
