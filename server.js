@@ -288,7 +288,7 @@ document.getElementById('pwdI').addEventListener('keydown',function(e){if(e.key=
 
 async function initApp(){
   var stats=await getStats();
-  for(var m in stats)dataCache[m]=await apiGet(m);
+  for(var m in stats) await loadData(m);
   renderHome();
 }
 
