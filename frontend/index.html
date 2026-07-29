@@ -319,7 +319,9 @@ function parseNL(text){
     if(target !== 'diary') break;
   }
   var record = { id: genId(), content: text, date: TODAY, created: new Date().toISOString() };
-  apiAdd(target, record);
+  if(!Array.isArray(dataCache[target])) dataCache[target] = [];
+  dataCache[target].push(record);
+  apiSave(target, dataCache[target]);
   var names = {finance:'财务',sleep:'睡眠',exercise:'锻炼',emotion:'情绪',diet:'饮食',photo:'摄影',think:'认知思考',diary:'日记'};
   return '✅ 已存入「' + (names[target] || target) + '」';
 }
@@ -384,20 +386,16 @@ async function saveRecord(){
   var d=document.getElementById('f_d').value;
   var r=document.getElementById('f_r').value;
   var n=document.getElementById('f_n').value;
-  var data=dataCache[curScene]||[];
+  var data=Array.isArray(dataCache[curScene])?dataCache[curScene]:(dataCache[curScene]=[]);
   if(editId){
     var item=data.find(function(x){ return x.id===editId });
     if(item){ item.content=c; item.date=d; item.rating=r; item.note=n; }
+    await apiSave(curScene,data);
   } else {
     var newItem = {id:genId(), content:c, date:d, rating:r, note:n, created:new Date().toISOString()};
     data.push(newItem);
-    await apiAdd(curScene, newItem);
-    closeModal();
-    renderDetail(curScene);
-    renderHome();
-    return;
+    await apiSave(curScene,data);
   }
-  await apiSave(curScene,data);
   closeModal();
   renderDetail(curScene);
   renderHome();
@@ -405,7 +403,9 @@ async function saveRecord(){
 
 async function delRec(sceneId,id){
   if(!confirm('确定删除？')) return;
-  await apiDelete(sceneId,id);
+  var data=Array.isArray(dataCache[sceneId])?dataCache[sceneId]:[];
+  dataCache[sceneId]=data.filter(function(x){ return x.id!==id; });
+  await apiSave(sceneId,dataCache[sceneId]);
   renderDetail(sceneId);
   renderHome();
 }
