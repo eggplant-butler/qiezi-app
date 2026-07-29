@@ -90,6 +90,118 @@ app.delete('/api/:module/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ============ v5.1 洞察引擎 ============
+app.get('/api/insights', (req, res) => {
+  const all = {};
+  MODULES.forEach(m => { all[m] = readData(m); });
+  res.json(generateInsights(all));
+});
+
+function readData(m) {
+  const f = path.join(DATA_DIR, m + '.json');
+  return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : [];
+}
+
+function generateInsights(data) {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const monthAgo = new Date(now); monthAgo.setDate(now.getDate() - 30);
+  const ms = monthAgo.toISOString().split('T')[0];
+  const result = { daily: {}, correlations: [], suggestions: [], growth: {}, milestones: [], compoundRate: null };
+
+  // 1. 每日状态
+  const te = (data.emotion || []).find(e => e.date === today);
+  const ts = (data.sleep || []).find(s => s.date === today);
+  result.daily = { mood: te ? parseFloat(te.rating) || 0 : null, sleep: ts ? parseFloat(ts.hours) || 0 : null };
+
+  // 2. 睡眠-情绪关联
+  const se = (data.sleep || []).filter(s => s.date >= ms).map(s => {
+    const e = (data.emotion || []).find(em => em.date === s.date);
+    return e ? { h: parseFloat(s.hours) || 0, m: parseFloat(e.rating) || 0 } : null;
+  }).filter(Boolean);
+  if (se.length >= 5) {
+    const gd = se.filter(d => d.h >= 7), bd = se.filter(d => d.h < 6);
+    if (gd.length && bd.length) {
+      const ag = gd.reduce((a,b) => a + b.m, 0) / gd.length;
+      const ab = bd.reduce((a,b) => a + b.m, 0) / bd.length;
+      result.correlations.push({ type: 'sleep_mood', title: '😴 睡眠与情绪', detail: `≥7h时${ag.toFixed(1)}分，<6h时${ab.toFixed(1)}分，差${(ag-ab).toFixed(1)}分` });
+      if (ag - ab > 1) result.suggestions.push({ id: 's1', text: '💡 睡眠对情绪影响显著，建议本周至少3天23:00前睡', module: 'sleep' });
+    }
+  }
+
+  // 3. 锻炼-情绪关联
+  const exm = (data.exercise || []).filter(e => e.date >= ms).map(e => {
+    const em = (data.emotion || []).find(em => em.date === e.date);
+    return em ? { m: parseFloat(em.rating) || 0 } : null;
+  }).filter(Boolean);
+  const noEx = (data.emotion || []).filter(e => e.date >= ms && !(data.exercise || []).some(ex => ex.date === e.date));
+  if (exm.length >= 3 && noEx.length >= 3) {
+    const ae = exm.reduce((a,b) => a + b.m, 0) / exm.length;
+    const an = noEx.reduce((a,b) => a + parseFloat(b.rating) || 0, 0) / noEx.length;
+    result.correlations.push({ type: 'exercise_mood', title: '🏃 锻炼与情绪', detail: `锻炼日${ae.toFixed(1)}分，非锻炼日${an.toFixed(1)}分，差${(ae-an).toFixed(1)}分` });
+    if (ae - an > 0.8) result.suggestions.push({ id: 's2', text: '💪 锻炼后情绪明显提升，每周至少安排2次运动', module: 'exercise' });
+  }
+
+  // 4. 饮食结构
+  const diet = (data.diet || []).filter(d => d.date >= ms);
+  if (diet.length >= 7) {
+    const veg = diet.filter(d => d.content && (d.content.includes('蔬菜') || d.content.includes('青菜') || d.content.includes('沙拉'))).length;
+    const meat = diet.filter(d => d.content && (d.content.includes('肉') || d.content.includes('鸡胸') || d.content.includes('牛肉'))).length;
+    const carb = diet.filter(d => d.content && (d.content.includes('饭') || d.content.includes('面') || d.content.includes('面包'))).length;
+    result.correlations.push({ type: 'diet_structure', title: '🥗 饮食结构', detail: `近30天：蔬菜${veg}次，肉类${meat}次，碳水${carb}次` });
+    if (veg < diet.length * 0.3) result.suggestions.push({ id: 's3', text: '🥬 蔬菜摄入偏少，建议每餐增加绿叶蔬菜', module: 'diet' });
+    if (meat < diet.length * 0.2) result.suggestions.push({ id: 's4', text: '🥩 蛋白质摄入偏少，建议增加鸡胸肉或鱼', module: 'diet' });
+  }
+
+  // 5. 成长阶段
+  const total = Math.max((data.emotion || []).length, (data.sleep || []).length, (data.exercise || []).length, 1);
+  let phase, desc, next;
+  if (total < 7) { phase = '🌱 萌芽期'; desc = '开始记录，让习惯成为自然'; next = '7天连续记录'; }
+  else if (total < 30) { phase = '🌿 成长期'; desc = '你的记录习惯正在形成'; next = '30天连续记录'; }
+  else if (total < 90) { phase = '🌳 稳定期'; desc = '数据开始有意义了'; next = '90天连续记录'; }
+  else if (total < 180) { phase = '🍇 成熟期'; desc = '系统已经足够了解你'; next = '180天连续记录'; }
+  else if (total < 365) { phase = '🌟 默契期'; desc = '系统和你在共同成长'; next = '365天连续记录'; }
+  else { phase = '♾️ 共生期'; desc = '系统是你的长期伙伴'; next = '继续记录，年度对比'; }
+  result.growth = { days: total, phase, phaseDesc: desc, nextMilestone: next, progress: Math.min(100, Math.round((total / 365) * 100)) };
+
+  // 6. 里程碑
+  const milestones = [];
+  if (total >= 7) milestones.push({ name: '🌱 连续7天', date: today });
+  if (total >= 30) milestones.push({ name: '🌿 连续30天', date: today });
+  if (total >= 90) milestones.push({ name: '🌳 连续90天', date: today });
+  if (total >= 180) milestones.push({ name: '🍇 连续180天', date: today });
+  if (total >= 365) milestones.push({ name: '🎂 连续365天', date: today });
+  result.milestones = milestones;
+
+  // 7. 月度总结
+  const me = (data.emotion || []).filter(e => e.date >= ms);
+  if (me.length > 0) {
+    const avg = me.reduce((a,b) => a + parseFloat(b.rating) || 0, 0) / me.length;
+    const prevMs = new Date(now); prevMs.setDate(now.getDate() - 60);
+    const pms = prevMs.toISOString().split('T')[0];
+    const pme = (data.emotion || []).filter(e => e.date >= pms && e.date < ms);
+    let change = 0;
+    if (pme.length > 0) {
+      const pavg = pme.reduce((a,b) => a + parseFloat(b.rating) || 0, 0) / pme.length;
+      change = avg - pavg;
+    }
+    result.monthly = { mood: avg.toFixed(1), days: me.length, changeText: change > 0.3 ? `📈 比上月提升${change.toFixed(1)}分` : change < -0.3 ? `📉 比上月下降${Math.abs(change).toFixed(1)}分` : '➡️ 与上月基本持平' };
+  }
+
+  // 8. 复利速率
+  const allEmo = (data.emotion || []).sort((a,b) => a.date > b.date ? 1 : -1);
+  if (allEmo.length >= 30) {
+    const first30 = allEmo.slice(0, 30);
+    const last30 = allEmo.slice(-30);
+    const fAvg = first30.reduce((a,b) => a + parseFloat(b.rating) || 0, 0) / first30.length;
+    const lAvg = last30.reduce((a,b) => a + parseFloat(b.rating) || 0, 0) / last30.length;
+    const rate = (lAvg - fAvg) / (allEmo.length / 30);
+    result.compoundRate = { value: rate, text: rate > 0.1 ? `📈 每月改善${rate.toFixed(2)}分` : rate < -0.1 ? `📉 每月下降${Math.abs(rate).toFixed(2)}分，需要关注` : '➡️ 保持稳定，继续积累' };
+  }
+
+  return result;
+}
+
 // v5.0 前端
 app.get('/', (req, res) => {
   res.send(`<!DOCTYPE html>
@@ -97,7 +209,7 @@ app.get('/', (req, res) => {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>茄子管家 · v5.0</title>
+<title>茄子管家 · v5.1</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
@@ -116,7 +228,15 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 .greet .d{font-size:13px;color:#94A3B8}
 .greet .t{font-size:15px;color:#E2E8F0;margin-top:4px;display:flex;justify-content:space-between;align-items:center}
 .greet .t strong{color:#fff}
+.greet .t .phase-badge{background:rgba(139,92,246,0.2);color:#A78BFA;font-size:11px;border-radius:12px;padding:2px 12px;line-height:22px}
 .greet .t .remind-badge{background:#EF4444;color:#fff;font-size:10px;border-radius:10px;padding:0 10px;line-height:20px;cursor:pointer}
+.growth-bar{background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04)}
+.growth-bar .row{display:flex;justify-content:space-between;align-items:center}
+.growth-bar .phase{font-size:13px;font-weight:600;color:#A78BFA}
+.growth-bar .progress{font-size:12px;color:#94A3B8}
+.growth-bar .bar{height:4px;background:rgba(255,255,255,0.06);border-radius:4px;margin-top:6px;overflow:hidden}
+.growth-bar .bar .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#8B5CF6,#EC4899);transition:width 0.8s}
+.growth-bar .desc{font-size:11px;color:#64748B;margin-top:4px}
 .overview{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .overview-card{background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 14px;border:1px solid rgba(255,255,255,0.04)}
 .overview-card .num{font-size:24px;font-weight:700;color:#A78BFA}
@@ -185,6 +305,13 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 .area-item{background:rgba(255,255,255,0.02);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:2px solid rgba(139,92,246,0.3);cursor:pointer}
 .area-item .nm{font-size:13px;color:#F1F5F9}
 .area-item .cnt{font-size:11px;color:#94A3B8}
+.corr-item{background:rgba(167,139,250,0.06);border-radius:10px;padding:10px 14px;margin-bottom:6px;border-left:3px solid #A78BFA}
+.corr-item .title{font-size:13px;font-weight:600;color:#F1F5F9}
+.corr-item .detail{font-size:12px;color:#94A3B8;margin-top:2px}
+.suggestion-item{background:rgba(251,191,36,0.06);border-radius:10px;padding:10px 14px;margin-bottom:6px;border-left:3px solid #FBBF24;font-size:13px;color:#E2E8F0}
+.milestone-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;color:#CBD5E1}
+.milestone-item:last-child{border-bottom:none}
+.milestone-item .ic{font-size:18px}
 </style>
 </head>
 <body>
@@ -199,13 +326,21 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 </div>
 <div id="app">
 <div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="togglePrivacy()">👁️</button><button onclick="switchTab('me')">⚙️</button></div></div>
-<div class="greet"><div class="d" id="todayD"></div><div class="t"><span id="greetT">加载中...</span><span class="remind-badge" id="remindEntry" onclick="switchTab('insight')" style="display:none">1条提醒</span></div></div>
+<div class="greet"><div class="d" id="todayD"></div><div class="t"><span id="greetT">加载中...</span><span class="phase-badge" id="phaseBadge">🌱 萌芽期</span></div></div>
+
+<div class="growth-bar" id="growthBar">
+<div class="row"><span class="phase" id="phaseLabel">🌱 萌芽期</span><span class="progress" id="progressLabel">0%</span></div>
+<div class="bar"><div class="fill" id="growthFill" style="width:0%"></div></div>
+<div class="desc" id="phaseDesc">开始记录，让习惯成为自然</div>
+</div>
 
 <div class="pg act" id="pgHome">
-<div class="overview"><div class="overview-card"><div class="num" id="ovSleep">-</div><div class="label">平均睡眠</div><div class="sub">近7天</div></div><div class="overview-card"><div class="num" id="ovMood">-</div><div class="label">平均情绪</div><div class="sub">近7天</div></div></div>
+<div class="overview"><div class="overview-card"><div class="num" id="ovSleep">-</div><div class="label">平均睡眠</div><div class="sub">近7天</div></div><div class="overview-card"><div class="num" id="ovMood">-</div><div class="label">平均情绪</div><div class="sub">近7天</div></div><div class="overview-card"><div class="num" id="ovDays">-</div><div class="label">记录天数</div><div class="sub">累计</div></div></div>
 <div class="input-area"><input type="text" id="nlInput" placeholder="说一句话记录... 如：中午吃了鸡胸肉沙拉"><button onclick="nlSubmit()">发送</button></div>
 <div class="focus-grid" id="focusGrid"></div>
 <div class="quick-modules" id="quickModules"></div>
+<div id="homeCorrelations"></div>
+<div id="homeSuggestions"></div>
 </div>
 
 <div class="pg" id="pgRecord"><div id="recordList"></div></div>
@@ -264,6 +399,7 @@ async function getStats(){
 }
 
 var dataCache={};
+var insightsCache=null;
 async function loadData(module){
   if(!dataCache[module]){
     var d=await apiGet(module);
@@ -272,6 +408,9 @@ async function loadData(module){
   return dataCache[module];
 }
 function clearCache(module){if(module)delete dataCache[module];else dataCache={}}
+async function fetchInsights(){
+  try{var r=await fetch('/api/insights');insightsCache=await r.json();}catch(e){}
+}
 
 // 登录
 function login(){
@@ -289,6 +428,7 @@ document.getElementById('pwdI').addEventListener('keydown',function(e){if(e.key=
 async function initApp(){
   var stats=await getStats();
   for(var m in stats) await loadData(m);
+  await fetchInsights();
   renderHome();
 }
 
@@ -320,8 +460,10 @@ async function renderHome(){
   document.getElementById('todayD').textContent=n.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
   var h=n.getHours();
   document.getElementById('greetT').innerHTML=(h<6?'深夜':h<9?'早安':h<12?'上午好':h<14?'午安':h<18?'下午好':h<21?'晚上好':'夜深了')+' · 今天状态如何？';
-  
+
   await renderOverview();
+  renderGrowth();
+  renderHomeInsights();
 }
 
 async function renderOverview(){
@@ -332,6 +474,40 @@ async function renderOverview(){
   emotion.slice(-7).forEach(function(e){em+=parseFloat(e.rating)||0});
   document.getElementById('ovSleep').textContent=(sleep.length?(sl/Math.min(7,sleep.length)).toFixed(1):'-')+'h';
   document.getElementById('ovMood').textContent=(emotion.length?(em/Math.min(7,emotion.length)).toFixed(1):'-')+'/10';
+  var days=Math.max(sleep.length,emotion.length,(await loadData('exercise')).length,1);
+  document.getElementById('ovDays').textContent=days;
+}
+
+function renderGrowth(){
+  if(!insightsCache||!insightsCache.growth)return;
+  var g=insightsCache.growth;
+  document.getElementById('phaseLabel').textContent=g.phase;
+  document.getElementById('phaseBadge').textContent=g.phase;
+  document.getElementById('progressLabel').textContent=g.progress+'%';
+  document.getElementById('growthFill').style.width=g.progress+'%';
+  document.getElementById('phaseDesc').textContent=g.phaseDesc+' · 下一里程碑：'+g.nextMilestone;
+}
+
+function renderHomeInsights(){
+  if(!insightsCache)return;
+  var corrDiv=document.getElementById('homeCorrelations');
+  if(insightsCache.correlations&&insightsCache.correlations.length>0){
+    corrDiv.innerHTML='<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:8px 0 4px">🔗 发现关联</div>'+
+      insightsCache.correlations.slice(0,2).map(function(c){
+        return '<div class="corr-item"><div class="title">'+c.title+'</div><div class="detail">'+c.detail+'</div></div>';
+      }).join('');
+  }else{
+    corrDiv.innerHTML='<div style="font-size:12px;color:#64748B;margin:8px 0">📊 继续积累数据，系统会为你发现规律</div>';
+  }
+  var sugDiv=document.getElementById('homeSuggestions');
+  if(insightsCache.suggestions&&insightsCache.suggestions.length>0){
+    sugDiv.innerHTML='<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:8px 0 4px">💡 建议</div>'+
+      insightsCache.suggestions.slice(0,2).map(function(s){
+        return '<div class="suggestion-item">'+s.text+'</div>';
+      }).join('');
+  }else{
+    sugDiv.innerHTML='';
+  }
 }
 
 // 自然语言提交
@@ -475,54 +651,67 @@ async function renderRecord(){
 // 洞察页
 async function renderInsight(){
   var c=document.getElementById('insightContent');
-  var total=0;
-  var allData={};
-  for(var i=0;i<SCENES.length;i++){
-    var d=await loadData(SCENES[i].id)||[];
-    allData[SCENES[i].id]=d;
-    total+=d.length;
+  if(!insightsCache){
+    c.innerHTML='<div class="empty"><span class="ic">🔮</span>正在分析数据...</div>';
+    await fetchInsights();
   }
-  var html='<div class="ins">📊 总记录：'+total+' 条</div>';
-  
-  var sleep=allData['sleep']||[];
-  var emotion=allData['emotion']||[];
-  
-  if(sleep.length>2&&emotion.length>2){
-    var good=0,bad=0,ge=0,be=0;
-    emotion.forEach(function(e){
-      var s=sleep.find(function(si){return si.date===e.date});
-      if(s){
-        var h=parseFloat(s.hours)||0;
-        if(h>=7){good++;ge+=parseFloat(e.rating)||0;}
-        else if(h>0){bad++;be+=parseFloat(e.rating)||0;}
-      }
+  if(!insightsCache){
+    c.innerHTML='<div class="empty"><span class="ic">📊</span>数据不足，多记录几条再来</div>';
+    return;
+  }
+  var html='';
+
+  // 成长阶段
+  if(insightsCache.growth){
+    var g=insightsCache.growth;
+    html+='<div class="growth-bar"><div class="row"><span class="phase">'+g.phase+'</span><span class="progress">'+g.progress+'%</span></div><div class="bar"><div class="fill" style="width:'+g.progress+'%"></div></div><div class="desc">'+g.phaseDesc+' · 下一里程碑：'+g.nextMilestone+'</div></div>';
+  }
+
+  // 每日状态
+  if(insightsCache.daily){
+    var d=insightsCache.daily;
+    html+='<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:8px 0 4px">📅 今日状态</div>';
+    html+='<div class="overview" style="grid-template-columns:1fr 1fr;margin-bottom:8px"><div class="overview-card"><div class="num">'+(d.mood!==null?d.mood:'-')+'</div><div class="label">情绪评分</div></div><div class="overview-card"><div class="num">'+(d.sleep!==null?d.sleep+'h':'-')+'</div><div class="label">睡眠时长</div></div></div>';
+  }
+
+  // 关联分析
+  if(insightsCache.correlations&&insightsCache.correlations.length>0){
+    html+='<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:12px 0 4px">🔗 数据关联</div>';
+    insightsCache.correlations.forEach(function(c){
+      html+='<div class="corr-item"><div class="title">'+c.title+'</div><div class="detail">'+c.detail+'</div></div>';
     });
-    if(good>0||bad>0){
-      html+='<div class="ins">💤 睡眠≥7h时情绪 '+(good?(ge/good).toFixed(1):'无')+' 分，睡眠<7h时 '+(bad?(be/bad).toFixed(1):'无')+' 分</div>';
-    }
   }
-  
-  var exercise=allData['exercise']||[];
-  if(exercise.length>2&&emotion.length>2){
-    var exDates={};
-    exercise.forEach(function(e){exDates[e.date]=true});
-    var exE=0,noE=0,exC=0,noC=0;
-    emotion.forEach(function(e){
-      if(exDates[e.date]){exC++;exE+=parseFloat(e.rating)||0;}
-      else{noC++;noE+=parseFloat(e.rating)||0;}
+
+  // 建议
+  if(insightsCache.suggestions&&insightsCache.suggestions.length>0){
+    html+='<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:12px 0 4px">💡 个性化建议</div>';
+    insightsCache.suggestions.forEach(function(s){
+      html+='<div class="suggestion-item">'+s.text+'</div>';
     });
-    if(exC>0||noC>0){
-      html+='<div class="ins">🏃 锻炼日情绪 '+(exC?(exE/exC).toFixed(1):'无')+' 分，非锻炼日 '+(noC?(noE/noC).toFixed(1):'无')+' 分</div>';
-    }
   }
-  
-  var diet=allData['diet']||[];
-  if(diet.length>0){
-    var veg=diet.filter(function(d){return d.content&&(d.content.indexOf('蔬菜')!==-1||d.content.indexOf('青菜')!==-1||d.content.indexOf('沙拉')!==-1)});
-    var meat=diet.filter(function(d){return d.content&&(d.content.indexOf('肉')!==-1||d.content.indexOf('鸡胸')!==-1||d.content.indexOf('牛肉')!==-1)});
-    var carb=diet.filter(function(d){return d.content&&(d.content.indexOf('饭')!==-1||d.content.indexOf('面')!==-1||d.content.indexOf('馒头')!==-1||d.content.indexOf('面包')!==-1)});
-    html+='<div class="ins">🥗 近7天：蔬菜'+veg.length+'次 · 肉类'+meat.length+'次 · 碳水'+carb.length+'次</div>';
+
+  // 月度总结
+  if(insightsCache.monthly){
+    var m=insightsCache.monthly;
+    html+='<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:12px 0 4px">📈 月度总结</div>';
+    html+='<div class="ins">本月平均情绪 '+m.mood+' 分（'+m.days+'天）<br>'+m.changeText+'</div>';
   }
+
+  // 复利速率
+  if(insightsCache.compoundRate){
+    html+='<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:12px 0 4px">🚀 复利速率</div>';
+    html+='<div class="ins">'+insightsCache.compoundRate.text+'</div>';
+  }
+
+  // 里程碑
+  if(insightsCache.milestones&&insightsCache.milestones.length>0){
+    html+='<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:12px 0 4px">🏆 里程碑</div>';
+    insightsCache.milestones.forEach(function(m){
+      html+='<div class="milestone-item"><span class="ic">'+m.icon+'</span><span>'+m.name+'</span></div>';
+    });
+  }
+
+  if(html==='') html='<div class="empty"><span class="ic">📊</span>数据不足，多记录几条再来</div>';
   c.innerHTML=html;
 }
 
@@ -534,7 +723,7 @@ async function renderMe(){
     total+=d.length;
   }
   var c=document.getElementById('meContent');
-  c.innerHTML='<div style="margin-top:12px"><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">👤 个人信息</div><div style="font-size:13px;color:#94A3B8">总记录：'+total+' 条</div><div style="font-size:13px;color:#94A3B8">版本：v5.0 (数据持久化版)</div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">🔐 密码</div><div style="display:flex;gap:8px;margin-top:8px"><input id="newPwd" placeholder="新密码" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#fff"><button onclick="changePwd()" style="background:#8B5CF6;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer">修改</button></div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">💾 数据</div><button onclick="exportData()" style="background:#10B981;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-top:8px">导出备份</button><button onclick="clearAll()" style="background:#EF4444;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-left:8px">清空</button></div></div>';
+  c.innerHTML='<div style="margin-top:12px"><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">👤 个人信息</div><div style="font-size:13px;color:#94A3B8">总记录：'+total+' 条</div><div style="font-size:13px;color:#94A3B8">版本：v5.1 (洞察复利版)</div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">🔐 密码</div><div style="display:flex;gap:8px;margin-top:8px"><input id="newPwd" placeholder="新密码" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#fff"><button onclick="changePwd()" style="background:#8B5CF6;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer">修改</button></div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">💾 数据</div><button onclick="exportData()" style="background:#10B981;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-top:8px">导出备份</button><button onclick="clearAll()" style="background:#EF4444;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-left:8px">清空</button></div></div>';
 }
 
 function changePwd(){
@@ -581,4 +770,4 @@ function togglePrivacy(){
 </html>`);
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log('🍆 茄子管家 v5.0 运行在端口 ' + PORT));
+app.listen(PORT, '0.0.0.0', () => console.log('🍆 茄子管家 v5.1 运行在端口 ' + PORT));
