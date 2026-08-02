@@ -3,133 +3,142 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>🧭 船长日志 · 航海版</title>
+<title>🍆 茄子管家 · 船长版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
-body{background:#0a1f33;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
-#lock{position:fixed;inset:0;background:#0a1f33;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
-#lock input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 20px;width:280px;color:#fff;font-size:18px;text-align:center;outline:none}
-#lock input:focus{border-color:#2a6f97}
-#lock button{background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;border-radius:12px;padding:14px 30px;color:#fff;font-size:18px;font-weight:600;cursor:pointer;margin-top:16px}
-#lock .err{color:#EF4444;margin-top:8px;display:none}
+html,body{min-height:100vh}
+body{background:linear-gradient(180deg,#7B8CFF 0%,#6366F1 45%,#A855F7 100%);color:#1A1A2E;background-attachment:fixed;padding-bottom:80px}
+#lock{position:fixed;inset:0;background:linear-gradient(180deg,#7B8CFF 0%,#6366F1 45%,#A855F7 100%);background-attachment:fixed;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
+#lock .login-card{background:#FFFFFF;border-radius:24px;padding:40px 32px 36px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.18);text-align:center}
+#lock .login-ic{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:40px}
+#lock .login-title{font-size:24px;font-weight:700;color:#4F46E5;margin-bottom:6px;letter-spacing:1px}
+#lock .login-sub{font-size:13px;color:#6B7280;margin-bottom:28px}
+#lock input{background:#F8F9FC;border:1px solid #E5E7EB;border-radius:12px;padding:14px 18px;width:100%;color:#1A1A2E;font-size:16px;text-align:left;outline:none;transition:border-color .2s;box-sizing:border-box}
+#lock input::placeholder{color:#9CA3AF;text-align:center}
+#lock input:focus{border-color:#6366F1;box-shadow:0 0 0 3px rgba(99,102,241,0.12)}
+#lock button{background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:12px;padding:14px 30px;color:#fff;font-size:17px;font-weight:600;cursor:pointer;margin-top:16px;width:100%;box-shadow:0 6px 16px rgba(99,102,241,0.35)}
+#lock button:active{transform:scale(0.98)}
+#lock .err{color:#EF4444;margin-top:12px;display:none;font-size:13px;text-align:center}
 #app{display:none;max-width:480px;margin:0 auto;padding:16px 16px 80px}
 .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.hd h1{font-size:20px;font-weight:700;background:linear-gradient(to right,#fff,#e8c468);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hd h1{font-size:22px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 2px rgba(0,0,0,0.08)}
 .hd-r{display:flex;gap:8px;align-items:center}
 .hd-r .badge{background:#EF4444;color:#fff;font-size:10px;border-radius:10px;padding:0 8px;line-height:18px}
-.hd-r button{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:6px 12px;color:#CBD5E1;font-size:14px;cursor:pointer}
-.greet{background:rgba(255,255,255,0.04);border-radius:14px;padding:14px 18px;margin-bottom:16px;border-left:4px solid #2a6f97}
-.greet .d{font-size:13px;color:#94A3B8}
-.greet .t{font-size:15px;color:#E2E8F0;margin-top:4px;display:flex;justify-content:space-between;align-items:center}
-.greet .t strong{color:#fff}
-.greet .t .phase-badge{background:rgba(42,111,151,0.2);color:#6fa8c9;font-size:11px;border-radius:12px;padding:2px 12px;line-height:22px}
+.hd-r button{background:rgba(255,255,255,0.9);border:none;border-radius:20px;padding:6px 12px;color:#4B5563;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.greet{background:#FFFFFF;border-radius:16px;padding:14px 18px;margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,0.06);border-left:4px solid #6366F1}
+.greet .d{font-size:12px;color:#9CA3AF}
+.greet .t{font-size:15px;color:#374151;margin-top:4px;display:flex;justify-content:space-between;align-items:center}
+.greet .t strong{color:#1A1A2E}
+.greet .t .phase-badge{background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12));color:#6366F1;font-size:11px;font-weight:600;border-radius:12px;padding:2px 12px;line-height:22px}
 .greet .t .remind-badge{background:#EF4444;color:#fff;font-size:10px;border-radius:10px;padding:0 10px;line-height:20px;cursor:pointer}
-.growth-bar{background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04)}
+.growth-bar{background:#FFFFFF;border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .growth-bar .row{display:flex;justify-content:space-between;align-items:center}
-.growth-bar .phase{font-size:13px;font-weight:600;color:#6fa8c9}
-.growth-bar .progress{font-size:12px;color:#94A3B8}
-.growth-bar .bar{height:4px;background:rgba(255,255,255,0.06);border-radius:4px;margin-top:6px;overflow:hidden}
-.growth-bar .bar .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2a6f97,#d4a574);transition:width 0.8s}
-.growth-bar .desc{font-size:11px;color:#64748B;margin-top:4px}
+.growth-bar .phase{font-size:13px;font-weight:700;color:#6366F1}
+.growth-bar .progress{font-size:12px;color:#6B7280}
+.growth-bar .bar{height:6px;background:#E5E7EB;border-radius:4px;margin-top:8px;overflow:hidden}
+.growth-bar .bar .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#6366F1,#8B5CF6);transition:width 0.8s}
+.growth-bar .desc{font-size:11px;color:#9CA3AF;margin-top:4px}
 .overview{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
-.overview-card{background:rgba(255,255,255,0.04);border-radius:12px;padding:10px 8px;text-align:center;border:1px solid rgba(255,255,255,0.04)}
-.overview-card .num{font-size:20px;font-weight:700;color:#6fa8c9}
-.overview-card .label{font-size:10px;color:#94A3B8;margin-top:2px}
-.input-area{background:rgba(255,255,255,0.04);border-radius:14px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;border:1px solid rgba(255,255,255,0.06)}
-.input-area input{flex:1;background:transparent;border:none;color:#F1F5F9;font-size:15px;outline:none;padding:6px 0}
-.input-area input::placeholder{color:#64748B}
-.input-area button{background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;border-radius:10px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
-.focus-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-.focus-card{background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 14px;border:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:0.15s}
+.overview-card{background:#FFFFFF;border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+.overview-card .num{font-size:22px;font-weight:700;color:#6366F1}
+.overview-card .label{font-size:10px;color:#6B7280;margin-top:3px;font-weight:500}
+.input-area{background:#FFFFFF;border-radius:16px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+.input-area input{flex:1;background:transparent;border:none;color:#1A1A2E;font-size:15px;outline:none;padding:6px 0}
+.input-area input::placeholder{color:#9CA3AF}
+.input-area button{background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px rgba(99,102,241,0.3)}
+.focus-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.focus-card{background:#FFFFFF;border-radius:14px;padding:14px 14px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer;transition:transform .15s}
 .focus-card:active{transform:scale(0.96)}
 .focus-card .top{display:flex;justify-content:space-between;align-items:center}
-.focus-card .ic{font-size:18px}
-.focus-card .nm{font-size:13px;font-weight:600;color:#F1F5F9}
-.focus-card .br{font-size:10px;color:#94A3B8;margin-top:2px}
-.focus-card .progress{height:3px;background:rgba(255,255,255,0.06);border-radius:4px;margin-top:8px;overflow:hidden}
-.focus-card .progress .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2a6f97,#d4a574);transition:width 0.5s}
-.focus-card .status{font-size:9px;padding:1px 8px;border-radius:10px}
-.focus-card .status.active{background:rgba(34,197,94,0.2);color:#22C55E}
-.focus-card .status.steady{background:rgba(251,191,36,0.2);color:#FBBF24}
-.focus-card .status.learning{background:rgba(42,111,151,0.2);color:#6fa8c9}
-.quick-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px}
-.quick-module{background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 4px;text-align:center;border:1px solid rgba(255,255,255,0.03);cursor:pointer;transition:0.15s}
+.focus-card .ic{font-size:22px}
+.focus-card .nm{font-size:14px;font-weight:700;color:#1A1A2E}
+.focus-card .br{font-size:10px;color:#6B7280;margin-top:4px}
+.focus-card .progress{height:4px;background:#E5E7EB;border-radius:4px;margin-top:10px;overflow:hidden}
+.focus-card .progress .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#6366F1,#8B5CF6);transition:width 0.5s}
+.focus-card .status{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600}
+.focus-card .status.active{background:rgba(34,197,94,0.12);color:#16A34A}
+.focus-card .status.steady{background:rgba(251,191,36,0.12);color:#D97706}
+.focus-card .status.learning{background:rgba(99,102,241,0.12);color:#4F46E5}
+.quick-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.quick-module{background:#FFFFFF;border-radius:12px;padding:12px 4px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s}
 .quick-module:active{transform:scale(0.94)}
-.quick-module .ic{font-size:18px}
-.quick-module .nm{font-size:10px;color:#94A3B8;margin-top:2px}
-.quick-module .cnt{font-size:9px;color:#64748B}
+.quick-module .ic{font-size:22px}
+.quick-module .nm{font-size:10px;color:#374151;margin-top:4px;font-weight:600}
+.quick-module .cnt{font-size:9px;color:#9CA3AF}
 .correlation-list{margin:8px 0}
-.corr-item{background:rgba(111,168,201,0.06);border-radius:10px;padding:10px 14px;margin-bottom:6px;border-left:3px solid #6fa8c9}
-.corr-item .title{font-size:13px;font-weight:600;color:#F1F5F9}
-.corr-item .detail{font-size:12px;color:#94A3B8;margin-top:2px}
-.suggestion-item{background:rgba(251,191,36,0.06);border-radius:10px;padding:10px 14px;margin-bottom:6px;border-left:3px solid #FBBF24;font-size:13px;color:#E2E8F0}
-.suggestion-item .actions{display:flex;gap:6px;margin-top:6px}
-.suggestion-item .actions button{background:rgba(255,255,255,0.06);border:none;border-radius:6px;padding:4px 12px;color:#CBD5E1;font-size:11px;cursor:pointer}
-.suggestion-item .actions button.done{background:rgba(34,197,94,0.2);color:#22C55E}
-.suggestion-item .actions button.skip{background:rgba(239,68,68,0.2);color:#EF4444}
-.suggestion-item .feedback{font-size:11px;color:#64748B;margin-top:4px}
-.bar{position:fixed;bottom:0;left:0;right:0;background:rgba(15,10,30,0.92);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.04);display:flex;padding:6px 0 14px;max-width:480px;margin:0 auto;z-index:100}
-.tab{flex:1;text-align:center;color:#64748B;font-size:10px;cursor:pointer;padding:2px 0}
-.tab .ic{font-size:20px;display:block}
-.tab.act{color:#6fa8c9}
+.corr-item{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid #6366F1}
+.corr-item .title{font-size:13px;font-weight:700;color:#1A1A2E}
+.corr-item .detail{font-size:12px;color:#6B7280;margin-top:3px;line-height:1.6}
+.suggestion-item{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid #F59E0B;font-size:13px;color:#374151}
+.suggestion-item .actions{display:flex;gap:6px;margin-top:8px}
+.suggestion-item .actions button{background:#F3F4F6;border:none;border-radius:6px;padding:5px 12px;color:#4B5563;font-size:11px;cursor:pointer;font-weight:500}
+.suggestion-item .actions button.done{background:rgba(34,197,94,0.12);color:#16A34A}
+.suggestion-item .actions button.skip{background:rgba(239,68,68,0.12);color:#DC2626}
+.suggestion-item .feedback{font-size:11px;color:#9CA3AF;margin-top:5px}
+.bar{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,0.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,0.04);display:flex;padding:8px 0 18px;max-width:480px;margin:0 auto;z-index:100;box-shadow:0 -4px 18px rgba(0,0,0,0.04)}
+.tab{flex:1;text-align:center;color:#9CA3AF;font-size:10px;cursor:pointer;padding:2px 0;font-weight:500}
+.tab .ic{font-size:22px;display:block;margin-bottom:2px}
+.tab.act{color:#6366F1;font-weight:700}
 .pg{display:none}
 .pg.act{display:block}
 .detail{display:none;padding-bottom:80px}
 .detail.act{display:block}
-.back{background:transparent;border:none;color:#6fa8c9;font-size:16px;cursor:pointer;margin-bottom:12px}
-.rec{background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 14px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;align-items:center}
-.rec .tt{font-size:13px;color:#F1F5F9}
-.rec .sb{font-size:10px;color:#94A3B8;margin-top:2px}
-.rec .ac button{background:transparent;border:none;color:#64748B;cursor:pointer;padding:0 4px;font-size:14px}
+.back{background:transparent;border:none;color:#6366F1;font-size:16px;cursor:pointer;margin-bottom:12px;font-weight:600}
+.rec{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04);display:flex;justify-content:space-between;align-items:center}
+.rec .tt{font-size:13px;color:#1A1A2E;font-weight:500}
+.rec .sb{font-size:10px;color:#9CA3AF;margin-top:3px}
+.rec .ac button{background:transparent;border:none;color:#9CA3AF;cursor:pointer;padding:0 4px;font-size:16px}
 .rec .ac .dl{color:#EF4444}
-.add{position:fixed;bottom:80px;right:20px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;color:#fff;font-size:28px;box-shadow:0 4px 16px rgba(42,111,151,0.4);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px)}
+.add{position:fixed;bottom:88px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;color:#fff;font-size:30px;box-shadow:0 6px 20px rgba(99,102,241,0.4);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .modal.act{display:flex}
-.modal-b{background:#1E1B4B;border-radius:16px;padding:24px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto}
-.modal-b h3{font-size:16px;margin-bottom:12px;color:#F1F5F9}
-.modal-b label{display:block;font-size:12px;color:#94A3B8;margin-bottom:4px;margin-top:10px}
-.modal-b input,.modal-b select,.modal-b textarea{width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;font-family:inherit;margin-bottom:4px}
-.modal-b textarea{min-height:50px;resize:vertical}
-.modal-b .row{display:flex;gap:8px;margin-top:12px}
-.modal-b .row button{flex:1;padding:10px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer}
-.modal-b .sv{background:linear-gradient(135deg,#2a6f97,#d4a574);color:#fff}
-.modal-b .cn{background:rgba(255,255,255,0.06);color:#94A3B8}
-.space-item{background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.04);cursor:pointer}
+.modal-b{background:#FFFFFF;border-radius:20px;padding:24px;max-width:440px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.15)}
+.modal-b h3{font-size:18px;margin-bottom:16px;color:#1A1A2E;font-weight:700}
+.modal-b label{display:block;font-size:12px;color:#6B7280;margin-bottom:5px;margin-top:12px;font-weight:600}
+.modal-b input,.modal-b select,.modal-b textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #E5E7EB;background:#FAFAFC;color:#1A1A2E;font-size:14px;font-family:inherit;margin-bottom:4px;box-sizing:border-box;outline:none;transition:border-color .2s}
+.modal-b input:focus,.modal-b select:focus,.modal-b textarea:focus{border-color:#6366F1;box-shadow:0 0 0 3px rgba(99,102,241,0.12)}
+.modal-b textarea{min-height:60px;resize:vertical}
+.modal-b .row{display:flex;gap:10px;margin-top:16px}
+.modal-b .row button{flex:1;padding:11px;border-radius:10px;border:none;font-size:15px;font-weight:700;cursor:pointer}
+.modal-b .sv{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;box-shadow:0 4px 12px rgba(99,102,241,0.28)}
+.modal-b .cn{background:#F3F4F6;color:#4B5563}
+.space-item{background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer}
 .space-item .top{display:flex;justify-content:space-between;align-items:center}
-.space-item .nm{font-size:14px;font-weight:600;color:#F1F5F9}
-.space-item .cnt{font-size:12px;color:#94A3B8}
-.space-item .sub{font-size:11px;color:#64748B;margin-top:2px}
-.empty{text-align:center;padding:30px 0;color:#64748B}
-.empty .ic{font-size:36px;display:block;margin-bottom:8px}
-.milestone-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;color:#CBD5E1}
-.milestone-item .ic{font-size:18px}
+.space-item .nm{font-size:14px;font-weight:700;color:#1A1A2E}
+.space-item .cnt{font-size:12px;color:#6B7280;font-weight:500}
+.space-item .sub{font-size:11px;color:#9CA3AF;margin-top:4px;line-height:1.5}
+.empty{text-align:center;padding:40px 0;color:#9CA3AF}
+.empty .ic{font-size:40px;display:block;margin-bottom:10px;opacity:0.7}
+.milestone-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;font-size:13px;color:#374151;font-weight:500}
+.milestone-item .ic{font-size:20px}
 </style>
 </head>
 <body>
 <div id="lock">
-<div style="text-align:center;max-width:320px">
-<h1 style="font-size:28px;font-weight:700;background:linear-gradient(to right,#fff,#e8c468);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px">🧭 船长日志</h1>
-<p style="color:#94A3B8;margin-bottom:24px">输入口令，启航你的航程</p>
+<div class="login-card">
+<div class="login-ic">🍆</div>
+<div class="login-title">茄子管家</div>
+<div class="login-sub">船长版 · 做自己的船长</div>
 <input type="password" id="pwdI" placeholder="请输入密码">
-<button onclick="login()">启航</button>
+<button onclick="login()">出海</button>
 <div class="err" id="pwdErr">密码错误</div>
 </div>
 </div>
 <div id="app">
-<div class="hd"><h1>🧭 船长日志</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="togglePrivacy()">👁️</button><button onclick="switchTab('me')">⚙️</button></div></div>
+<div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="togglePrivacy()">👁️</button><button onclick="switchTab('me')">⚙️</button></div></div>
 <div class="greet"><div class="d" id="todayD"></div><div class="t"><span id="greetT">加载中...</span><span class="phase-badge" id="phaseBadge">🌱 萌芽期</span></div></div>
 
-<div id="dailyQuestionArea" style="background:rgba(255,255,255,0.04);border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:4px solid #6fa8c9;">
+<div id="dailyQuestionArea" style="background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:4px solid #6366F1;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:11px;color:#94A3B8;">💭 今日之问</span>
-    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="viewQuestionHistory()">历史</span>
+    <span style="font-size:11px;color:#6B7280;">💭 今日之问</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="viewQuestionHistory()">历史</span>
   </div>
-  <div id="dailyQuestionText" style="font-size:15px;color:#F1F5F9;font-weight:500;margin-bottom:8px;">加载中...</div>
+  <div id="dailyQuestionText" style="font-size:15px;color:#1A1A2E;font-weight:500;margin-bottom:8px;">加载中...</div>
   <div style="display:flex;gap:8px;">
-    <input type="text" id="dailyQuestionInput" placeholder="写下你的回答..." style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;outline:none;">
-    <button onclick="submitDailyAnswer()" style="background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">回答</button>
+    <input type="text" id="dailyQuestionInput" placeholder="写下你的回答..." style="flex:1;padding:8px 12px;border-radius:8px;background:#FFFFFF;color:#1A1A2E;font-size:14px;outline:none;">
+    <button onclick="submitDailyAnswer()" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">回答</button>
   </div>
-  <div id="dailyAnswerDisplay" style="margin-top:8px;font-size:13px;color:#94A3B8;display:none;"></div>
+  <div id="dailyAnswerDisplay" style="margin-top:8px;font-size:13px;color:#6B7280;display:none;"></div>
 </div>
 
 <div class="growth-bar" id="growthBar">
@@ -149,135 +158,135 @@ body{background:#0a1f33;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 <div class="quick-modules" id="quickModules"></div>
 
 <!-- ====== 闪念笔记 ====== -->
-<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">💭 闪念笔记</span>
-    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="showQuickNotes()">查看全部</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">💭 闪念笔记</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="showQuickNotes()">查看全部</span>
   </div>
   <div style="display:flex;gap:8px;">
-    <input type="text" id="quickNoteInput" placeholder="随便记一下... 系统会自动归类" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;outline:none;">
-    <button onclick="submitQuickNote()" style="background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记</button>
+    <input type="text" id="quickNoteInput" placeholder="随便记一下... 系统会自动归类" style="flex:1;padding:8px 12px;border-radius:8px;background:#FFFFFF;color:#1A1A2E;font-size:14px;outline:none;">
+    <button onclick="submitQuickNote()" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记</button>
   </div>
-  <div id="quickNoteFeedback" style="margin-top:6px;font-size:12px;color:#94A3B8;"></div>
+  <div id="quickNoteFeedback" style="margin-top:6px;font-size:12px;color:#6B7280;"></div>
 </div>
 
 <!-- ====== 缴费管理 ====== -->
-<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">💰 待缴费</span>
-    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="openAddBill()">+ 添加</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">💰 待缴费</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="openAddBill()">+ 添加</span>
   </div>
-  <div id="billsList" style="font-size:13px;color:#94A3B8;min-height:20px;">加载中...</div>
+  <div id="billsList" style="font-size:13px;color:#6B7280;min-height:20px;">加载中...</div>
 </div>
 
 <!-- ====== 阅读打卡 ====== -->
-<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">📚 阅读打卡</span>
-    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="openAddReading()">+ 添加</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">📚 阅读打卡</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="openAddReading()">+ 添加</span>
   </div>
-  <div id="readingStats" style="display:flex;gap:16px;font-size:12px;color:#94A3B8;margin-bottom:4px;"></div>
-  <div id="readingToday" style="font-size:13px;color:#CBD5E1;"></div>
+  <div id="readingStats" style="display:flex;gap:16px;font-size:12px;color:#6B7280;margin-bottom:4px;"></div>
+  <div id="readingToday" style="font-size:13px;color:#4B5563;"></div>
 </div>
 
 <!-- ====== 家务引擎 ====== -->
-<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🧹 家务</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🧹 家务</span>
     <span style="display:flex;gap:6px;align-items:center;">
-      <span id="houseworkModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(42,111,151,0.15);color:#6fa8c9;">正常</span>
-      <button onclick="switchHouseworkMode()" style="background:transparent;border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:2px 8px;color:#94A3B8;font-size:10px;cursor:pointer;">切换</button>
+      <span id="houseworkModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(99,102,241,0.15);color:#6366F1;">正常</span>
+      <button onclick="switchHouseworkMode()" style="background:transparent;border-radius:6px;padding:2px 8px;color:#6B7280;font-size:10px;cursor:pointer;">切换</button>
     </span>
   </div>
-  <div id="houseworkList" style="font-size:13px;color:#94A3B8;min-height:20px;">加载中...</div>
+  <div id="houseworkList" style="font-size:13px;color:#6B7280;min-height:20px;">加载中...</div>
 </div>
 
 <!-- ====== 社交人脉 ====== -->
-<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">👥 社交</span>
-    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="openAddContact()">+ 添加</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">👥 社交</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="openAddContact()">+ 添加</span>
   </div>
-  <div id="socialList" style="font-size:13px;color:#94A3B8;min-height:20px;">加载中...</div>
+  <div id="socialList" style="font-size:13px;color:#6B7280;min-height:20px;">加载中...</div>
 </div>
 
 <!-- ====== 成就系统 ====== -->
-<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🏆 成就</span>
-    <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="viewAchievements()">查看全部</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🏆 成就</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="viewAchievements()">查看全部</span>
   </div>
   <div id="achievementList" style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;min-height:20px;">加载中...</div>
 </div>
 
 <!-- ====== 工作模式 ====== -->
-<div id="workArea" style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+<div id="workArea" style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">💼 工作</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">💼 工作</span>
     <span style="display:flex;gap:6px;align-items:center;">
-      <span id="workModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(42,111,151,0.15);color:#6fa8c9;">日常</span>
-      <button onclick="switchWorkMode()" style="background:transparent;border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:2px 8px;color:#94A3B8;font-size:10px;cursor:pointer;">切换</button>
+      <span id="workModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(99,102,241,0.15);color:#6366F1;">日常</span>
+      <button onclick="switchWorkMode()" style="background:transparent;border-radius:6px;padding:2px 8px;color:#6B7280;font-size:10px;cursor:pointer;">切换</button>
     </span>
   </div>
-  <div id="workStats" style="display:flex;gap:12px;font-size:11px;color:#94A3B8;margin-bottom:4px;"></div>
-  <div id="workContent" style="font-size:13px;color:#CBD5E1;min-height:20px;">加载中...</div>
+  <div id="workStats" style="display:flex;gap:12px;font-size:11px;color:#6B7280;margin-bottom:4px;"></div>
+  <div id="workContent" style="font-size:13px;color:#4B5563;min-height:20px;">加载中...</div>
 </div>
 
 <!-- ====== 认知引擎（Phase 1）====== -->
-<div style="background:linear-gradient(135deg,rgba(42,111,151,0.08),rgba(212,165,116,0.05));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(42,111,151,0.15);">
+<div style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.05));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(99,102,241,0.15);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🧠 认知引擎</span>
-    <span style="font-size:10px;color:#64748B;">鬼谷子视角 · 不以物喜不以己悲</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🧠 认知引擎</span>
+    <span style="font-size:10px;color:#9CA3AF;">鬼谷子视角 · 不以物喜不以己悲</span>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-    <div onclick="openPrinciples()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+    <div onclick="openPrinciples()" style="background:#FFFFFF;border-radius:10px;padding:12px 10px;text-align:center;cursor:pointer;">
       <div style="font-size:22px;">📐</div>
-      <div style="font-size:12px;color:#F1F5F9;font-weight:600;margin-top:4px;">原则库</div>
-      <div style="font-size:10px;color:#64748B;margin-top:2px;" id="principleCount">0 条</div>
+      <div style="font-size:12px;color:#1A1A2E;font-weight:600;margin-top:4px;">原则库</div>
+      <div style="font-size:10px;color:#9CA3AF;margin-top:2px;" id="principleCount">0 条</div>
     </div>
-    <div onclick="openDecisions()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+    <div onclick="openDecisions()" style="background:#FFFFFF;border-radius:10px;padding:12px 10px;text-align:center;cursor:pointer;">
       <div style="font-size:22px;">🎯</div>
-      <div style="font-size:12px;color:#F1F5F9;font-weight:600;margin-top:4px;">决策推演台</div>
-      <div style="font-size:10px;color:#64748B;margin-top:2px;" id="decisionCount">0 条</div>
+      <div style="font-size:12px;color:#1A1A2E;font-weight:600;margin-top:4px;">决策推演台</div>
+      <div style="font-size:10px;color:#9CA3AF;margin-top:2px;" id="decisionCount">0 条</div>
     </div>
   </div>
-  <div id="todayReflectionCard" style="margin-top:10px;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;display:none;border-left:3px solid #6fa8c9;">
-    <div style="font-size:11px;color:#94A3B8;margin-bottom:4px;">📝 今日认知反馈</div>
-    <div id="todayReflectionText" style="font-size:12px;color:#CBD5E1;line-height:1.6;"></div>
+  <div id="todayReflectionCard" style="margin-top:10px;background:#FFFFFF;border-radius:8px;padding:10px 12px;display:none;border-left:3px solid #6366F1;">
+    <div style="font-size:11px;color:#6B7280;margin-bottom:4px;">📝 今日认知反馈</div>
+    <div id="todayReflectionText" style="font-size:12px;color:#4B5563;line-height:1.6;"></div>
   </div>
 </div>
 
 <!-- ====== Phase 2：深度闭环 ====== -->
 <div style="background:linear-gradient(135deg,rgba(16,185,129,0.06),rgba(59,130,246,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(16,185,129,0.15);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🌀 深度闭环</span>
-    <span style="font-size:10px;color:#64748B;">追根因 · 看博弈 · 练定力 · 算能量 · 自动复盘</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🌀 深度闭环</span>
+    <span style="font-size:10px;color:#9CA3AF;">追根因 · 看博弈 · 练定力 · 算能量 · 自动复盘</span>
   </div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
-    <div onclick="openRootCause()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+    <div onclick="openRootCause()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
       <div style="font-size:20px;">🔬</div>
-      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">5Why根因</div>
-      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="rootCauseCount">0</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">5Why根因</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="rootCauseCount">0</div>
     </div>
-    <div onclick="openInterpersonal()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+    <div onclick="openInterpersonal()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
       <div style="font-size:20px;">♟️</div>
-      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">人际博弈</div>
-      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="interpersonalCount">0</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">人际博弈</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="interpersonalCount">0</div>
     </div>
-    <div onclick="openMindfulness()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+    <div onclick="openMindfulness()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
       <div style="font-size:20px;">🧘</div>
-      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">定力训练</div>
-      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="mindfulnessCount">0</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">定力训练</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="mindfulnessCount">0</div>
     </div>
-    <div onclick="openEnergy()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+    <div onclick="openEnergy()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
       <div style="font-size:20px;">⚡</div>
-      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">能量审计</div>
-      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="energyNet">0</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">能量审计</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="energyNet">0</div>
     </div>
-    <div onclick="openReview()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+    <div onclick="openReview()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
       <div style="font-size:20px;">📅</div>
-      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">周月复盘</div>
-      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="reviewCount">0</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">周月复盘</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="reviewCount">0</div>
     </div>
   </div>
 </div>
@@ -287,26 +296,26 @@ body{background:#0a1f33;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 </div>
 
 <!-- ====== Phase 3：成长轴 ====== -->
-<div style="background:linear-gradient(135deg,rgba(212,165,116,0.06),rgba(168,85,247,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(212,165,116,0.15);">
+<div style="background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(168,85,247,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(139,92,246,0.15);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🌳 成长轴</span>
-    <span style="font-size:10px;color:#64748B;">信念 · 品格 · 画像 · 反熵增 · 反脆弱</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🌳 成长轴</span>
+    <span style="font-size:10px;color:#9CA3AF;">信念 · 品格 · 画像 · 反熵增 · 反脆弱</span>
   </div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
-    <div onclick="openBeliefs()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">💎</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">信念追踪</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="beliefCount">0</div>
+    <div onclick="openBeliefs()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">💎</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">信念追踪</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="beliefCount">0</div>
     </div>
-    <div onclick="openCharacter()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">🎯</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">品格雷达</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="characterCount">0</div>
+    <div onclick="openCharacter()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🎯</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">品格雷达</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="characterCount">0</div>
     </div>
-    <div onclick="openSelfPortrait()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">🪞</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">自我画像</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="portraitCount">0</div>
+    <div onclick="openSelfPortrait()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🪞</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">自我画像</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="portraitCount">0</div>
     </div>
-    <div onclick="openEntropy()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">📉</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">反熵增</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="entropyScore">0</div>
+    <div onclick="openEntropy()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">📉</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">反熵增</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="entropyScore">0</div>
     </div>
-    <div onclick="openAntifragile()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">🛡️</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">反脆弱</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="antifragileAvg">-</div>
+    <div onclick="openAntifragile()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🛡️</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">反脆弱</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="antifragileAvg">-</div>
     </div>
   </div>
 </div>
@@ -314,24 +323,24 @@ body{background:#0a1f33;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 <!-- ====== Phase 4：船长工具 ====== -->
 <div style="background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(239,68,68,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(245,158,11,0.2);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🧭 船长工具</span>
-    <span style="font-size:10px;color:#64748B;">你是这艘船的船长</span>
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🧭 船长工具</span>
+    <span style="font-size:10px;color:#9CA3AF;">你是这艘船的船长</span>
   </div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
-    <div onclick="openNorthStar()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">⭐</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">北极星</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="northStarStatus">未设</div>
+    <div onclick="openNorthStar()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">⭐</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">北极星</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="northStarStatus">未设</div>
     </div>
-    <div onclick="openCrisisPlan()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">🚨</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">危机预案</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="crisisCount">0</div>
+    <div onclick="openCrisisPlan()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🚨</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">危机预案</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="crisisCount">0</div>
     </div>
-    <div onclick="openDeathTest()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">⚰️</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">临终测试</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="deathTestCount">0</div>
+    <div onclick="openDeathTest()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">⚰️</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">临终测试</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="deathTestCount">0</div>
     </div>
-    <div onclick="openNarrative()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">📖</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">年度叙事</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="narrativeCount">0</div>
+    <div onclick="openNarrative()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">📖</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">年度叙事</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="narrativeCount">0</div>
     </div>
-    <div onclick="openManifesto()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
-      <div style="font-size:20px;">📜</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">船长宣言</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="manifestoStatus">未立</div>
+    <div onclick="openManifesto()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">📜</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">船长宣言</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="manifestoStatus">未立</div>
     </div>
   </div>
 </div>
@@ -506,8 +515,8 @@ function renderHome(){
   var n = new Date();
   document.getElementById('todayD').textContent = n.toLocaleDateString('zh-CN', {year:'numeric', month:'long', day:'numeric', weekday:'short'});
   var h = n.getHours();
-  var greet = h<6 ? '夜航中' : h<9 ? '晨光启航' : h<12 ? '顺风航行' : h<14 ? '正午瞭望' : h<18 ? '午后巡航' : h<21 ? '暮色归港' : '星夜停泊';
-  document.getElementById('greetT').innerHTML = '<strong>'+greet+'</strong> · 今日海况如何？';
+  var greet = h<6 ? '夜航中，船长' : h<9 ? '早安，船长' : h<12 ? '顺风，船长' : h<14 ? '午安，船长' : h<18 ? '午后，船长' : h<21 ? '傍晚，船长' : '夜深了，船长';
+  document.getElementById('greetT').innerHTML = '<strong>'+greet+'</strong> · 今天状态如何？';
 
   renderOverview();
   renderGrowth();
@@ -538,16 +547,16 @@ function renderHomeInsights(){
   if(!insightsCache) return;
   var corrDiv = document.getElementById('homeCorrelations');
   if(insightsCache.correlations && insightsCache.correlations.length > 0){
-    corrDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:8px 0 4px">🔗 发现关联</div>' +
+    corrDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:#6B7280;margin:8px 0 4px">🔗 发现关联</div>' +
       insightsCache.correlations.slice(0,2).map(function(c){
         return '<div class="corr-item"><div class="title">'+c.title+'</div><div class="detail">'+c.detail+'</div></div>';
       }).join('');
   } else {
-    corrDiv.innerHTML = '<div style="font-size:12px;color:#64748B;margin:8px 0">📊 继续积累数据，系统会为你发现规律</div>';
+    corrDiv.innerHTML = '<div style="font-size:12px;color:#9CA3AF;margin:8px 0">📊 继续积累数据，系统会为你发现规律</div>';
   }
   var sugDiv = document.getElementById('homeSuggestions');
   if(insightsCache.suggestions && insightsCache.suggestions.length > 0){
-    sugDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:#94A3B8;margin:8px 0 4px">💡 今日建议</div>' +
+    sugDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:#6B7280;margin:8px 0 4px">💡 今日建议</div>' +
       insightsCache.suggestions.slice(0,2).map(function(s){
         return '<div class="suggestion-item">'+s.text+'</div>';
       }).join('');
@@ -920,23 +929,23 @@ function openModal2(title, bodyHtml, actionsHtml){
 
 // ---- 原则库 ----
 async function openPrinciples(){
-  openModal2('📐 原则库', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('📐 原则库', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/principles');
     var list = await r.json();
     var html = '<div style="margin-bottom:14px">';
-    html += '<textarea id="newPrincipleText" placeholder="提炼一条你的人生原则..." style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;font-family:inherit;min-height:60px;resize:vertical"></textarea>';
-    html += '<input id="newPrincipleSource" placeholder="来源（可选：范仲淹/自我感悟/反思提炼）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-top:6px">';
-    html += '<button onclick="addPrinciple()" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#2a6f97,#d4a574);color:#fff;font-weight:600;cursor:pointer">添加原则</button>';
+    html += '<textarea id="newPrincipleText" placeholder="提炼一条你的人生原则..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:14px;font-family:inherit;min-height:60px;resize:vertical"></textarea>';
+    html += '<input id="newPrincipleSource" placeholder="来源（可选：范仲淹/自我感悟/反思提炼）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-top:6px">';
+    html += '<button onclick="addPrinciple()" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-weight:600;cursor:pointer">添加原则</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有原则。<br>每次反思后提炼一条，这是你的人生智慧积累。<br><br>例如：「不以物喜，不以己悲」「权衡利弊，先看势再看人」「能量不足时不做重要决策」</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有原则。<br>每次反思后提炼一条，这是你的人生智慧积累。<br><br>例如：「不以物喜，不以己悲」「权衡利弊，先看势再看人」「能量不足时不做重要决策」</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条</div>';
       list.forEach(function(p){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6fa8c9">';
-        html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.5">'+escapeHtml(p.text)+'</div>';
-        if (p.source) html += '<div style="font-size:11px;color:#64748B;margin-top:4px">— '+escapeHtml(p.source)+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6366F1">';
+        html += '<div style="font-size:13px;color:#1A1A2E;line-height:1.5">'+escapeHtml(p.text)+'</div>';
+        if (p.source) html += '<div style="font-size:11px;color:#9CA3AF;margin-top:4px">— '+escapeHtml(p.source)+'</div>';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span style="font-size:10px;color:#475569">'+(p.createdAt||'').split('T')[0]+'</span><span style="font-size:11px;color:#EF4444;cursor:pointer" onclick="delPrinciple(\''+p.id+'\')">删除</span></div>';
         html += '</div>';
       });
@@ -967,36 +976,36 @@ async function delPrinciple(id){
 
 // ---- 决策推演台 ----
 async function openDecisions(){
-  openModal2('🎯 决策推演台', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('🎯 决策推演台', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/decisions');
     var list = await r.json();
     var html = '<div style="margin-bottom:14px;background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;border:1px solid rgba(245,158,11,0.15)">';
     html += '<div style="font-size:11px;color:#FBBF24;margin-bottom:8px">📝 记录当下的推理，日后回溯判断力</div>';
-    html += '<input id="decTitle" placeholder="决策标题（如：是否跳槽）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<textarea id="decReason" placeholder="推理过程：基于什么事实？考虑了什么？权衡了什么？" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<input id="decExpected" placeholder="预期结果" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<input id="decDeadline" type="date" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<input id="decTitle" placeholder="决策标题（如：是否跳槽）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="decReason" placeholder="推理过程：基于什么事实？考虑了什么？权衡了什么？" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="decExpected" placeholder="预期结果" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<input id="decDeadline" type="date" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
     html += '<button onclick="addDecision()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录决策</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有决策记录。<br>面对重要选择时，记录你的推理过程，<br>日后回溯能看出你的判断力在演化。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有决策记录。<br>面对重要选择时，记录你的推理过程，<br>日后回溯能看出你的判断力在演化。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条决策</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条决策</div>';
       list.forEach(function(d){
         var reviewed = d.reviewed;
         var correct = d.correct;
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid '+(reviewed?(correct===true?'#22C55E':correct===false?'#EF4444':'#94A3B8'):'#FBBF24')+'">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px;color:#F1F5F9">'+escapeHtml(d.title)+'</b>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid '+(reviewed?(correct===true?'#22C55E':correct===false?'#EF4444':'#94A3B8'):'#FBBF24')+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px;color:#1A1A2E">'+escapeHtml(d.title)+'</b>';
         html += '<span style="font-size:10px;padding:2px 8px;border-radius:8px;'+(reviewed?'background:rgba(34,197,94,0.15);color:#22C55E':'background:rgba(251,191,36,0.15);color:#FBBF24')+'">'+(reviewed?'已回溯':'待回溯')+'</span></div>';
-        if (d.reasoning) html += '<div style="font-size:12px;color:#94A3B8;margin-top:6px;line-height:1.5"><b>推理：</b>'+escapeHtml(d.reasoning)+'</div>';
-        if (d.expected) html += '<div style="font-size:12px;color:#94A3B8;margin-top:4px"><b>预期：</b>'+escapeHtml(d.expected)+'</div>';
-        if (d.deadline) html += '<div style="font-size:11px;color:#64748B;margin-top:4px">📅 截止：'+d.deadline+'</div>';
+        if (d.reasoning) html += '<div style="font-size:12px;color:#6B7280;margin-top:6px;line-height:1.5"><b>推理：</b>'+escapeHtml(d.reasoning)+'</div>';
+        if (d.expected) html += '<div style="font-size:12px;color:#6B7280;margin-top:4px"><b>预期：</b>'+escapeHtml(d.expected)+'</div>';
+        if (d.deadline) html += '<div style="font-size:11px;color:#9CA3AF;margin-top:4px">📅 截止：'+d.deadline+'</div>';
         if (reviewed) {
-          if (d.outcome) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:6px;padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px"><b>结果：</b>'+escapeHtml(d.outcome)+'</div>';
+          if (d.outcome) html += '<div style="font-size:12px;color:#4B5563;margin-top:6px;padding:6px 8px;background:#FFFFFF;border-radius:6px"><b>结果：</b>'+escapeHtml(d.outcome)+'</div>';
           html += '<div style="font-size:11px;color:'+(correct===true?'#22C55E':correct===false?'#EF4444':'#94A3B8')+';margin-top:4px">'+(correct===true?'✅ 判断正确':correct===false?'❌ 判断错误':'⚖️ 中性')+'</div>';
         } else {
-          html += '<button onclick="reviewDecision(\''+d.id+'\')" style="margin-top:6px;font-size:11px;padding:4px 12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:#6fa8c9;cursor:pointer">回溯结果</button>';
+          html += '<button onclick="reviewDecision(\''+d.id+'\')" style="margin-top:6px;font-size:11px;padding:4px 12px;border-radius:8px;background:transparent;color:#6366F1;cursor:pointer">回溯结果</button>';
         }
         html += '</div>';
       });
@@ -1034,30 +1043,30 @@ function reviewDecision(id){
 
 // ---- 1. 5Why 根因分析 ----
 async function openRootCause(){
-  openModal2('🔬 5Why 根因分析', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('🔬 5Why 根因分析', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/root-cause'); var list = await r.json();
     var html = '<div style="background:rgba(16,185,129,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(16,185,129,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新根因分析</div>';
-    html += '<label style="font-size:11px;color:#94A3B8">触发事件（让你情绪波动/决策失误的事）</label>';
-    html += '<textarea id="rcTrigger" placeholder="如：今天和同事吵了一架 / 又熬夜了 / 冲动消费了" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新根因分析</div>';
+    html += '<label style="font-size:11px;color:#6B7280">触发事件（让你情绪波动/决策失误的事）</label>';
+    html += '<textarea id="rcTrigger" placeholder="如：今天和同事吵了一架 / 又熬夜了 / 冲动消费了" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:14px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<div id="rcWhys" style="margin-bottom:8px"></div>';
     html += '<div style="display:flex;gap:6px;margin-bottom:8px"><button onclick="addWhy()" style="flex:1;padding:8px;border:1px dashed rgba(16,185,129,0.4);border-radius:8px;background:rgba(16,185,129,0.04);color:#10B981;font-size:12px;cursor:pointer">+ 追加一层追问</button></div>';
-    html += '<label style="font-size:11px;color:#94A3B8">根因（一句话，必须是你能改变的）</label>';
-    html += '<input id="rcRoot" placeholder="如：我在压力下习惯性逃避对话" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;margin-bottom:8px">';
+    html += '<label style="font-size:11px;color:#6B7280">根因（一句话，必须是你能改变的）</label>';
+    html += '<input id="rcRoot" placeholder="如：我在压力下习惯性逃避对话" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:14px;margin-bottom:8px">';
     html += '<button onclick="saveRootCause()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#10B981,#34D399);color:#fff;font-weight:600;cursor:pointer">保存根因分析</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有根因记录。<br>当你遇到反复发生的问题时，用5Why挖到底——<br>表层原因解决一次，根因解决一辈子。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有根因记录。<br>当你遇到反复发生的问题时，用5Why挖到底——<br>表层原因解决一次，根因解决一辈子。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条</div>';
       list.forEach(function(rc){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+(rc.resolved?'#22C55E':'#F59E0B')+'">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#64748B">'+rc.date+'</span><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+(rc.resolved?'rgba(34,197,94,0.15)':'rgba(245,158,11,0.15)')+';color:'+(rc.resolved?'#22C55E':'#F59E0B')+'">'+(rc.resolved?'已解决':'待解决')+'</span></div>';
-        html += '<div style="font-size:13px;color:#F1F5F9;margin-top:6px"><b>触发：</b>'+escapeHtml(rc.trigger)+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+(rc.resolved?'#22C55E':'#F59E0B')+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#9CA3AF">'+rc.date+'</span><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+(rc.resolved?'rgba(34,197,94,0.15)':'rgba(245,158,11,0.15)')+';color:'+(rc.resolved?'#22C55E':'#F59E0B')+'">'+(rc.resolved?'已解决':'待解决')+'</span></div>';
+        html += '<div style="font-size:13px;color:#1A1A2E;margin-top:6px"><b>触发：</b>'+escapeHtml(rc.trigger)+'</div>';
         if (rc.whys && rc.whys.length) {
           html += '<div style="margin-top:6px">';
-          rc.whys.forEach(function(w, i){ html += '<div style="font-size:12px;color:#CBD5E1;padding:3px 0;white-space:pre-wrap"><span style="color:#10B981">'+(i+1)+'. 为什么：</span>'+escapeHtml(w)+'</div>'; });
+          rc.whys.forEach(function(w, i){ html += '<div style="font-size:12px;color:#4B5563;padding:3px 0;white-space:pre-wrap"><span style="color:#10B981">'+(i+1)+'. 为什么：</span>'+escapeHtml(w)+'</div>'; });
           html += '</div>';
         }
         if (rc.root) html += '<div style="font-size:12px;color:#10B981;margin-top:6px;padding:6px 10px;background:rgba(16,185,129,0.06);border-radius:6px"><b>根因：</b>'+escapeHtml(rc.root)+'</div>';
@@ -1079,8 +1088,8 @@ function renderWhyInputs(){
   var c = document.getElementById('rcWhys'); if(!c) return;
   var html = '';
   for (var i=0; i<addWhyCount+1; i++) {
-    html += '<label style="font-size:11px;color:#94A3B8">第 '+(i+1)+' 层 为什么？</label>';
-    html += '<input id="rcWhy'+i+'" placeholder="因为..." style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<label style="font-size:11px;color:#6B7280">第 '+(i+1)+' 层 为什么？</label>';
+    html += '<input id="rcWhy'+i+'" placeholder="因为..." style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
   }
   c.innerHTML = html;
 }
@@ -1125,30 +1134,30 @@ async function delRootCause(id){
 
 // ---- 2. 人际博弈日志 ----
 async function openInterpersonal(){
-  openModal2('♟️ 人际博弈日志', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('♟️ 人际博弈日志', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/interpersonal'); var list = await r.json();
     var html = '<div style="background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新博弈记录</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipPerson" placeholder="对象姓名" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><input id="ipRole" placeholder="角色（同事/家人/朋友）" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div>';
-    html += '<textarea id="ipEvent" placeholder="发生了什么事？" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyGoal" placeholder="我要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><input id="ipTheirGoal" placeholder="他/她要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyMove" placeholder="我做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><input id="ipTheirMove" placeholder="他/她做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyCost" type="number" placeholder="我的成本(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><input id="ipMyGain" type="number" placeholder="我的收益(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div>';
-    html += '<textarea id="ipLesson" placeholder="一句教训/收获" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新博弈记录</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipPerson" placeholder="对象姓名" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><input id="ipRole" placeholder="角色（同事/家人/朋友）" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div>';
+    html += '<textarea id="ipEvent" placeholder="发生了什么事？" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyGoal" placeholder="我要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><input id="ipTheirGoal" placeholder="他/她要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyMove" placeholder="我做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><input id="ipTheirMove" placeholder="他/她做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyCost" type="number" placeholder="我的成本(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><input id="ipMyGain" type="number" placeholder="我的收益(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div>';
+    html += '<textarea id="ipLesson" placeholder="一句教训/收获" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<button onclick="saveInterpersonal()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">保存博弈</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有博弈记录。<br>鬼谷子：知彼知己，胜乃不殆；知天知地，胜乃可全。<br>记录每次重要互动，看清背后的利益/成本结构。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有博弈记录。<br>鬼谷子：知彼知己，胜乃不殆；知天知地，胜乃可全。<br>记录每次重要互动，看清背后的利益/成本结构。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条</div>';
       list.forEach(function(it){
         var netColor = it.net > 0 ? '#22C55E' : it.net < 0 ? '#EF4444' : '#94A3B8';
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+netColor+'">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#F1F5F9;font-weight:600">'+escapeHtml(it.person)+(it.role?' · '+escapeHtml(it.role):'')+'</span><span style="font-size:10px;color:#64748B">'+it.date+'</span></div>';
-        html += '<div style="font-size:12px;color:#CBD5E1;margin-top:4px">'+escapeHtml(it.event)+'</div>';
-        if (it.myGoal) html += '<div style="font-size:11px;color:#94A3B8;margin-top:4px">我要：'+escapeHtml(it.myGoal)+'</div>';
-        if (it.theirGoal) html += '<div style="font-size:11px;color:#94A3B8">他要：'+escapeHtml(it.theirGoal)+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+netColor+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#1A1A2E;font-weight:600">'+escapeHtml(it.person)+(it.role?' · '+escapeHtml(it.role):'')+'</span><span style="font-size:10px;color:#9CA3AF">'+it.date+'</span></div>';
+        html += '<div style="font-size:12px;color:#4B5563;margin-top:4px">'+escapeHtml(it.event)+'</div>';
+        if (it.myGoal) html += '<div style="font-size:11px;color:#6B7280;margin-top:4px">我要：'+escapeHtml(it.myGoal)+'</div>';
+        if (it.theirGoal) html += '<div style="font-size:11px;color:#6B7280">他要：'+escapeHtml(it.theirGoal)+'</div>';
         html += '<div style="font-size:11px;color:'+netColor+';margin-top:4px">净收益：'+(it.net>=0?'+':'')+it.net+'（成本'+it.myCost+' / 收益'+it.myGain+'）</div>';
         if (it.lesson) html += '<div style="font-size:11px;color:#FBBF24;margin-top:4px;padding:4px 8px;background:rgba(251,191,36,0.06);border-radius:6px">💡 '+escapeHtml(it.lesson)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delInterpersonal(\''+it.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
@@ -1189,45 +1198,45 @@ async function delInterpersonal(id){
 
 // ---- 3. 定力训练 ----
 async function openMindfulness(){
-  openModal2('🧘 定力训练', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('🧘 定力训练', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r1 = await fetch('/api/mindfulness'); var list = await r1.json();
     var r2 = await fetch('/api/mindfulness/baseline'); var base = await r2.json();
     var html = '';
     if (base && base.interpretation) {
-      html += '<div style="background:rgba(42,111,151,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #2a6f97">';
-      html += '<div style="font-size:12px;color:#6fa8c9;margin-bottom:6px">📊 心境基线</div>';
-      html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(base.interpretation)+'</div>';
+      html += '<div style="background:rgba(99,102,241,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #6366F1">';
+      html += '<div style="font-size:12px;color:#6366F1;margin-bottom:6px">📊 心境基线</div>';
+      html += '<div style="font-size:13px;color:#1A1A2E;line-height:1.6;white-space:pre-wrap">'+escapeHtml(base.interpretation)+'</div>';
       html += '</div>';
     }
-    html += '<div style="background:rgba(42,111,151,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(42,111,151,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新训练记录</div>';
-    html += '<label style="font-size:11px;color:#94A3B8">类型</label>';
-    html += '<select id="mfType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(99,102,241,0.15)">';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新训练记录</div>';
+    html += '<label style="font-size:11px;color:#6B7280">类型</label>';
+    html += '<select id="mfType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
     html += '<option value="情绪冲击">情绪冲击（被激怒/焦虑）</option>';
     html += '<option value="诱惑">诱惑（想吃/想买/想刷）</option>';
     html += '<option value="延迟满足">延迟满足</option>';
     html += '<option value="冥想">主动冥想</option>';
     html += '<option value="停顿">停顿3秒</option>';
     html += '</select>';
-    html += '<input id="mfTrigger" placeholder="触发事件（如：被领导批评）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><label style="font-size:11px;color:#94A3B8">触发前心境(1-5)</label><input id="mfBefore" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div><div><label style="font-size:11px;color:#94A3B8">触发后心境(1-5)</label><input id="mfAfter" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div></div>';
-    html += '<input id="mfMethod" placeholder="用了什么方法（深呼吸/离开现场/数到10）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<textarea id="mfNote" placeholder="感悟（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
-    html += '<button onclick="saveMindfulness()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#2a6f97,#6fa8c9);color:#fff;font-weight:600;cursor:pointer">保存训练</button>';
+    html += '<input id="mfTrigger" placeholder="触发事件（如：被领导批评）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><label style="font-size:11px;color:#6B7280">触发前心境(1-5)</label><input id="mfBefore" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div><div><label style="font-size:11px;color:#6B7280">触发后心境(1-5)</label><input id="mfAfter" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div></div>';
+    html += '<input id="mfMethod" placeholder="用了什么方法（深呼吸/离开现场/数到10）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="mfNote" placeholder="感悟（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveMindfulness()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#6366F1);color:#fff;font-weight:600;cursor:pointer">保存训练</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有训练记录。<br>定力不是"忍住"，是"看见而不被带走"。<br>每次情绪冲击，都是一次训练机会——记录下来，看清自己的反应模式。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有训练记录。<br>定力不是"忍住"，是"看见而不被带走"。<br>每次情绪冲击，都是一次训练机会——记录下来，看清自己的反应模式。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条</div>';
       list.forEach(function(m){
         var dColor = m.delta > 0 ? '#22C55E' : m.delta < 0 ? '#EF4444' : '#94A3B8';
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+dColor+'">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#F1F5F9;font-weight:600">'+escapeHtml(m.type)+'</span><span style="font-size:10px;color:#64748B">'+m.date+'</span></div>';
-        if (m.trigger) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:4px">触发：'+escapeHtml(m.trigger)+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+dColor+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#1A1A2E;font-weight:600">'+escapeHtml(m.type)+'</span><span style="font-size:10px;color:#9CA3AF">'+m.date+'</span></div>';
+        if (m.trigger) html += '<div style="font-size:12px;color:#4B5563;margin-top:4px">触发：'+escapeHtml(m.trigger)+'</div>';
         html += '<div style="font-size:11px;color:'+dColor+';margin-top:4px">心境 '+m.beforeLevel+' → '+m.afterLevel+' ('+(m.delta>=0?'+':'')+m.delta+')</div>';
-        if (m.method) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">方法：'+escapeHtml(m.method)+'</div>';
-        if (m.note) html += '<div style="font-size:11px;color:#6fa8c9;margin-top:4px;padding:4px 8px;background:rgba(42,111,151,0.06);border-radius:6px">📝 '+escapeHtml(m.note)+'</div>';
+        if (m.method) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">方法：'+escapeHtml(m.method)+'</div>';
+        if (m.note) html += '<div style="font-size:11px;color:#6366F1;margin-top:4px;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:6px">📝 '+escapeHtml(m.note)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delMindfulness(\''+m.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -1261,7 +1270,7 @@ async function delMindfulness(id){
 
 // ---- 4. 能量审计 ----
 async function openEnergy(){
-  openModal2('⚡ 能量审计', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('⚡ 能量审计', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r1 = await fetch('/api/energy'); var list = await r1.json();
     var r2 = await fetch('/api/energy/audit'); var audit = await r2.json();
@@ -1270,34 +1279,34 @@ async function openEnergy(){
       var netColor = audit.net > 0 ? '#22C55E' : audit.net < 0 ? '#EF4444' : '#94A3B8';
       html += '<div style="background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid '+netColor+'">';
       html += '<div style="font-size:12px;color:#FBBF24;margin-bottom:6px">📊 本周能量报表</div>';
-      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;margin-bottom:8px"><div><div style="font-size:11px;color:#EF4444">消耗</div><div style="font-size:18px;color:#EF4444;font-weight:700">'+audit.totalDrain+'</div></div><div><div style="font-size:11px;color:#22C55E">充能</div><div style="font-size:18px;color:#22C55E;font-weight:700">'+audit.totalGain+'</div></div><div><div style="font-size:11px;color:#94A3B8">净</div><div style="font-size:18px;color:'+netColor+';font-weight:700">'+(audit.net>=0?'+':'')+audit.net+'</div></div></div>';
-      html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(audit.interpretation)+'</div>';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;margin-bottom:8px"><div><div style="font-size:11px;color:#EF4444">消耗</div><div style="font-size:18px;color:#EF4444;font-weight:700">'+audit.totalDrain+'</div></div><div><div style="font-size:11px;color:#22C55E">充能</div><div style="font-size:18px;color:#22C55E;font-weight:700">'+audit.totalGain+'</div></div><div><div style="font-size:11px;color:#6B7280">净</div><div style="font-size:18px;color:'+netColor+';font-weight:700">'+(audit.net>=0?'+':'')+audit.net+'</div></div></div>';
+      html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.6;white-space:pre-wrap">'+escapeHtml(audit.interpretation)+'</div>';
       html += '</div>';
     }
     html += '<div style="background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 记录能量</div>';
-    html += '<label style="font-size:11px;color:#94A3B8">类型</label>';
-    html += '<select id="egType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 记录能量</div>';
+    html += '<label style="font-size:11px;color:#6B7280">类型</label>';
+    html += '<select id="egType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
     html += '<option value="drain">消耗（让我累）</option>';
     html += '<option value="gain">充能（让我有力）</option>';
     html += '</select>';
-    html += '<input id="egSource" placeholder="来源（如：刷短视频/深度对话/运动）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<label style="font-size:11px;color:#94A3B8">强度(1-10)</label>';
-    html += '<input id="egAmount" type="number" min="1" max="10" value="5" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<textarea id="egNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<input id="egSource" placeholder="来源（如：刷短视频/深度对话/运动）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<label style="font-size:11px;color:#6B7280">强度(1-10)</label>';
+    html += '<input id="egAmount" type="number" min="1" max="10" value="5" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="egNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<button onclick="saveEnergy()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有能量记录。<br>看不见的能量，管不住。<br>记录一周，你会看清自己的能量黑洞和能量源泉。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有能量记录。<br>看不见的能量，管不住。<br>记录一周，你会看清自己的能量黑洞和能量源泉。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">最近 '+list.length+' 条</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">最近 '+list.length+' 条</div>';
       list.slice(0, 15).forEach(function(e){
         var color = e.type === 'drain' ? '#EF4444' : '#22C55E';
         var icon = e.type === 'drain' ? '🔴' : '🟢';
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:8px 12px;margin-bottom:4px;border-left:3px solid '+color+'">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#F1F5F9">'+icon+' '+escapeHtml(e.source)+'</span><span style="font-size:11px;color:'+color+';font-weight:600">'+(e.type==='drain'?'-':'+')+e.amount+'</span></div>';
-        if (e.note) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">'+escapeHtml(e.note)+'</div>';
-        html += '<div style="font-size:10px;color:#64748B">'+e.date+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:8px 12px;margin-bottom:4px;border-left:3px solid '+color+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#1A1A2E">'+icon+' '+escapeHtml(e.source)+'</span><span style="font-size:11px;color:'+color+';font-weight:600">'+(e.type==='drain'?'-':'+')+e.amount+'</span></div>';
+        if (e.note) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">'+escapeHtml(e.note)+'</div>';
+        html += '<div style="font-size:10px;color:#9CA3AF">'+e.date+'</div>';
         html += '</div>';
       });
     }
@@ -1329,44 +1338,44 @@ async function delEnergy(id){
 
 // ---- 5. 周月复盘 ----
 async function openReview(){
-  openModal2('📅 周/月复盘', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('📅 周/月复盘', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r1 = await fetch('/api/reviews'); var list = await r1.json();
     var r2 = await fetch('/api/review/auto?period=week'); var autoWeek = await r2.json();
     var r3 = await fetch('/api/review/auto?period=month'); var autoMonth = await r3.json();
 
-    var html = '<div style="background:rgba(42,111,151,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #2a6f97">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#F1F5F9">🤖 本周自动复盘</span><span style="font-size:10px;color:#64748B">'+autoWeek.range+'</span></div>';
-    html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap;margin-bottom:6px">'+escapeHtml(autoWeek.summary)+'</div>';
+    var html = '<div style="background:rgba(99,102,241,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #6366F1">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#1A1A2E">🤖 本周自动复盘</span><span style="font-size:10px;color:#9CA3AF">'+autoWeek.range+'</span></div>';
+    html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap;margin-bottom:6px">'+escapeHtml(autoWeek.summary)+'</div>';
     if (autoWeek.suggestions && autoWeek.suggestions.length) {
-      html += '<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06)">';
+      html += '<div style="margin-top:6px;padding-top:6px;border-top:1px solid #F3F4F6">';
       autoWeek.suggestions.forEach(function(s){ html += '<div style="font-size:11px;color:#FBBF24;padding:2px 0">⚠️ '+escapeHtml(s)+'</div>'; });
       html += '</div>';
     }
     html += '</div>';
 
     html += '<div style="background:rgba(59,130,246,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #3B82F6">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#F1F5F9">🤖 本月自动复盘</span><span style="font-size:10px;color:#64748B">'+autoMonth.range+'</span></div>';
-    html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap">'+escapeHtml(autoMonth.summary)+'</div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#1A1A2E">🤖 本月自动复盘</span><span style="font-size:10px;color:#9CA3AF">'+autoMonth.range+'</span></div>';
+    html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">'+escapeHtml(autoMonth.summary)+'</div>';
     html += '</div>';
 
-    html += '<div style="background:rgba(42,111,151,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(42,111,151,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 写一条自己的复盘</div>';
-    html += '<select id="rvPeriod" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px"><option value="week">本周</option><option value="month">本月</option></select>';
-    html += '<textarea id="rvContent" placeholder="这周/月你最重要的反思是什么？" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<input id="rvHighlights" placeholder="亮点（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<input id="rvRegrets" placeholder="遗憾（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<input id="rvNextActions" placeholder="下周/月要做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:8px">';
-    html += '<button onclick="saveReview()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#2a6f97,#d4a574);color:#fff;font-weight:600;cursor:pointer">保存复盘</button>';
+    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(99,102,241,0.15)">';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 写一条自己的复盘</div>';
+    html += '<select id="rvPeriod" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px"><option value="week">本周</option><option value="month">本月</option></select>';
+    html += '<textarea id="rvContent" placeholder="这周/月你最重要的反思是什么？" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="rvHighlights" placeholder="亮点（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<input id="rvRegrets" placeholder="遗憾（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<input id="rvNextActions" placeholder="下周/月要做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:8px">';
+    html += '<button onclick="saveReview()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-weight:600;cursor:pointer">保存复盘</button>';
     html += '</div>';
 
     if (list.length > 0) {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史复盘 '+list.length+' 条</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">历史复盘 '+list.length+' 条</div>';
       list.forEach(function(rv){
         var pLabel = rv.period === 'month' ? '月度' : '周度';
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #2a6f97">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#6fa8c9">'+pLabel+'复盘</span><span style="font-size:10px;color:#64748B">'+rv.date+'</span></div>';
-        html += '<div style="font-size:12px;color:#F1F5F9;margin-top:4px;line-height:1.6">'+escapeHtml(rv.content)+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6366F1">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#6366F1">'+pLabel+'复盘</span><span style="font-size:10px;color:#9CA3AF">'+rv.date+'</span></div>';
+        html += '<div style="font-size:12px;color:#1A1A2E;margin-top:4px;line-height:1.6">'+escapeHtml(rv.content)+'</div>';
         if (rv.highlights) html += '<div style="font-size:11px;color:#22C55E;margin-top:4px">✨ '+escapeHtml(rv.highlights)+'</div>';
         if (rv.regrets) html += '<div style="font-size:11px;color:#EF4444;margin-top:2px">💭 '+escapeHtml(rv.regrets)+'</div>';
         if (rv.nextActions) html += '<div style="font-size:11px;color:#FBBF24;margin-top:2px">→ '+escapeHtml(rv.nextActions)+'</div>';
@@ -1407,30 +1416,30 @@ async function delReview(id){
 
 // ---- 1. 信念追踪 ----
 async function openBeliefs(){
-  openModal2('💎 信念追踪', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('💎 信念追踪', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/beliefs'); var list = await r.json();
-    var html = '<div style="background:rgba(212,165,116,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(212,165,116,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 记录一条信念</div>';
-    html += '<textarea id="blBelief" placeholder="你坚信的事，如：努力会有回报 / 人性本善 / 我能掌控自己" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<input id="blSource" placeholder="来源（自己验证/父母教的/书上看的/创伤形成的）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><div><label style="font-size:11px;color:#94A3B8">信心(1-5)</label><input id="blConfidence" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div><div><label style="font-size:11px;color:#94A3B8">分类</label><select id="blCategory" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><option>人生</option><option>金钱</option><option>关系</option><option>工作</option><option>自己</option></select></div></div>';
-    html += '<button onclick="saveBelief()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#d4a574,#F472B6);color:#fff;font-weight:600;cursor:pointer">记录信念</button>';
+    var html = '<div style="background:rgba(139,92,246,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(139,92,246,0.15)">';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 记录一条信念</div>';
+    html += '<textarea id="blBelief" placeholder="你坚信的事，如：努力会有回报 / 人性本善 / 我能掌控自己" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="blSource" placeholder="来源（自己验证/父母教的/书上看的/创伤形成的）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><div><label style="font-size:11px;color:#6B7280">信心(1-5)</label><input id="blConfidence" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div><div><label style="font-size:11px;color:#6B7280">分类</label><select id="blCategory" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><option>人生</option><option>金钱</option><option>关系</option><option>工作</option><option>自己</option></select></div></div>';
+    html += '<button onclick="saveBelief()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#F472B6);color:#fff;font-weight:600;cursor:pointer">记录信念</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有信念记录。<br>信念是人生的操作系统——你所有的决策都基于它。<br>但很多信念你从没验证过，只是"以为"它对。<br>记录下来，定期让现实打脸。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有信念记录。<br>信念是人生的操作系统——你所有的决策都基于它。<br>但很多信念你从没验证过，只是"以为"它对。<br>记录下来，定期让现实打脸。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条信念</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条信念</div>';
       list.forEach(function(b){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #d4a574">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#94A3B8">'+b.category+' · 信心'+b.confidence+'/5</span><span style="font-size:10px;color:#64748B">'+b.date+'</span></div>';
-        html += '<div style="font-size:13px;color:#F1F5F9;margin-top:4px;font-weight:500">'+escapeHtml(b.belief)+'</div>';
-        if (b.source) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">来源：'+escapeHtml(b.source)+'</div>';
-        if (b.tested > 0) html += '<div style="font-size:11px;color:#6fa8c9;margin-top:4px">已检验'+b.tested+'次 · 成立'+b.heldUp+' · 被打破'+b.broken+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #8B5CF6">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#6B7280">'+b.category+' · 信心'+b.confidence+'/5</span><span style="font-size:10px;color:#9CA3AF">'+b.date+'</span></div>';
+        html += '<div style="font-size:13px;color:#1A1A2E;margin-top:4px;font-weight:500">'+escapeHtml(b.belief)+'</div>';
+        if (b.source) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">来源：'+escapeHtml(b.source)+'</div>';
+        if (b.tested > 0) html += '<div style="font-size:11px;color:#6366F1;margin-top:4px">已检验'+b.tested+'次 · 成立'+b.heldUp+' · 被打破'+b.broken+'</div>';
         html += '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
         html += '<button onclick="testBelief(\''+b.id+'\',\'held\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(34,197,94,0.3);border-radius:8px;background:rgba(34,197,94,0.06);color:#22C55E;cursor:pointer">✓ 成立</button>';
         html += '<button onclick="testBelief(\''+b.id+'\',\'broken\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;background:rgba(239,68,68,0.06);color:#EF4444;cursor:pointer">✗ 打破</button>';
-        html += '<button onclick="delBelief(\''+b.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:#94A3B8;cursor:pointer">删除</button>';
+        html += '<button onclick="delBelief(\''+b.id+'\')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:transparent;color:#6B7280;cursor:pointer">删除</button>';
         html += '</div></div>';
       });
     }
@@ -1473,7 +1482,7 @@ async function delBelief(id){
 
 // ---- 2. 品格雷达 ----
 async function openCharacter(){
-  openModal2('🎯 品格雷达', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('🎯 品格雷达', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r1 = await fetch('/api/character/radar'); var radar = await r1.json();
     var r2 = await fetch('/api/character'); var list = await r2.json();
@@ -1481,27 +1490,27 @@ async function openCharacter(){
     if (radar.interpretation) {
       html += '<div style="background:rgba(168,85,247,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #A855F7">';
       html += '<div style="font-size:12px;color:#A855F7;margin-bottom:6px">📊 品格演化</div>';
-      html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(radar.interpretation)+'</div>';
+      html += '<div style="font-size:13px;color:#1A1A2E;line-height:1.6;white-space:pre-wrap">'+escapeHtml(radar.interpretation)+'</div>';
       html += '</div>';
     }
     html += '<div style="background:rgba(168,85,247,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(168,85,247,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新自评（0-10）</div>';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新自评（0-10）</div>';
     var dims = [['honesty','诚实'],['courage','勇气'],['resilience','韧性'],['restraint','克制'],['responsibility','担当'],['altruism','利他']];
     dims.forEach(function(d){
-      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:13px;color:#F1F5F9;width:50px">'+d[1]+'</span><input id="ch_'+d[0]+'" type="range" min="0" max="10" value="5" style="flex:1" oninput="document.getElementById(\'ch_'+d[0]+'_v\').textContent=this.value"><span id="ch_'+d[0]+'_v" style="font-size:13px;color:#A855F7;width:24px;text-align:right">5</span></div>';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:13px;color:#1A1A2E;width:50px">'+d[1]+'</span><input id="ch_'+d[0]+'" type="range" min="0" max="10" value="5" style="flex:1" oninput="document.getElementById(\'ch_'+d[0]+'_v\').textContent=this.value"><span id="ch_'+d[0]+'_v" style="font-size:13px;color:#A855F7;width:24px;text-align:right">5</span></div>';
     });
-    html += '<textarea id="chNote" placeholder="为什么这次这么评？（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<textarea id="chNote" placeholder="为什么这次这么评？（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<button onclick="saveCharacter()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#A855F7,#C084FC);color:#fff;font-weight:600;cursor:pointer">保存自评</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有品格记录。<br>诚实是所有品格的基石——先诚实，再谈其他。<br>每月自评一次，看自己的演化轨迹。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有品格记录。<br>诚实是所有品格的基石——先诚实，再谈其他。<br>每月自评一次，看自己的演化轨迹。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史 '+list.length+' 份</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">历史 '+list.length+' 份</div>';
       list.slice(0, 6).forEach(function(c){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #A855F7">';
-        html += '<div style="font-size:11px;color:#64748B">'+c.date+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #A855F7">';
+        html += '<div style="font-size:11px;color:#9CA3AF">'+c.date+'</div>';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:11px">';
-        dims.forEach(function(d){ html += '<div style="color:#94A3B8">'+d[1]+'：<span style="color:#F1F5F9;font-weight:600">'+c[d[0]]+'</span></div>'; });
+        dims.forEach(function(d){ html += '<div style="color:#6B7280">'+d[1]+'：<span style="color:#1A1A2E;font-weight:600">'+c[d[0]]+'</span></div>'; });
         html += '</div>';
         if (c.note) html += '<div style="font-size:11px;color:#A855F7;margin-top:4px;padding:4px 8px;background:rgba(168,85,247,0.06);border-radius:6px">📝 '+escapeHtml(c.note)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delCharacter(\''+c.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
@@ -1538,22 +1547,22 @@ async function delCharacter(id){
 
 // ---- 3. 自我画像 ----
 async function openSelfPortrait(){
-  openModal2('🪞 自我画像', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('🪞 自我画像', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/self-portrait'); var list = await r.json();
-    var html = '<div style="background:linear-gradient(135deg,rgba(212,165,116,0.1),rgba(168,85,247,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(212,165,116,0.2);text-align:center">';
-    html += '<button onclick="generatePortrait()" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#d4a574,#A855F7);color:#fff;font-weight:600;cursor:pointer">🪞 生成当前画像</button>';
-    html += '<div style="font-size:11px;color:#64748B;margin-top:6px">基于你所有记录，系统会画出"你是谁"</div>';
+    var html = '<div style="background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(168,85,247,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(139,92,246,0.2);text-align:center">';
+    html += '<button onclick="generatePortrait()" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#A855F7);color:#fff;font-weight:600;cursor:pointer">🪞 生成当前画像</button>';
+    html += '<div style="font-size:11px;color:#9CA3AF;margin-top:6px">基于你所有记录，系统会画出"你是谁"</div>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有画像。<br>画像不是你想成为谁，是你实际是谁。<br>基于你的记录，系统会诚实地告诉你答案。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有画像。<br>画像不是你想成为谁，是你实际是谁。<br>基于你的记录，系统会诚实地告诉你答案。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史画像 '+list.length+' 份（最多保留12份）</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">历史画像 '+list.length+' 份（最多保留12份）</div>';
       list.forEach(function(p){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid #d4a574">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#d4a574">'+p.date+' 画像</span><span style="font-size:10px;color:#64748B">基于'+p.sampleSize+'条</span></div>';
-        if (p.oneLine) html += '<div style="font-size:14px;color:#F1F5F9;font-weight:600;margin-top:6px">'+escapeHtml(p.oneLine)+'</div>';
-        if (p.narrative) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:6px;line-height:1.7;white-space:pre-wrap">'+escapeHtml(p.narrative)+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid #8B5CF6">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#8B5CF6">'+p.date+' 画像</span><span style="font-size:10px;color:#9CA3AF">基于'+p.sampleSize+'条</span></div>';
+        if (p.oneLine) html += '<div style="font-size:14px;color:#1A1A2E;font-weight:600;margin-top:6px">'+escapeHtml(p.oneLine)+'</div>';
+        if (p.narrative) html += '<div style="font-size:12px;color:#4B5563;margin-top:6px;line-height:1.7;white-space:pre-wrap">'+escapeHtml(p.narrative)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delPortrait(\''+p.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -1579,40 +1588,40 @@ async function delPortrait(id){
 
 // ---- 4. 反熵增监控 ----
 async function openEntropy(){
-  openModal2('📉 反熵增监控', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('📉 反熵增监控', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r1 = await fetch('/api/entropy'); var monitor = await r1.json();
     var r2 = await fetch('/api/entropy/logs'); var logs = await r2.json();
     var scoreColor = monitor.entropyScore > 8 ? '#EF4444' : monitor.entropyScore > 4 ? '#F59E0B' : '#22C55E';
     var html = '<div style="background:rgba(245,158,11,0.08);border-radius:12px;padding:14px;margin-bottom:14px;border-left:3px solid '+scoreColor+'">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:600;color:#F1F5F9">📊 当前熵增</span><span style="font-size:18px;font-weight:700;color:'+scoreColor+'">'+monitor.entropyScore+'</span></div>';
-    html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(monitor.interpretation)+'</div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:600;color:#1A1A2E">📊 当前熵增</span><span style="font-size:18px;font-weight:700;color:'+scoreColor+'">'+monitor.entropyScore+'</span></div>';
+    html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.6;white-space:pre-wrap">'+escapeHtml(monitor.interpretation)+'</div>';
     html += '</div>';
     if (monitor.signals && monitor.signals.length > 0) {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0 8px">⚠️ 信号 '+monitor.signals.length+' 条</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0 8px">⚠️ 信号 '+monitor.signals.length+' 条</div>';
       monitor.signals.forEach(function(s){
         var sc = s.severity === 'high' ? '#EF4444' : s.severity === 'med' ? '#F59E0B' : '#94A3B8';
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+sc+'">';
-        html += '<div style="font-size:12px;color:#F1F5F9">'+escapeHtml(s.signal)+'</div>';
-        if (s.suggestion) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">→ '+escapeHtml(s.suggestion)+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+sc+'">';
+        html += '<div style="font-size:12px;color:#1A1A2E">'+escapeHtml(s.signal)+'</div>';
+        if (s.suggestion) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">→ '+escapeHtml(s.suggestion)+'</div>';
         html += '</div>';
       });
     }
-    html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-top:10px;border:1px solid rgba(255,255,255,0.04)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:6px">📝 手动记录熵增信号</div>';
-    html += '<select id="epDim" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px"><option>健康</option><option>关系</option><option>财务</option><option>工作</option><option>情绪</option><option>习惯</option></select>';
-    html += '<input id="epSignal" placeholder="信号（如：连续3天没联系家人）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<select id="epSev" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px"><option value="low">轻度</option><option value="med" selected>中度</option><option value="high">严重</option></select>';
+    html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-top:10px;border:1px solid #FFFFFF">';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:6px">📝 手动记录熵增信号</div>';
+    html += '<select id="epDim" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px"><option>健康</option><option>关系</option><option>财务</option><option>工作</option><option>情绪</option><option>习惯</option></select>';
+    html += '<input id="epSignal" placeholder="信号（如：连续3天没联系家人）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<select id="epSev" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px"><option value="low">轻度</option><option value="med" selected>中度</option><option value="high">严重</option></select>';
     html += '<button onclick="saveEntropyLog()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录信号</button>';
     html += '</div>';
     if (logs.length > 0) {
-      html += '<div style="font-size:11px;color:#64748B;margin:10px 0 6px">手动记录 '+logs.length+' 条</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:10px 0 6px">手动记录 '+logs.length+' 条</div>';
       logs.forEach(function(l){
         var sc = l.severity === 'high' ? '#EF4444' : l.severity === 'med' ? '#F59E0B' : '#94A3B8';
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+(l.resolved?'#22C55E':sc)+'">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#94A3B8">'+l.dimension+'</span>'+(l.resolved?'<span style="font-size:10px;color:#22C55E">已处理</span>':'')+'</div>';
-        html += '<div style="font-size:12px;color:#F1F5F9;margin-top:2px">'+escapeHtml(l.signal)+'</div>';
-        if (l.note) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">'+escapeHtml(l.note)+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+(l.resolved?'#22C55E':sc)+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#6B7280">'+l.dimension+'</span>'+(l.resolved?'<span style="font-size:10px;color:#22C55E">已处理</span>':'')+'</div>';
+        html += '<div style="font-size:12px;color:#1A1A2E;margin-top:2px">'+escapeHtml(l.signal)+'</div>';
+        if (l.note) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">'+escapeHtml(l.note)+'</div>';
         if (!l.resolved) html += '<button onclick="resolveEntropy(\''+l.id+'\')" style="font-size:10px;padding:3px 8px;border:1px solid rgba(34,197,94,0.3);border-radius:6px;background:rgba(34,197,94,0.06);color:#22C55E;cursor:pointer;margin-top:4px">标记已处理</button>';
         html += '</div>';
       });
@@ -1643,7 +1652,7 @@ async function resolveEntropy(id){
 
 // ---- 5. 反脆弱缓冲评估 ----
 async function openAntifragile(){
-  openModal2('🛡️ 反脆弱评估', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('🛡️ 反脆弱评估', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r1 = await fetch('/api/antifragile'); var cur = await r1.json();
     var r2 = await fetch('/api/antifragile/logs'); var list = await r2.json();
@@ -1651,32 +1660,32 @@ async function openAntifragile(){
     if (cur && cur.interpretation) {
       html += '<div style="background:rgba(34,197,94,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #22C55E">';
       html += '<div style="font-size:12px;color:#22C55E;margin-bottom:6px">📊 当前评估</div>';
-      html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(cur.interpretation)+'</div>';
+      html += '<div style="font-size:13px;color:#1A1A2E;line-height:1.6;white-space:pre-wrap">'+escapeHtml(cur.interpretation)+'</div>';
       html += '</div>';
     }
     html += '<div style="background:rgba(34,197,94,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(34,197,94,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新评估（0-10）</div>';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新评估（0-10）</div>';
     var dims = [['financial','💰 财务缓冲','存6个月生活费前不算自由'],['skill','🎯 技能冗余','只会一件事是单点故障'],['social','👥 关系网络','深交3人胜过认识100人'],['health','💪 身体储备','健康归零一切归零'],['mental','🧠 心智韧性','遭遇挫折的反弹力']];
     dims.forEach(function(d){
-      html += '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#F1F5F9">'+d[1]+'</span><span id="af_'+d[0]+'_v" style="font-size:13px;color:#22C55E;font-weight:600">5</span></div><input id="af_'+d[0]+'" type="range" min="0" max="10" value="5" style="width:100%" oninput="document.getElementById(\'af_'+d[0]+'_v\').textContent=this.value"></div>';
-      html += '<div style="font-size:10px;color:#64748B;margin-bottom:4px">'+d[2]+'</div>';
+      html += '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#1A1A2E">'+d[1]+'</span><span id="af_'+d[0]+'_v" style="font-size:13px;color:#22C55E;font-weight:600">5</span></div><input id="af_'+d[0]+'" type="range" min="0" max="10" value="5" style="width:100%" oninput="document.getElementById(\'af_'+d[0]+'_v\').textContent=this.value"></div>';
+      html += '<div style="font-size:10px;color:#9CA3AF;margin-bottom:4px">'+d[2]+'</div>';
     });
-    html += '<textarea id="afNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<textarea id="afNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<button onclick="saveAntifragile()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#22C55E,#34D399);color:#fff;font-weight:600;cursor:pointer">保存评估</button>';
     html += '</div>';
     if (list.length > 0) {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史 '+list.length+' 份</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">历史 '+list.length+' 份</div>';
       list.slice(0, 5).forEach(function(a){
         var total = a.financial + a.skill + a.social + a.health + a.mental;
         var avg = (total/5).toFixed(1);
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #22C55E">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#64748B">'+a.date+'</span><span style="font-size:13px;color:#22C55E;font-weight:600">均'+avg+'</span></div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #22C55E">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#9CA3AF">'+a.date+'</span><span style="font-size:13px;color:#22C55E;font-weight:600">均'+avg+'</span></div>';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;margin-top:6px;font-size:10px;text-align:center">';
-        html += '<div><div style="color:#64748B">财务</div><div style="color:#F1F5F9">'+a.financial+'</div></div>';
-        html += '<div><div style="color:#64748B">技能</div><div style="color:#F1F5F9">'+a.skill+'</div></div>';
-        html += '<div><div style="color:#64748B">关系</div><div style="color:#F1F5F9">'+a.social+'</div></div>';
-        html += '<div><div style="color:#64748B">身体</div><div style="color:#F1F5F9">'+a.health+'</div></div>';
-        html += '<div><div style="color:#64748B">心智</div><div style="color:#F1F5F9">'+a.mental+'</div></div>';
+        html += '<div><div style="color:#9CA3AF">财务</div><div style="color:#1A1A2E">'+a.financial+'</div></div>';
+        html += '<div><div style="color:#9CA3AF">技能</div><div style="color:#1A1A2E">'+a.skill+'</div></div>';
+        html += '<div><div style="color:#9CA3AF">关系</div><div style="color:#1A1A2E">'+a.social+'</div></div>';
+        html += '<div><div style="color:#9CA3AF">身体</div><div style="color:#1A1A2E">'+a.health+'</div></div>';
+        html += '<div><div style="color:#9CA3AF">心智</div><div style="color:#1A1A2E">'+a.mental+'</div></div>';
         html += '</div>';
         html += '</div>';
       });
@@ -1708,27 +1717,27 @@ async function saveAntifragile(){
 
 // ---- 1. 北极星 ----
 async function openNorthStar(){
-  openModal2('⭐ 北极星坐标系', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('⭐ 北极星坐标系', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/north-star'); var data = (await r.json())[0];
     var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2)">';
     html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:10px">🧭 你的坐标系</div>';
     html += '<label style="font-size:11px;color:#F59E0B;font-weight:600">⭐ 终局（你想活成什么样）</label>';
-    html += '<textarea id="nsUltimate" placeholder="如：一个自由、有爱、有创造力的人" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin:4px 0 8px">'+escapeHtml(data ? data.ultimate || '' : '')+'</textarea>';
+    html += '<textarea id="nsUltimate" placeholder="如：一个自由、有爱、有创造力的人" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin:4px 0 8px">'+escapeHtml(data ? data.ultimate || '' : '')+'</textarea>';
     html += '<label style="font-size:11px;color:#F59E0B">5年目标</label>';
-    html += '<input id="nsFiveYear" placeholder="5年后要成为什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.fiveYear || '' : '')+'">';
+    html += '<input id="nsFiveYear" placeholder="5年后要成为什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.fiveYear || '' : '')+'">';
     html += '<label style="font-size:11px;color:#F59E0B">1年目标</label>';
-    html += '<input id="nsOneYear" placeholder="今年要达成什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.oneYear || '' : '')+'">';
+    html += '<input id="nsOneYear" placeholder="今年要达成什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.oneYear || '' : '')+'">';
     html += '<label style="font-size:11px;color:#F59E0B">本季度</label>';
-    html += '<input id="nsQuarter" placeholder="这3个月做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisQuarter || '' : '')+'">';
+    html += '<input id="nsQuarter" placeholder="这3个月做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisQuarter || '' : '')+'">';
     html += '<label style="font-size:11px;color:#F59E0B">本周</label>';
-    html += '<input id="nsWeek" placeholder="这周做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisWeek || '' : '')+'">';
+    html += '<input id="nsWeek" placeholder="这周做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisWeek || '' : '')+'">';
     html += '<label style="font-size:11px;color:#F59E0B">今天</label>';
-    html += '<input id="nsToday" placeholder="今天做什么让终局近1%" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.today || '' : '')+'">';
+    html += '<input id="nsToday" placeholder="今天做什么让终局近1%" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.today || '' : '')+'">';
     html += '<button onclick="saveNorthStar()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">保存坐标系</button>';
     html += '</div>';
     if (!data || !data.ultimate) {
-      html += '<div style="text-align:center;color:#64748B;padding:16px;font-size:13px;line-height:1.6">没有终局，所有努力都是漂移。<br>写下你的北极星——所有日常记录都将对齐它。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:16px;font-size:13px;line-height:1.6">没有终局，所有努力都是漂移。<br>写下你的北极星——所有日常记录都将对齐它。</div>';
     }
     openModal2('⭐ 北极星坐标系', html);
   } catch(e) { openModal2('⭐ 北极星', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
@@ -1753,31 +1762,31 @@ async function saveNorthStar(){
 
 // ---- 2. 危机预案 ----
 async function openCrisisPlan(){
-  openModal2('🚨 危机预案', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('🚨 危机预案', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/crisis-plan'); var list = await r.json();
     var html = '<div style="background:rgba(239,68,68,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(239,68,68,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新危机预案</div>';
-    html += '<input id="cpScenario" placeholder="危机场景（如：失业/生病/分手）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><select id="cpProb" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><option value="low">低概率</option><option value="med" selected>中概率</option><option value="high">高概率</option></select><select id="cpImpact" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><option value="low">轻度</option><option value="med">中度</option><option value="high" selected>严重</option><option value="critical">致命</option></select></div>';
-    html += '<input id="cpPrecondition" placeholder="前置信号（如：连续3个月入不敷出）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
-    html += '<textarea id="cpImmediate" placeholder="立即行动（头24小时做什么）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="cpThreeDay" placeholder="3天计划（止血、稳住）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="cpRecovery" placeholder="恢复计划（长期）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新危机预案</div>';
+    html += '<input id="cpScenario" placeholder="危机场景（如：失业/生病/分手）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><select id="cpProb" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><option value="low">低概率</option><option value="med" selected>中概率</option><option value="high">高概率</option></select><select id="cpImpact" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><option value="low">轻度</option><option value="med">中度</option><option value="high" selected>严重</option><option value="critical">致命</option></select></div>';
+    html += '<input id="cpPrecondition" placeholder="前置信号（如：连续3个月入不敷出）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="cpImmediate" placeholder="立即行动（头24小时做什么）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="cpThreeDay" placeholder="3天计划（止血、稳住）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="cpRecovery" placeholder="恢复计划（长期）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<button onclick="saveCrisisPlan()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#EF4444,#F87171);color:#fff;font-weight:600;cursor:pointer">保存预案</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有危机预案。<br>危机来时，人会因为恐慌而冻结——预案的意义，是不用临时决策。<br>预想3-5个最可能的危机，写下应对剧本。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有危机预案。<br>危机来时，人会因为恐慌而冻结——预案的意义，是不用临时决策。<br>预想3-5个最可能的危机，写下应对剧本。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 个预案</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 个预案</div>';
       list.forEach(function(c){
         var pColor = c.probability === 'high' ? '#EF4444' : c.probability === 'med' ? '#F59E0B' : '#94A3B8';
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+pColor+'">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#F1F5F9;font-weight:600">'+escapeHtml(c.scenario)+'</span>'+(c.rehearsed?'<span style="font-size:10px;color:#22C55E">已演练</span>':'')+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+pColor+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#1A1A2E;font-weight:600">'+escapeHtml(c.scenario)+'</span>'+(c.rehearsed?'<span style="font-size:10px;color:#22C55E">已演练</span>':'')+'</div>';
         html += '<div style="font-size:11px;color:'+pColor+';margin-top:4px">概率'+c.probability+' · 影响'+c.impact+'</div>';
-        if (c.immediateAction) html += '<div style="font-size:11px;color:#CBD5E1;margin-top:4px"><b>立即：</b>'+escapeHtml(c.immediateAction)+'</div>';
-        if (c.threeDayPlan) html += '<div style="font-size:11px;color:#CBD5E1;margin-top:2px"><b>3天：</b>'+escapeHtml(c.threeDayPlan)+'</div>';
-        if (c.recoveryPlan) html += '<div style="font-size:11px;color:#CBD5E1;margin-top:2px"><b>恢复：</b>'+escapeHtml(c.recoveryPlan)+'</div>';
+        if (c.immediateAction) html += '<div style="font-size:11px;color:#4B5563;margin-top:4px"><b>立即：</b>'+escapeHtml(c.immediateAction)+'</div>';
+        if (c.threeDayPlan) html += '<div style="font-size:11px;color:#4B5563;margin-top:2px"><b>3天：</b>'+escapeHtml(c.threeDayPlan)+'</div>';
+        if (c.recoveryPlan) html += '<div style="font-size:11px;color:#4B5563;margin-top:2px"><b>恢复：</b>'+escapeHtml(c.recoveryPlan)+'</div>';
         html += '<div style="display:flex;gap:6px;margin-top:6px">';
         if (!c.rehearsed) html += '<button onclick="rehearseCrisis(\''+c.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(245,158,11,0.3);border-radius:8px;background:rgba(245,158,11,0.06);color:#F59E0B;cursor:pointer">演练</button>';
         html += '<button onclick="delCrisisPlan(\''+c.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button>';
@@ -1822,28 +1831,28 @@ async function delCrisisPlan(id){
 
 // ---- 3. 临终测试 ----
 async function openDeathTest(){
-  openModal2('⚰️ 临终测试', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('⚰️ 临终测试', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/death-test'); var list = await r.json();
     var html = '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid rgba(99,102,241,0.15)">';
-    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">💭 假如今天就是终点</div>';
-    html += '<textarea id="dtRegrets" placeholder="最大的遗憾是什么？" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="dtUndone" placeholder="想做却没做的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="dtProud" placeholder="让你骄傲的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="dtChange" placeholder="如果重来，你会改变什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<input id="dtFocus" placeholder="由此刻起，最重要的一件事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:8px">';
+    html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">💭 假如今天就是终点</div>';
+    html += '<textarea id="dtRegrets" placeholder="最大的遗憾是什么？" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtUndone" placeholder="想做却没做的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtProud" placeholder="让你骄傲的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtChange" placeholder="如果重来，你会改变什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="dtFocus" placeholder="由此刻起，最重要的一件事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:8px">';
     html += '<button onclick="saveDeathTest()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#818CF8);color:#fff;font-weight:600;cursor:pointer">记录</button>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有临终测试记录。<br>这不是诅咒，是反向校准——\n站在终点看现在，很多事就不纠结了。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有临终测试记录。<br>这不是诅咒，是反向校准——\n站在终点看现在，很多事就不纠结了。</div>';
     } else {
-      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史 '+list.length+' 次</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">历史 '+list.length+' 次</div>';
       list.forEach(function(d){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6366F1">';
-        html += '<div style="font-size:11px;color:#64748B">'+d.date+'</div>';
-        if (d.regrets) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:4px"><b style="color:#EF4444">遗憾：</b>'+escapeHtml(d.regrets)+'</div>';
-        if (d.undone) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:2px"><b style="color:#F59E0B">未做：</b>'+escapeHtml(d.undone)+'</div>';
-        if (d.proudOf) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:2px"><b style="color:#22C55E">骄傲：</b>'+escapeHtml(d.proudOf)+'</div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6366F1">';
+        html += '<div style="font-size:11px;color:#9CA3AF">'+d.date+'</div>';
+        if (d.regrets) html += '<div style="font-size:12px;color:#4B5563;margin-top:4px"><b style="color:#EF4444">遗憾：</b>'+escapeHtml(d.regrets)+'</div>';
+        if (d.undone) html += '<div style="font-size:12px;color:#4B5563;margin-top:2px"><b style="color:#F59E0B">未做：</b>'+escapeHtml(d.undone)+'</div>';
+        if (d.proudOf) html += '<div style="font-size:12px;color:#4B5563;margin-top:2px"><b style="color:#22C55E">骄傲：</b>'+escapeHtml(d.proudOf)+'</div>';
         if (d.focus) html += '<div style="font-size:12px;color:#6366F1;margin-top:4px;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:6px">→ '+escapeHtml(d.focus)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delDeathTest(\''+d.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
@@ -1877,23 +1886,23 @@ async function delDeathTest(id){
 
 // ---- 4. 年度叙事 ----
 async function openNarrative(){
-  openModal2('📖 年度叙事', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('📖 年度叙事', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/narrative'); var list = await r.json();
     var curYear = new Date().getFullYear();
-    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(212,165,116,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2);text-align:center">';
-    html += '<div style="font-size:13px;color:#F1F5F9;margin-bottom:8px">生成 '+curYear+' 年的故事</div>';
-    html += '<button onclick="generateNarrative('+curYear+')" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#d4a574);color:#fff;font-weight:600;cursor:pointer">📖 生成年度叙事</button>';
-    html += '<div style="font-size:11px;color:#64748B;margin-top:6px">基于你的所有记录，系统会写出"你这一年活成了什么"</div>';
+    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(139,92,246,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2);text-align:center">';
+    html += '<div style="font-size:13px;color:#1A1A2E;margin-bottom:8px">生成 '+curYear+' 年的故事</div>';
+    html += '<button onclick="generateNarrative('+curYear+')" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#8B5CF6);color:#fff;font-weight:600;cursor:pointer">📖 生成年度叙事</button>';
+    html += '<div style="font-size:11px;color:#9CA3AF;margin-top:6px">基于你的所有记录，系统会写出"你这一年活成了什么"</div>';
     html += '</div>';
     if (list.length === 0) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有年度叙事。<br>记录不是终点——这些数据要变成故事，变成判断力。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有年度叙事。<br>记录不是终点——这些数据要变成故事，变成判断力。</div>';
     } else {
       list.forEach(function(n){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;margin-bottom:8px;border-left:3px solid #F59E0B">';
+        html += '<div style="background:#FFFFFF;border-radius:12px;padding:14px;margin-bottom:8px;border-left:3px solid #F59E0B">';
         html += '<div style="font-size:14px;color:#F59E0B;font-weight:600;margin-bottom:8px">📖 '+n.year+' 年叙事</div>';
-        if (n.story) html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.8;white-space:pre-wrap">'+escapeHtml(n.story)+'</div>';
-        if (n.conclusion) html += '<div style="font-size:12px;color:#d4a574;margin-top:10px;padding:8px 10px;background:rgba(212,165,116,0.06);border-radius:6px;white-space:pre-wrap">'+escapeHtml(n.conclusion)+'</div>';
+        if (n.story) html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.8;white-space:pre-wrap">'+escapeHtml(n.story)+'</div>';
+        if (n.conclusion) html += '<div style="font-size:12px;color:#8B5CF6;margin-top:10px;padding:8px 10px;background:rgba(139,92,246,0.06);border-radius:6px;white-space:pre-wrap">'+escapeHtml(n.conclusion)+'</div>';
         html += '<div style="margin-top:8px"><button onclick="delNarrative(\''+n.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -1919,19 +1928,19 @@ async function delNarrative(id){
 
 // ---- 5. 船长宣言 ----
 async function openManifesto(){
-  openModal2('📜 船长宣言', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  openModal2('📜 船长宣言', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/manifesto'); var data = (await r.json())[0];
     var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2)">';
     html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:8px">📜 你给自己的契约</div>';
-    html += '<input id="mfTitle" placeholder="标题（如：我的船长宣言）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px" value="'+escapeHtml(data ? data.title || '' : '')+'">';
-    html += '<textarea id="mfBody" placeholder="写下你对自己的承诺——必须包含你愿意付出的代价。\n如：我承诺做一个诚实的人，即使诚实会让我失去机会。\n我承诺照顾身体，即使这意味着放弃一些享乐。\n..." style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:120px;resize:vertical;margin-bottom:8px">'+escapeHtml(data ? data.body || '' : '')+'</textarea>';
+    html += '<input id="mfTitle" placeholder="标题（如：我的船长宣言）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px" value="'+escapeHtml(data ? data.title || '' : '')+'">';
+    html += '<textarea id="mfBody" placeholder="写下你对自己的承诺——必须包含你愿意付出的代价。\n如：我承诺做一个诚实的人，即使诚实会让我失去机会。\n我承诺照顾身体，即使这意味着放弃一些享乐。\n..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:120px;resize:vertical;margin-bottom:8px">'+escapeHtml(data ? data.body || '' : '')+'</textarea>';
     html += '<button onclick="saveManifesto()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-weight:600;cursor:pointer">'+(data ? '更新宣言' : '签订宣言')+'</button>';
     html += '</div>';
     if (!data) {
-      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有宣言。<br>宣言不是口号，是契约——\n写下你愿意为什么付出代价，那才是真宣言。</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有宣言。<br>宣言不是口号，是契约——\n写下你愿意为什么付出代价，那才是真宣言。</div>';
     } else {
-      html += '<div style="text-align:center;color:#64748B;padding:10px;font-size:11px">签订于 '+new Date(data.signedAt).toLocaleString('zh-CN')+'</div>';
+      html += '<div style="text-align:center;color:#9CA3AF;padding:10px;font-size:11px">签订于 '+new Date(data.signedAt).toLocaleString('zh-CN')+'</div>';
     }
     openModal2('📜 船长宣言', html);
   } catch(e) { openModal2('📜 船长宣言', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
@@ -2010,13 +2019,13 @@ function showTodayReflection(text){
 function showCognitiveFeedback(res){
   if (!res || !res.success) return;
   var parts = [];
-  if (res.reflection) parts.push('<div style="background:rgba(111,168,201,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #6fa8c9"><div style="font-size:11px;color:#6fa8c9;margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
-  if (res.dailySummary) parts.push('<div style="font-size:11px;color:#64748B;margin-bottom:8px">📊 '+escapeHtml(res.dailySummary)+'</div>');
+  if (res.reflection) parts.push('<div style="background:rgba(99,102,241,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #6366F1"><div style="font-size:11px;color:#6366F1;margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
+  if (res.dailySummary) parts.push('<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">📊 '+escapeHtml(res.dailySummary)+'</div>');
   if (res.correlations && res.correlations.length > 0) {
-    var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:#6fa8c9;margin-bottom:6px">🔗 关联发现</div>';
+    var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:#6366F1;margin-bottom:6px">🔗 关联发现</div>';
     res.correlations.forEach(function(c){
-      var color = c.s === 'crit' ? '#EF4444' : c.s === 'high' ? '#F59E0B' : '#6fa8c9';
-      ch += '<div style="background:rgba(111,168,201,0.06);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#CBD5E1;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
+      var color = c.s === 'crit' ? '#EF4444' : c.s === 'high' ? '#F59E0B' : '#6366F1';
+      ch += '<div style="background:rgba(99,102,241,0.06);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
     });
     ch += '</div>';
     parts.push(ch);
@@ -2024,18 +2033,18 @@ function showCognitiveFeedback(res){
   if (res.risks && res.risks.length > 0) {
     var rh = '<div style="margin-bottom:10px"><div style="font-size:11px;color:#EF4444;margin-bottom:6px">⚠️ 风险预警</div>';
     res.risks.forEach(function(r){
-      var bg = r.l === 'high' ? 'rgba(239,68,68,0.1)' : r.l === 'med' ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.04)';
-      rh += '<div style="background:'+bg+';border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+(r.l==='high'?'#EF4444':r.l==='med'?'#F59E0B':'#94A3B8')+';font-size:12px;color:#CBD5E1;line-height:1.6;white-space:pre-wrap">'+escapeHtml(r.t)+'</div>';
+      var bg = r.l === 'high' ? 'rgba(239,68,68,0.1)' : r.l === 'med' ? 'rgba(245,158,11,0.1)' : '#FFFFFF';
+      rh += '<div style="background:'+bg+';border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+(r.l==='high'?'#EF4444':r.l==='med'?'#F59E0B':'#94A3B8')+';font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap">'+escapeHtml(r.t)+'</div>';
     });
     rh += '</div>';
     parts.push(rh);
   }
   if (parts.length === 0) {
-    parts.push('<div style="text-align:center;color:#64748B;padding:20px;font-size:13px">已保存 ✓<br><br>多记录几次，认知引擎会开始发现你的模式。</div>');
+    parts.push('<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px">已保存 ✓<br><br>多记录几次，认知引擎会开始发现你的模式。</div>');
   }
   // 在保存反馈里加一个"提炼为原则"的快捷按钮
   if (res.reflection) {
-    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid rgba(111,168,201,0.3);border-radius:8px;background:transparent;color:#6fa8c9;font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
+    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid rgba(99,102,241,0.3);border-radius:8px;background:transparent;color:#6366F1;font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
     window.__lastReflection = res.reflection;
   }
   openModal2('✨ 保存后的认知反馈', parts.join(''), '<button class="sv" onclick="closeModal2()">知道了</button>');
@@ -2080,26 +2089,26 @@ function renderInsight(){
   var html = '';
   if(insightsCache.growth){
     var g = insightsCache.growth;
-    html += '<div style="background:rgba(111,168,201,0.06);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(111,168,201,0.1)">';
-    html += '<div style="font-size:18px;font-weight:700;color:#6fa8c9">'+g.phase+'</div>';
-    html += '<div style="font-size:13px;color:#E2E8F0;margin-top:4px">'+g.phaseDesc+'</div>';
-    html += '<div style="font-size:13px;color:#94A3B8;margin-top:4px">📝 已记录 '+g.days+' 天 · 下一里程碑：'+g.nextMilestone+'</div>';
+    html += '<div style="background:rgba(99,102,241,0.06);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(99,102,241,0.1)">';
+    html += '<div style="font-size:18px;font-weight:700;color:#6366F1">'+g.phase+'</div>';
+    html += '<div style="font-size:13px;color:#374151;margin-top:4px">'+g.phaseDesc+'</div>';
+    html += '<div style="font-size:13px;color:#6B7280;margin-top:4px">📝 已记录 '+g.days+' 天 · 下一里程碑：'+g.nextMilestone+'</div>';
     if(insightsCache.compoundRate) {
       var cr = insightsCache.compoundRate;
       var color = cr.value > 0.1 ? '#22C55E' : cr.value < -0.1 ? '#EF4444' : '#94A3B8';
       html += '<div style="font-size:13px;color:'+color+';margin-top:4px">'+cr.text+'</div>';
     }
-    html += '<div style="margin-top:8px;height:4px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,#2a6f97,#d4a574);border-radius:4px"></div></div>';
+    html += '<div style="margin-top:8px;height:4px;background:#FFFFFF;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:4px"></div></div>';
     html += '</div>';
   }
   if(insightsCache.milestones && insightsCache.milestones.length>0){
-    html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;margin-bottom:12px">';
+    html += '<div style="background:#FFFFFF;border-radius:12px;padding:14px;margin-bottom:12px">';
     html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px">🏆 已达成里程碑</div>';
     insightsCache.milestones.forEach(function(m){ html += '<div class="milestone-item"><span class="ic">'+m.icon+'</span><span>'+m.name+'</span></div>'; });
     html += '</div>';
   }
   if(insightsCache.correlations && insightsCache.correlations.length>0){
-    html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;margin-bottom:12px">';
+    html += '<div style="background:#FFFFFF;border-radius:12px;padding:14px;margin-bottom:12px">';
     html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px">🔗 关联分析</div>';
     insightsCache.correlations.forEach(function(c){ html += '<div class="corr-item"><div class="title">'+c.title+'</div><div class="detail">'+c.detail+'</div></div>'; });
     html += '</div>';
@@ -2108,15 +2117,15 @@ function renderInsight(){
     html += '<div style="background:rgba(251,191,36,0.04);border-radius:12px;padding:14px;margin-bottom:12px;border-left:3px solid #FBBF24">';
     html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px">💡 个性化建议</div>';
     insightsCache.suggestions.forEach(function(s){
-      html += '<div style="font-size:13px;color:#E2E8F0;padding:4px 0">• '+s.text+'</div>';
+      html += '<div style="font-size:13px;color:#374151;padding:4px 0">• '+s.text+'</div>';
     });
     html += '</div>';
   }
   if(insightsCache.monthly && insightsCache.monthly.mood){
     var m = insightsCache.monthly;
-    html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;margin-bottom:12px">';
+    html += '<div style="background:#FFFFFF;border-radius:12px;padding:14px;margin-bottom:12px">';
     html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">📅 月度总结</div>';
-    html += '<div style="font-size:13px;color:#94A3B8">情绪 '+m.mood+' 分 · 记录 '+m.days+' 天</div>';
+    html += '<div style="font-size:13px;color:#6B7280">情绪 '+m.mood+' 分 · 记录 '+m.days+' 天</div>';
     if(m.changeText) html += '<div style="font-size:13px;color:'+(m.change>0.3?'#22C55E':m.change<-0.3?'#EF4444':'#94A3B8')+'">'+m.changeText+'</div>';
     html += '</div>';
   }
@@ -2124,11 +2133,11 @@ function renderInsight(){
   html += '<div style="background:linear-gradient(135deg,rgba(16,185,129,0.06),rgba(59,130,246,0.04));border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid rgba(16,185,129,0.15)">';
   html += '<div style="font-weight:600;font-size:14px;margin-bottom:10px">🌀 深度闭环</div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  html += '<div onclick="openRootCause()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#10B981">🔬 根因分析</div><div style="font-size:10px;color:#64748B;margin-top:2px">挖到能改的那一层</div></div>';
-  html += '<div onclick="openInterpersonal()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#F59E0B">♟️ 人际博弈</div><div style="font-size:10px;color:#64748B;margin-top:2px">看穿利益与成本</div></div>';
-  html += '<div onclick="openMindfulness()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#2a6f97">🧘 定力训练</div><div style="font-size:10px;color:#64748B;margin-top:2px">看见而不被带走</div></div>';
-  html += '<div onclick="openEnergy()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#FBBF24">⚡ 能量审计</div><div style="font-size:10px;color:#64748B;margin-top:2px">黑洞与源泉</div></div>';
-  html += '<div onclick="openReview()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;grid-column:span 2;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#d4a574">📅 周月自动复盘</div><div style="font-size:10px;color:#64748B;margin-top:2px">系统替你看一周/一月的轨迹</div></div>';
+  html += '<div onclick="openRootCause()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;border:1px solid #FFFFFF"><div style="font-size:11px;color:#10B981">🔬 根因分析</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">挖到能改的那一层</div></div>';
+  html += '<div onclick="openInterpersonal()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;border:1px solid #FFFFFF"><div style="font-size:11px;color:#F59E0B">♟️ 人际博弈</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">看穿利益与成本</div></div>';
+  html += '<div onclick="openMindfulness()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;border:1px solid #FFFFFF"><div style="font-size:11px;color:#6366F1">🧘 定力训练</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">看见而不被带走</div></div>';
+  html += '<div onclick="openEnergy()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;border:1px solid #FFFFFF"><div style="font-size:11px;color:#FBBF24">⚡ 能量审计</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">黑洞与源泉</div></div>';
+  html += '<div onclick="openReview()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;grid-column:span 2;border:1px solid #FFFFFF"><div style="font-size:11px;color:#8B5CF6">📅 周月自动复盘</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">系统替你看一周/一月的轨迹</div></div>';
   html += '</div>';
   html += '</div>';
   if(!html) html = '<div class="empty"><span class="ic">📭</span>继续记录，系统会生成洞察</div>';
@@ -2139,7 +2148,7 @@ function renderMe(){
   var c = document.getElementById('meContent');
   var total = 0;
   SCENES.forEach(function(s){ total += (dataCache[s.id]||[]).length; });
-  c.innerHTML = '<div style="margin-top:12px"><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">👤 个人信息</div><div style="font-size:13px;color:#94A3B8">总记录：'+total+' 条</div><div style="font-size:13px;color:#94A3B8">版本：v5.2 航海版</div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">🔐 密码</div><div style="display:flex;gap:8px;margin-top:8px"><input id="newPwd" placeholder="新密码" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#fff"><button onclick="changePwd()" style="background:#2a6f97;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer">修改</button></div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">💾 数据</div><button onclick="exportData()" style="background:#10B981;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-top:8px">导出备份</button><button onclick="clearAll()" style="background:#EF4444;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-left:8px">清空</button></div></div>';
+  c.innerHTML = '<div style="margin-top:12px"><div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">👤 个人信息</div><div style="font-size:13px;color:#6B7280">总记录：'+total+' 条</div><div style="font-size:13px;color:#6B7280">版本：v5.2 船长版</div></div><div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">🔐 密码</div><div style="display:flex;gap:8px;margin-top:8px"><input id="newPwd" placeholder="新密码" style="flex:1;padding:8px 12px;border-radius:8px;background:#FFFFFF;color:#fff"><button onclick="changePwd()" style="background:#6366F1;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer">修改</button></div></div><div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">💾 数据</div><button onclick="exportData()" style="background:#10B981;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-top:8px">导出备份</button><button onclick="clearAll()" style="background:#EF4444;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-left:8px">清空</button></div></div>';
 }
 
 function changePwd(){ var np=document.getElementById('newPwd').value; if(np.length<4){ alert('至少4位'); return; } PWD=np; alert('密码已修改'); }
@@ -2220,7 +2229,7 @@ async function loadBills() {
     container.innerHTML = unpaid.slice(0, 5).map(function(b) {
       var statusText = b.status === 'overdue' ? '🔴 已过期' : (b.status === 'upcoming' ? '🟡 即将到期' : '⚪');
       var daysText = b.daysRemaining < 0 ? '已过期' + Math.abs(b.daysRemaining) + '天' : '剩余' + b.daysRemaining + '天';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="color:' + (b.status === 'overdue' ? '#EF4444' : b.status === 'upcoming' ? '#FBBF24' : '#CBD5E1') + '">' + b.name + ' ¥' + b.amount + '</span><span style="font-size:11px;color:#64748B;">' + daysText + '</span></div>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #FFFFFF;"><span style="color:' + (b.status === 'overdue' ? '#EF4444' : b.status === 'upcoming' ? '#FBBF24' : '#CBD5E1') + '">' + b.name + ' ¥' + b.amount + '</span><span style="font-size:11px;color:#9CA3AF;">' + daysText + '</span></div>';
     }).join('');
   } catch(e) { document.getElementById('billsList').textContent = '加载失败'; }
 }
@@ -2294,14 +2303,14 @@ async function loadHousework() {
     if (urgent.length > 0) {
       html += '<div style="color:#EF4444;font-size:11px;margin-bottom:4px;">⚠️ 逾期任务</div>';
       urgent.slice(0, 3).forEach(function(t) {
-        html += '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="color:#EF4444;">' + t.task + '</span><button onclick="completeHousework(\'' + t.id + '\')" style="background:transparent;border:1px solid rgba(255,255,255,0.06);border-radius:4px;padding:0 8px;color:#94A3B8;font-size:10px;cursor:pointer;">完成</button></div>';
+        html += '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #FFFFFF;"><span style="color:#EF4444;">' + t.task + '</span><button onclick="completeHousework(\'' + t.id + '\')" style="background:transparent;border-radius:4px;padding:0 8px;color:#6B7280;font-size:10px;cursor:pointer;">完成</button></div>';
       });
     } else if (data.mode !== 'busy') {
       html += '<div style="color:#22C55E;font-size:12px;">✅ 今日所有任务已完成</div>';
     } else {
-      html += '<div style="color:#94A3B8;font-size:12px;">📌 忙模式：只显示紧急任务</div>';
+      html += '<div style="color:#6B7280;font-size:12px;">📌 忙模式：只显示紧急任务</div>';
     }
-    document.getElementById('houseworkList').innerHTML = html || '<span style="color:#64748B;font-size:12px;">暂无待做任务</span>';
+    document.getElementById('houseworkList').innerHTML = html || '<span style="color:#9CA3AF;font-size:12px;">暂无待做任务</span>';
   } catch(e) { document.getElementById('houseworkList').textContent = '加载失败'; }
 }
 
@@ -2343,7 +2352,7 @@ async function loadSocial() {
     var contacts = await res.json();
     var container = document.getElementById('socialList');
     if (contacts.length === 0) {
-      container.innerHTML = '<span style="color:#64748B;font-size:12px;">还没有联系人，点 + 添加</span>';
+      container.innerHTML = '<span style="color:#9CA3AF;font-size:12px;">还没有联系人，点 + 添加</span>';
       return;
     }
     var top = contacts.slice(0, 3);
@@ -2351,7 +2360,7 @@ async function loadSocial() {
       var badge = '';
       if (c.daysUntilBirthday !== null && c.daysUntilBirthday <= 7) badge = '🎂 ';
       if (c.daysSinceContact !== null && c.daysSinceContact > 30) badge = '📅 ';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="color:#CBD5E1;">' + badge + c.name + '</span><span style="font-size:11px;color:#64748B;">' + c.relation + '</span></div>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #FFFFFF;"><span style="color:#4B5563;">' + badge + c.name + '</span><span style="font-size:11px;color:#9CA3AF;">' + c.relation + '</span></div>';
     }).join('');
   } catch(e) { document.getElementById('socialList').textContent = '加载失败'; }
 }
@@ -2380,11 +2389,11 @@ async function loadAchievements() {
     var data = await res.json();
     var container = document.getElementById('achievementList');
     if (data.unlockedCount === 0) {
-      container.innerHTML = '<span style="color:#64748B;font-size:12px;">继续努力，解锁第一个成就 🏆</span>';
+      container.innerHTML = '<span style="color:#9CA3AF;font-size:12px;">继续努力，解锁第一个成就 🏆</span>';
       return;
     }
     container.innerHTML = data.unlocked.slice(0, 4).map(function(a) {
-      return '<span style="background:rgba(111,168,201,0.1);border-radius:12px;padding:2px 10px;font-size:11px;color:#6fa8c9;">' + a.name + '</span>';
+      return '<span style="background:rgba(99,102,241,0.1);border-radius:12px;padding:2px 10px;font-size:11px;color:#6366F1;">' + a.name + '</span>';
     }).join('');
   } catch(e) { document.getElementById('achievementList').textContent = '加载失败'; }
   try { await fetch('/api/achievements/check', { method: 'POST' }); } catch(e) {}
@@ -2431,26 +2440,26 @@ async function loadWork() {
       }
       if (recent.length > 0) {
         html += recent.map(function(i) {
-          return '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;">' +
-            '<span style="color:#CBD5E1;">' + i.company + ' · ' + i.position + '</span>' +
-            '<span style="color:#64748B;">' + i.status + '</span>' +
+          return '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #FFFFFF;font-size:12px;">' +
+            '<span style="color:#4B5563;">' + i.company + ' · ' + i.position + '</span>' +
+            '<span style="color:#9CA3AF;">' + i.status + '</span>' +
           '</div>';
         }).join('');
       } else {
-        html += '<div style="color:#64748B;font-size:12px;">暂无面试记录，点击下方添加</div>';
+        html += '<div style="color:#9CA3AF;font-size:12px;">暂无面试记录，点击下方添加</div>';
       }
-      html += '<button onclick="openAddInterview()" style="margin-top:4px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;color:#64748B;font-size:11px;cursor:pointer;width:100%;">+ 添加面试</button>';
+      html += '<button onclick="openAddInterview()" style="margin-top:4px;background:transparent;border:1px dashed #F3F4F6;border-radius:6px;padding:4px 8px;color:#9CA3AF;font-size:11px;cursor:pointer;width:100%;">+ 添加面试</button>';
     } else {
       // 日常模式显示技能
       var topSkills = skills.skills ? skills.skills.slice(0, 3) : [];
       if (topSkills.length > 0) {
         html += topSkills.map(function(s) {
-          return '<span style="display:inline-block;background:rgba(111,168,201,0.08);border-radius:8px;padding:2px 10px;font-size:11px;color:#6fa8c9;margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
+          return '<span style="display:inline-block;background:rgba(99,102,241,0.08);border-radius:8px;padding:2px 10px;font-size:11px;color:#6366F1;margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
         }).join('');
       } else {
-        html += '<span style="color:#64748B;font-size:12px;">还没有技能评分，点击下方添加</span>';
+        html += '<span style="color:#9CA3AF;font-size:12px;">还没有技能评分，点击下方添加</span>';
       }
-      html += '<button onclick="openAddSkill()" style="margin-top:4px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;color:#64748B;font-size:11px;cursor:pointer;width:100%;">+ 添加技能</button>';
+      html += '<button onclick="openAddSkill()" style="margin-top:4px;background:transparent;border:1px dashed #F3F4F6;border-radius:6px;padding:4px 8px;color:#9CA3AF;font-size:11px;cursor:pointer;width:100%;">+ 添加技能</button>';
     }
     container.innerHTML = html;
   } catch(e) { document.getElementById('workContent').textContent = '加载失败'; }
