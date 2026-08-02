@@ -68,8 +68,6 @@ echo "[5/6] 启动服务..."
 pm2 delete eggplant 2>/dev/null || true
 pm2 delete all 2>/dev/null || true
 sudo fuser -k ${PORT}/tcp 2>/dev/null || true
-sudo pkill -f "node.*server.js" 2>/dev/null || true
-sudo pkill -f "python.*server" 2>/dev/null || true
 sleep 2
 
 cd "$INSTALL_DIR"
