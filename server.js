@@ -8,6 +8,100 @@ const PORT = 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
+// ============ SQLite 初始化层 ============
+const Database = require('better-sqlite3');
+const DB_PATH = path.join(DATA_DIR, 'qiezi.db');
+const db = new Database(DB_PATH);
+db.pragma('journal_mode=WAL;');
+db.pragma('synchronous=NORMAL;');
+const DB = db;
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS records(
+    mid TEXT, id TEXT, data TEXT, created TEXT, updated TEXT,
+    PRIMARY KEY(mid, id)
+  ) WITHOUT ROWID;
+  CREATE TABLE IF NOT EXISTS kv(
+    key TEXT PRIMARY KEY, value TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_records_mid_created ON records(mid, created DESC);
+`);
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+(function migrateJSON() {
+  const files = fs.readdirSync(DATA_DIR).filter(f => f.endsWith('.json'));
+  const now = new Date().toISOString();
+  for (const f of files) {
+    const mid = f.slice(0, -5);
+    const countRow = db.prepare('SELECT COUNT(*) as c FROM records WHERE mid=?').get(mid);
+    if (countRow.c > 0) continue;
+    const fpath = path.join(DATA_DIR, f);
+    let rows;
+    try {
+      const raw = JSON.parse(fs.readFileSync(fpath, 'utf8'));
+      if (Array.isArray(raw)) rows = raw;
+      else if (raw && Array.isArray(raw.records)) rows = raw.records;
+      else continue;
+    } catch (e) { continue; }
+    if (!rows || !rows.length) continue;
+    const insert = db.prepare('INSERT OR REPLACE INTO records(mid,id,data,created,updated) VALUES(?,?,?,?,?)');
+    const tx = db.transaction(() => {
+      for (const row of rows) {
+        const rid = row.id || genId();
+        const created = row.created || row.date || row.createdAt || now;
+        insert.run(mid, rid, JSON.stringify(row), created, now);
+      }
+    });
+    tx();
+    try { fs.renameSync(fpath, fpath + '.bak'); } catch (e) {}
+  }
+})();
+
+function readData(m) {
+  const rows = db.prepare('SELECT data FROM records WHERE mid=? ORDER BY created DESC').all(m);
+  return rows.map(r => JSON.parse(r.data));
+}
+function writeData(m, list) {
+  const ids = (list || []).map(r => String(r.id || genId()));
+  const now = new Date().toISOString();
+  const upsert = db.prepare('INSERT OR REPLACE INTO records(mid,id,data,created,updated) VALUES(?,?,?,?,?)');
+  const tx = db.transaction(() => {
+    if (ids.length === 0) {
+      db.prepare('DELETE FROM records WHERE mid=?').run(m);
+    } else {
+      const placeholders = ids.map(() => '?').join(',');
+      db.prepare(`DELETE FROM records WHERE mid=? AND id NOT IN (${placeholders})`).run(m, ...ids);
+    }
+    for (const row of (list || [])) {
+      const rid = String(row.id || genId());
+      if (!row.id) row.id = rid;
+      const created = row.created || row.date || row.createdAt || now;
+      upsert.run(m, rid, JSON.stringify(row), created, now);
+    }
+  });
+  tx();
+}
+function getOneRecord(mid, id) {
+  const row = db.prepare('SELECT data FROM records WHERE mid=? AND id=?').get(mid, String(id));
+  return row ? JSON.parse(row.data) : null;
+}
+function upsertRecord(mid, item) {
+  const now = new Date().toISOString();
+  const rid = String(item.id || genId());
+  if (!item.id) item.id = rid;
+  const created = item.created || item.date || item.createdAt || now;
+  db.prepare('INSERT OR REPLACE INTO records(mid,id,data,created,updated) VALUES(?,?,?,?,?)')
+    .run(mid, rid, JSON.stringify(item), created, now);
+  return item;
+}
+function deleteRecord(mid, id) {
+  const info = db.prepare('DELETE FROM records WHERE mid=? AND id=?').run(mid, String(id));
+  return info.changes > 0;
+}
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -16,23 +110,8 @@ if (fs.existsSync(path.join(__dirname, 'frontend'))) {
   app.use(express.static('frontend'));
 }
 
-// ============ 数据读写 ============
-function readData(m) {
-  const f = path.join(DATA_DIR, m + '.json');
-  if (!fs.existsSync(f)) return [];
-  try {
-    const d = JSON.parse(fs.readFileSync(f, 'utf8'));
-    if (Array.isArray(d)) return d;
-    if (d && Array.isArray(d.records)) return d.records;
-    return [];
-  } catch (e) { return []; }
-}
-function writeData(m, d) {
-  fs.writeFileSync(path.join(DATA_DIR, m + '.json'), JSON.stringify(d, null, 2));
-}
-
 // ============ 修复：health 和 insights 必须在通用路由前 ============
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.1' }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.4' }));
 
 // ============ 今日之问 API ============
 const QUESTION_POOL = [
@@ -3025,15 +3104,216 @@ app.post('/api/record/add', (req, res) => {
   const risks = ENG.risks(hist);
   const dailySummary = ENG.daily(hist);
 
+  let budget = null;
+  if (mid === 'finance' && data.type === '支出') {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const month = `${yyyy}-${mm}`;
+    const budgetRow = db.prepare("SELECT value FROM kv WHERE key=?").get('budget:' + month);
+    const budgetAmount = budgetRow ? parseFloat(budgetRow.value) || 0 : 0;
+    const monthStart = `${month}-01`;
+    const nextMonthDate = new Date(yyyy, today.getMonth() + 1, 1);
+    const nextMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
+    const spentRows = db.prepare("SELECT data FROM records WHERE mid='finance' AND created>=? AND created<?").all(monthStart, nextMonth);
+    let spent = 0;
+    for (const r of spentRows) {
+      try {
+        const rd = JSON.parse(r.data);
+        if (rd.type === '支出' || rd.type === 'expense') spent += parseFloat(rd.amount) || 0;
+      } catch (e) {}
+    }
+    const remaining = budgetAmount - spent;
+    budget = { budget: budgetAmount, spent, remaining, over: remaining < 0 };
+  }
+
   res.json({
     success: true,
     item,
     reflection,
     correlations,
     risks,
-    dailySummary
+    dailySummary,
+    budget
   });
 });
+
+// ============================================================
+// 预算 API
+// ============================================================
+app.get('/api/budget', (req, res) => {
+  const targetMonth = req.query.month || (() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
+  })();
+  const [ty, tm] = targetMonth.split('-').map(Number);
+  const calcMonthSpent = (yyyy, mm) => {
+    const month = `${yyyy}-${String(mm).padStart(2, '0')}`;
+    const start = `${month}-01`;
+    const nextDate = new Date(yyyy, mm, 1);
+    const end = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-01`;
+    const rows = db.prepare("SELECT data FROM records WHERE mid='finance' AND created>=? AND created<?").all(start, end);
+    let s = 0;
+    for (const r of rows) {
+      try { const rd = JSON.parse(r.data); if (rd.type === '支出' || rd.type === 'expense') s += parseFloat(rd.amount) || 0; } catch (e) {}
+    }
+    return s;
+  };
+  const spent = calcMonthSpent(ty, tm);
+  const bRow = db.prepare("SELECT value FROM kv WHERE key=?").get('budget:' + targetMonth);
+  const budget = bRow ? parseFloat(bRow.value) || 0 : 0;
+  const remaining = budget - spent;
+  const history = [];
+  for (let i = 2; i >= 0; i--) {
+    const d = new Date(ty, tm - 1 - i, 1);
+    const y = d.getFullYear(), m = d.getMonth() + 1;
+    const mStr = `${y}-${String(m).padStart(2, '0')}`;
+    const hRow = db.prepare("SELECT value FROM kv WHERE key=?").get('budget:' + mStr);
+    history.push({
+      month: mStr,
+      budget: hRow ? parseFloat(hRow.value) || 0 : 0,
+      spent: calcMonthSpent(y, m)
+    });
+  }
+  res.json({ budget, spent, remaining, over: remaining < 0, history });
+});
+app.post('/api/budget', (req, res) => {
+  const { month, amount } = req.body;
+  if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.json({ success: false, message: '月份格式应为 YYYY-MM' });
+  const amt = parseFloat(amount);
+  if (isNaN(amt) || amt < 0) return res.json({ success: false, message: '金额无效' });
+  db.prepare("INSERT OR REPLACE INTO kv(key,value) VALUES(?,?)").run('budget:' + month, String(amt));
+  res.json({ success: true, month, budget: amt });
+});
+
+// ============================================================
+// 习惯 API
+// ============================================================
+const DEFAULT_HABITS = [
+  { id: 'earlysleep', name: '早睡', icon: '🌙', target: '23:00前睡' },
+  { id: 'exercise', name: '锻炼', icon: '🏃', target: '每日30分钟' },
+  { id: 'meditate', name: '冥想', icon: '🧘', target: '每日10分钟' }
+];
+function getHabitCheckins(habitId) {
+  const row = db.prepare("SELECT value FROM kv WHERE key=?").get('habit_checkin:' + habitId);
+  if (!row) return [];
+  try { const arr = JSON.parse(row.value); return Array.isArray(arr) ? arr : []; } catch (e) { return []; }
+}
+function saveHabitCheckins(habitId, list) {
+  db.prepare("INSERT OR REPLACE INTO kv(key,value) VALUES(?,?)").run('habit_checkin:' + habitId, JSON.stringify(list));
+}
+function calcStreak(checkins, todayStr) {
+  const dateSet = new Set(checkins.map(c => c.date));
+  let streak = 0;
+  const cur = new Date(todayStr);
+  while (true) {
+    const s = cur.toISOString().split('T')[0];
+    if (dateSet.has(s)) { streak++; cur.setDate(cur.getDate() - 1); }
+    else break;
+  }
+  return streak;
+}
+app.get('/api/habits', (req, res) => {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayDate = new Date(todayStr);
+  const last30Dates = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(todayDate); d.setDate(d.getDate() - i);
+    last30Dates.push(d.toISOString().split('T')[0]);
+  }
+  const habits = DEFAULT_HABITS.map(h => {
+    const checkins = getHabitCheckins(h.id);
+    const dateSet = new Set(checkins.map(c => c.date));
+    const last30days = last30Dates.map(d => ({ date: d, done: dateSet.has(d) }));
+    const streak = calcStreak(checkins, todayStr);
+    const todayDone = dateSet.has(todayStr);
+    return { ...h, streak, todayDone, last30days };
+  });
+  res.json(habits);
+});
+app.post('/api/habit/checkin', (req, res) => {
+  const { habitId, date } = req.body;
+  if (!habitId) return res.json({ success: false, message: '缺少 habitId' });
+  if (!DEFAULT_HABITS.find(h => h.id === habitId)) return res.json({ success: false, message: '习惯不存在' });
+  const todayStr = new Date().toISOString().split('T')[0];
+  const targetDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : todayStr;
+  const checkins = getHabitCheckins(habitId);
+  const idx = checkins.findIndex(c => c.date === targetDate);
+  let action;
+  if (idx >= 0) { checkins.splice(idx, 1); action = '取消打卡'; }
+  else { checkins.push({ date: targetDate, time: new Date().toISOString() }); action = '打卡成功'; }
+  saveHabitCheckins(habitId, checkins);
+  const streak = calcStreak(checkins, todayStr);
+  const todayDone = new Set(checkins.map(c => c.date)).has(todayStr);
+  res.json({ success: true, action, habitId, date: targetDate, streak, todayDone });
+});
+app.delete('/api/habit/checkin/:hid/:date', (req, res) => {
+  const { hid, date } = req.params;
+  if (!DEFAULT_HABITS.find(h => h.id === hid)) return res.json({ success: false, message: '习惯不存在' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.json({ success: false, message: '日期格式错误' });
+  const checkins = getHabitCheckins(hid);
+  const filtered = checkins.filter(c => c.date !== date);
+  saveHabitCheckins(hid, filtered);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const streak = calcStreak(filtered, todayStr);
+  res.json({ success: true, removed: checkins.length - filtered.length, streak });
+});
+
+// ============================================================
+// 备份 API
+// ============================================================
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+function pad(n) { return String(n).padStart(2, '0'); }
+function formatBackupFileName(d) {
+  return `qiezi-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.db`;
+}
+function cleanupOldBackups() {
+  const now = Date.now();
+  const cutoff = now - 30 * 86400 * 1000;
+  try {
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
+    for (const f of files) {
+      try {
+        const st = fs.statSync(path.join(BACKUP_DIR, f));
+        if (st.mtimeMs < cutoff) fs.unlinkSync(path.join(BACKUP_DIR, f));
+      } catch (e) {}
+    }
+  } catch (e) {}
+}
+async function doBackup() {
+  const now = new Date();
+  const fname = formatBackupFileName(now);
+  const dest = path.join(BACKUP_DIR, fname);
+  try {
+    await db.backup(dest);
+    const st = fs.statSync(dest);
+    cleanupOldBackups();
+    return { ok: true, file: fname, size: st.size };
+  } catch (e) {
+    try {
+      fs.copyFileSync(DB_PATH, dest);
+      const st = fs.statSync(dest);
+      cleanupOldBackups();
+      return { ok: true, file: fname, size: st.size };
+    } catch (e2) { return { ok: false, error: String(e) }; }
+  }
+}
+function hasTodayBackup() {
+  const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+  try {
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('qiezi-' + todayStr) && f.endsWith('.db'));
+    return files.length > 0;
+  } catch (e) { return false; }
+}
+app.get('/api/backup', async (req, res) => {
+  const result = await doBackup();
+  res.json(result);
+});
+setInterval(async () => {
+  if (!hasTodayBackup()) await doBackup();
+}, 60 * 60 * 1000);
+(async () => { if (!hasTodayBackup()) await doBackup(); })();
 
 // ============================================================
 // 通用 CRUD API（必须放在所有具体路由之后！）
@@ -3059,5 +3339,5 @@ app.delete('/api/:module/:id', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🍆 茄子管家 v5.1 运行在 http://localhost:${PORT}`);
+  console.log(`🍆 茄子管家 v5.4 运行在 http://localhost:${PORT}`);
 });

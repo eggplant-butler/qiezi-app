@@ -170,6 +170,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div class="overview-card"><div class="num" id="ovMood">-</div><div class="label">平均情绪</div></div>
 <div class="overview-card"><div class="num" id="ovDays">-</div><div class="label">连续记录</div></div>
 </div>
+<div class="habits-grid" id="habitsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;"></div>
 <div class="input-area"><input type="text" id="nlInput" placeholder="说一句话记录... 如：中午吃了鸡胸肉沙拉"><button onclick="nlSubmit()">发送</button></div>
 <div class="focus-grid" id="focusGrid"></div>
 <div class="quick-modules" id="quickModules"></div>
@@ -315,7 +316,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 
 </div>
 
-<div class="detail" id="detail"><button class="back" onclick="closeDetail()">‹ 返回</button><h2 id="detailTitle"></h2><div id="detailContent"></div><button class="add" onclick="openAdd()">+</button></div>
+<div class="detail" id="detail"><button class="back" onclick="closeDetail()">‹ 返回</button><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><h2 id="detailTitle" style="margin:0;"></h2><div id="detailActions"></div></div><div id="detailContent"></div><button class="add" onclick="openAdd()">+</button></div>
 
 <div class="modal" id="modal"><div class="modal-b"><h3 id="modalTitle">添加记录</h3><div id="modalBody"></div><div class="row"><button class="sv" onclick="saveRecord()">保存</button><button class="cn" onclick="closeModal()">取消</button></div></div></div>
 
@@ -478,6 +479,7 @@ function renderHome(){
   document.getElementById('greetT').innerHTML = '<strong>'+greet+'</strong> · 今天状态如何？';
 
   renderOverview();
+  renderHabits();
   renderGrowth();
   renderHomeInsights();
 }
@@ -490,6 +492,37 @@ function renderOverview(){
   document.getElementById('ovSleep').textContent = (sleep.length ? (sl/Math.min(7,sleep.length)).toFixed(1) : '-') + 'h';
   document.getElementById('ovMood').textContent = (emotion.length ? (em/Math.min(7,emotion.length)).toFixed(1) : '-') + '/10';
   document.getElementById('ovDays').textContent = Math.max(sleep.length, emotion.length, 1);
+}
+
+async function renderHabits(){
+  var grid = document.getElementById('habitsGrid');
+  if(!grid) return;
+  try {
+    var r = await fetch('/api/habits');
+    var habits = await r.json();
+    if(!Array.isArray(habits) || habits.length === 0){
+      grid.innerHTML = '';
+      return;
+    }
+    grid.innerHTML = habits.slice(0,3).map(function(habit){
+      var streak = parseInt(habit.streak) || 0;
+      var pct = Math.min(100, (streak / 21) * 100);
+      var deg = (streak / 21) * 360;
+      if(deg > 360) deg = 360;
+      var todayDone = !!habit.todayDone;
+      var nameText = habit.name + (todayDone ? ' ✅' : '');
+      return '<div onclick="checkinHabit(\''+habit.id+'\')" style="background:#FFFFFF;border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.05);transition:transform .2s;" onmousedown="this.style.transform=\'scale(0.96)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'"><div style="width:56px;height:56px;border-radius:50%;background:conic-gradient(#6366F1 '+deg+'deg,#e5e7eb 0);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;"><div style="width:40px;height:40px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:20px;">'+(habit.icon||'📌')+'</div></div><div style="font-size:12px;font-weight:600;color:#1A1A2E;">'+nameText+'</div><div style="font-size:11px;color:#6B7280">连续'+streak+'天</div></div>';
+    }).join('');
+  } catch(e) {
+    grid.innerHTML = '';
+  }
+}
+
+async function checkinHabit(habitId){
+  try {
+    await fetch('/api/habit/checkin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({habitId: habitId}) });
+  } catch(e) {}
+  renderHabits();
 }
 
 function renderGrowth(){
@@ -605,22 +638,100 @@ else if(t==='me') renderMe();
 else if(t==='home') renderHome();
 }
 
+var budgetCache = null;
+
 function openScene(id){
   curScene=id;
+  editId = null;
   var s=SCENES.find(function(x){ return x.id===id });
   if(!s) s=CORE_MODULES.find(function(x){ return x.id===id });
   if(!s) s={name:id, icon:'📄'};
   document.getElementById('detailTitle').textContent = (s.icon||'📄')+' '+(s.label||s.name||id);
   document.getElementById('detail').classList.add('act');
-  renderDetail(id);
+  // 如果是财务场景，先加载预算数据
+  if(id === 'finance'){
+    fetch('/api/budget').then(function(r){ return r.json(); }).then(function(d){ budgetCache = d; renderDetail(id); }).catch(function(){ budgetCache = null; renderDetail(id); });
+  } else {
+    renderDetail(id);
+  }
 }
-function closeDetail(){ document.getElementById('detail').classList.remove('act'); curScene=null; }
+
+async function setBudget(){
+  var input = document.getElementById('budgetInput');
+  if(!input) return;
+  var val = parseFloat(input.value);
+  if(isNaN(val) || val <= 0){ alert('请输入有效金额'); return; }
+  try {
+    await fetch('/api/budget', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({budget: val}) });
+    var d = await (await fetch('/api/budget')).json();
+    budgetCache = d;
+    renderDetail(curScene);
+  } catch(e) { alert('设置失败'); }
+}
+
+function copyLast(){
+  if(!curScene) return;
+  var data = Array.isArray(dataCache[curScene]) ? dataCache[curScene] : [];
+  if(data.length === 0){ alert('还没有上次记录'); return; }
+  var lastItem = data[data.length - 1];
+  try {
+    localStorage.setItem('prefill_'+curScene, JSON.stringify(lastItem));
+  } catch(e) {}
+  openAdd();
+}
 
 function renderDetail(id){
+  // 先渲染复制上次按钮
+  var actionsEl = document.getElementById('detailActions');
+  if(actionsEl){
+    if(!editId){
+      actionsEl.innerHTML = '<button onclick="copyLast()" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;padding:6px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,0.3);">复制上次</button>';
+    } else {
+      actionsEl.innerHTML = '';
+    }
+  }
   var data=Array.isArray(dataCache[id])?dataCache[id]:[];
   var c=document.getElementById('detailContent');
-  if(!data.length){ c.innerHTML='<div class="empty"><span class="ic">📭</span>还没有记录，点 + 添加</div>'; return; }
-  c.innerHTML='<div>'+data.slice().reverse().map(function(item){
+  var extraHtml = '';
+  // 财务场景：预算卡片
+  if(id === 'finance'){
+    var budget = budgetCache || {};
+    var budgetAmount = parseFloat(budget.budget) || 0;
+    var spent = parseFloat(budget.spent) || 0;
+    var remaining = budgetAmount - spent;
+    var over = remaining < 0;
+    var pct = budgetAmount > 0 ? Math.min(100, (spent / budgetAmount) * 100) : 0;
+    var barBg = over ? '#FEE2E2' : '#E5E7EB';
+    var fillBg = over ? '#EF4444' : 'linear-gradient(90deg,#6366F1,#8B5CF6)';
+    var textColor = over ? 'color:#EF4444;font-weight:700;' : '';
+    extraHtml += '<div id="budgetPanel" style="background:#FFFFFF;border-radius:14px;padding:12px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);">';
+    extraHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+    extraHtml += '<span style="font-size:13px;font-weight:700;color:#1A1A2E;">💰 财务预算</span>';
+    extraHtml += '<div style="display:flex;gap:6px;align-items:center;">';
+    if(budgetAmount <= 0){
+      extraHtml += '<input type="number" id="budgetInput" placeholder="本月预算" style="padding:6px 10px;border-radius:8px;border:1px solid #E5E7EB;background:#FAFAFC;color:#1A1A2E;font-size:12px;width:100px;">';
+    } else {
+      extraHtml += '<span style="font-size:12px;color:#6B7280;">本月预算 ¥'+budgetAmount+'</span>';
+    }
+    extraHtml += '<button onclick="setBudget()" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:8px;padding:6px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">设预算</button>';
+    extraHtml += '</div></div>';
+    if(budgetAmount > 0){
+      extraHtml += '<div style="height:8px;border-radius:4px;overflow:hidden;margin:6px 0;background:'+barBg+';">';
+      extraHtml += '<div style="height:100%;width:'+pct+'%;background:'+fillBg+';border-radius:4px;transition:width .5s;"></div>';
+      extraHtml += '</div>';
+      extraHtml += '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px;">';
+      extraHtml += '<span style="color:#6B7280;">已用 ¥'+spent.toFixed(2)+'</span>';
+      extraHtml += '<span style="color:#6B7280;">预算 ¥'+budgetAmount.toFixed(2)+'</span>';
+      extraHtml += '<span style="'+textColor+'">剩余 ¥'+remaining.toFixed(2)+'</span>';
+      extraHtml += '</div>';
+      if(over){
+        extraHtml += '<div style="margin-top:6px;font-size:12px;color:#EF4444;font-weight:700;">⚠️ 超支！已超出 ¥'+Math.abs(remaining).toFixed(2)+'</div>';
+      }
+    }
+    extraHtml += '</div>';
+  }
+  if(!data.length){ c.innerHTML=extraHtml+'<div class="empty"><span class="ic">📭</span>还没有记录，点 + 添加</div>'; return; }
+  c.innerHTML=extraHtml+'<div>'+data.slice().reverse().map(function(item){
     var l='';
     if(id==='finance'){
       l=(item.type||'')+' · '+(item.category||'')+' · '+(item.content||item.note||'');
@@ -955,9 +1066,51 @@ function renderFormHtml(sceneId, item){
   var config = getFormConfig(sceneId);
   if(!config) return null;
   var lastVals = item ? {} : getLastValues(sceneId);
+  // 读取 prefill 数据（仅新增时）
+  var prefill = {};
+  if(!item){
+    try {
+      var raw = localStorage.getItem('prefill_'+sceneId);
+      if(raw){
+        prefill = JSON.parse(raw) || {};
+        localStorage.removeItem('prefill_'+sceneId);
+      }
+    } catch(e) {}
+  }
+  // 时间智能默认值
+  var smartDefaults = {};
+  if(!item){
+    if(sceneId === 'diet'){
+      var h = new Date().getHours();
+      var mealDefault = '加餐';
+      if(h <= 10) mealDefault = '早餐';
+      else if(h <= 14) mealDefault = '午餐';
+      else if(h <= 17) mealDefault = '加餐';
+      else if(h <= 21) mealDefault = '晚餐';
+      else mealDefault = '加餐';
+      smartDefaults.meal = mealDefault;
+    } else if(sceneId === 'sleep'){
+      var lastSleep = getLastValues('sleep');
+      smartDefaults.sleepTime = lastSleep.sleepTime || '23:00';
+      smartDefaults.wakeTime = lastSleep.wakeTime || '07:00';
+    } else if(sceneId === 'emotion'){
+      smartDefaults.rating = '7';
+    }
+  }
   var html = '';
   config.fields.forEach(function(f){
-    var val = item ? (item[f.key] || '') : (lastVals[f.key] !== undefined ? lastVals[f.key] : '');
+    var val = '';
+    if(item){
+      val = item[f.key] || '';
+    } else {
+      if(prefill[f.key] !== undefined && prefill[f.key] !== ''){
+        val = prefill[f.key];
+      } else if(lastVals[f.key] !== undefined && lastVals[f.key] !== ''){
+        val = lastVals[f.key];
+      } else if(smartDefaults[f.key] !== undefined){
+        val = smartDefaults[f.key];
+      }
+    }
     if(f.type === 'date' && !val) val = TODAY;
     var req = isFieldRequired(sceneId, f.key);
     var reqMark = req ? ' <span style="color:#EF4444">*</span>' : '';
@@ -975,7 +1128,6 @@ function renderFormHtml(sceneId, item){
       html += '<textarea id="f_'+f.key+'" rows="3" placeholder="'+(f.placeholder||'')+'">'+val+'</textarea>';
     } else {
       html += '<input id="f_'+f.key+'" type="'+f.type+'" placeholder="'+(f.placeholder||'')+'" value="'+val+'">';
-      // text 字段加快捷标签（最近5次输入）
       if(f.type === 'text' && !item){
         var recents = getRecentTexts(sceneId, f.key);
         if(recents.length){
@@ -2373,6 +2525,21 @@ function showTodayReflection(text){
 function showCognitiveFeedback(res){
   if (!res || !res.success) return;
   var parts = [];
+  // 预算超支提醒（仅财务场景）
+  if(res.budget){
+    var b = res.budget;
+    var budgetAmount = parseFloat(b.budget) || 0;
+    var spent = parseFloat(b.spent) || 0;
+    var remaining = budgetAmount - spent;
+    var over = b.over || remaining < 0;
+    if(budgetAmount > 0){
+      if(over){
+        parts.push('<div style="background:rgba(239,68,68,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #EF4444;"><div style="font-size:11px;color:#EF4444;margin-bottom:6px;font-weight:700;">⚠️ 预算超支提醒</div><div style="font-size:13px;color:#1A1A2E;line-height:1.6;">已用 <strong style="color:#EF4444;">¥'+spent.toFixed(2)+'</strong> / 预算 ¥'+budgetAmount.toFixed(2)+'<br><span style="color:#EF4444;font-weight:700;">超支 ¥'+Math.abs(remaining).toFixed(2)+'！</span></div></div>');
+      } else {
+        parts.push('<div style="background:rgba(34,197,94,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #22C55E;"><div style="font-size:11px;color:#22C55E;margin-bottom:6px;font-weight:700;">💰 本月预算</div><div style="font-size:13px;color:#1A1A2E;line-height:1.6;">已用 ¥'+spent.toFixed(2)+' / 预算 ¥'+budgetAmount.toFixed(2)+'<br>剩余 <strong style="color:#22C55E;">¥'+remaining.toFixed(2)+'</strong></div></div>');
+      }
+    }
+  }
   if (res.reflection) parts.push('<div style="background:rgba(99,102,241,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #6366F1"><div style="font-size:11px;color:#6366F1;margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
   if (res.dailySummary) parts.push('<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">📊 '+escapeHtml(res.dailySummary)+'</div>');
   if (res.correlations && res.correlations.length > 0) {
@@ -2396,7 +2563,6 @@ function showCognitiveFeedback(res){
   if (parts.length === 0) {
     parts.push('<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px">已保存 ✓<br><br>多记录几次，认知引擎会开始发现你的模式。</div>');
   }
-  // 在保存反馈里加一个"提炼为原则"的快捷按钮
   if (res.reflection) {
     parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid rgba(99,102,241,0.3);border-radius:8px;background:transparent;color:#6366F1;font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
     window.__lastReflection = res.reflection;
