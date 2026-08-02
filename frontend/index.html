@@ -278,6 +278,36 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 </div>
 </div>
 
+<div class="tool-section">
+<div class="ts-title">📊 v5.6 数据分析 <span class="ts-sub">健康趋势·周月计划</span></div>
+<div class="tool-grid">
+<div class="tool-item" onclick="openHealthTrends()">
+<div class="t-ic">💉</div><div class="t-nm">健康趋势</div><div class="t-cnt" id="healthTrendCnt">-</div>
+</div>
+<div class="tool-item" onclick="openPlan()">
+<div class="t-ic">📋</div><div class="t-nm">周月计划</div><div class="t-cnt" id="planCnt">0</div>
+</div>
+</div>
+</div>
+
+<div class="tool-section">
+<div class="ts-title">🧬 v5.7 高级引擎 <span class="ts-sub">因果·基线·节点·季节</span></div>
+<div class="tool-grid">
+<div class="tool-item" onclick="openCausal()">
+<div class="t-ic">🔗</div><div class="t-nm">因果推断</div><div class="t-cnt">新</div>
+</div>
+<div class="tool-item" onclick="openBaseline()">
+<div class="t-ic">📐</div><div class="t-nm">个人基线</div><div class="t-cnt">新</div>
+</div>
+<div class="tool-item" onclick="openLifeMilestone()">
+<div class="t-ic">⚓</div><div class="t-nm">人生节点</div><div class="t-cnt" id="milestoneCnt">0</div>
+</div>
+<div class="tool-item" onclick="openSeasonal()">
+<div class="t-ic">🌦️</div><div class="t-nm">季节分析</div><div class="t-cnt">新</div>
+</div>
+</div>
+</div>
+
 </div>
 
 <!-- ====== 船长Tab: 船长工具 ====== -->
@@ -307,7 +337,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div class="tool-section">
 <div class="ts-title">👤 个人中心</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="color:#6B7280">版本：v5.5 船长版</div>
+<div style="color:#6B7280">版本：v5.7 船长版</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="exportData()">💾 导出备份</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="changePwd()">🔐 修改密码</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="openTrash()">♻️ 回收站</div>
@@ -2459,6 +2489,15 @@ async function loadCognitiveCounts(){
     var d4e = document.getElementById('alignScore'); if (d4e) d4e.textContent = vc.alignment ? vc.alignment + '/10' : '-';
     var d5e = document.getElementById('antiScore'); if (d5e) d5e.textContent = ah.score ? ah.score + '/10' : '-';
   } catch(e) {}
+  // v5.6 / v5.7 计数
+  try {
+    var e1 = await fetch('/api/health-trends?days=90'); var ht = await e1.json();
+    var e2 = await fetch('/api/plan'); var pl = await e2.json();
+    var e3 = await fetch('/api/life-milestone'); var lm = await e3.json();
+    var e1e = document.getElementById('healthTrendCnt'); if (e1e) e1e.textContent = (ht.weight||[]).length + (ht.bloodPressure||[]).length > 0 ? (ht.weight||[]).length + '点' : '-';
+    var e2e = document.getElementById('planCnt'); if (e2e) e2e.textContent = pl.length + ' 个';
+    var e3e = document.getElementById('milestoneCnt'); if (e3e) e3e.textContent = lm.length + ' 个';
+  } catch(e) {}
 }
 
 // ====== Phase 5 深度认知工具 ======
@@ -2651,6 +2690,567 @@ function quickAddPrincipleFromReflection(){
 function escapeHtml(s){
   if (s == null) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// v5.6 健康指标趋势
+// ============================================================
+async function openHealthTrends(){
+  openModal2('💉 健康指标趋势', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/health-trends?days=90');
+    var d = await r.json();
+    var w = d.weight || [];
+    var bp = d.bloodPressure || [];
+    var s = d.stats || {};
+    var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">读取身体模块中体重/血压记录 · 最近90天</div>';
+    // 统计卡片
+    if (s.weight || s.bp) {
+      html += '<div style="display:flex;gap:8px;margin-bottom:14px">';
+      if (s.weight) {
+        var trendColor = s.weight.trend === '上升' ? '#EF4444' : s.weight.trend === '下降' ? '#10B981' : '#6366F1';
+        html += '<div style="flex:1;background:#FFFFFF;border-radius:10px;padding:10px">';
+        html += '<div style="font-size:11px;color:#9CA3AF">⚖️ 体重</div>';
+        html += '<div style="font-size:18px;font-weight:700;color:#1A1A2E;margin-top:2px">' + s.weight.last + ' <span style="font-size:11px;color:#9CA3AF;font-weight:400">kg</span></div>';
+        html += '<div style="font-size:11px;color:' + trendColor + ';margin-top:2px">' + s.weight.trend + (s.weight.change >= 0 ? ' +' : ' ') + s.weight.change + 'kg</div>';
+        html += '<div style="font-size:10px;color:#9CA3AF;margin-top:4px">区间 ' + s.weight.min + '-' + s.weight.max + ' · 均' + s.weight.avg + '</div>';
+        html += '</div>';
+      }
+      if (s.bp) {
+        var bpColor = s.bp.level === '偏高' ? '#EF4444' : s.bp.level === '偏低' ? '#F59E0B' : '#10B981';
+        html += '<div style="flex:1;background:#FFFFFF;border-radius:10px;padding:10px">';
+        html += '<div style="font-size:11px;color:#9CA3AF">🩸 血压</div>';
+        html += '<div style="font-size:18px;font-weight:700;color:#1A1A2E;margin-top:2px">' + s.bp.lastSys + '/' + s.bp.lastDia + '</div>';
+        html += '<div style="font-size:11px;color:' + bpColor + ';margin-top:2px">' + s.bp.level + '</div>';
+        html += '<div style="font-size:10px;color:#9CA3AF;margin-top:4px">均值 ' + s.bp.sysAvg + '/' + s.bp.diaAvg + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    // 体重折线图（SVG）
+    if (w.length > 0) {
+      html += renderLineChart('体重趋势(kg)', w.map(function(p){return {x:p.date, y:p.weight};}), '#6366F1');
+    }
+    // 血压折线图
+    if (bp.length > 0) {
+      html += renderDualLineChart('血压趋势(mmHg)', bp.map(function(p){return {x:p.date, y1:p.sys, y2:p.dia};}), '#EF4444', '#3B82F6');
+    }
+    if (!w.length && !bp.length) {
+      html += '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px;line-height:1.8">📊 暂无数据<br><br>请在「我的身体」中记录体重或血压<br>系统将自动生成趋势图</div>';
+    }
+    html += '<div style="margin-top:10px;font-size:11px;color:#9CA3AF;text-align:center;line-height:1.6">💡 数据来源：身体模块表单中的体重/血压字段<br>记录越多，趋势越准</div>';
+    openModal2('💉 健康指标趋势', html);
+  } catch(e) {
+    openModal2('💉 健康指标趋势', '<div style="color:#EF4444;padding:20px;text-align:center">加载失败</div>');
+  }
+}
+// SVG折线图渲染（单线）
+function renderLineChart(title, points, color){
+  if (!points || points.length < 2) {
+    return '<div style="background:#FFFFFF;border-radius:10px;padding:14px;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:6px">' + title + '</div><div style="font-size:11px;color:#9CA3AF;text-align:center;padding:10px">数据点不足（至少2个）</div></div>';
+  }
+  var W = 280, H = 110, padL = 28, padR = 8, padT = 10, padB = 18;
+  var xs = points.map(function(p){return p.x;});
+  var ys = points.map(function(p){return p.y;});
+  var xMin = xs[0], xMax = xs[xs.length-1];
+  var yMin = Math.min.apply(null, ys), yMax = Math.max.apply(null, ys);
+  if (yMin === yMax) { yMin -= 1; yMax += 1; }
+  var xRange = (new Date(xMax).getTime() - new Date(xMin).getTime()) || 1;
+  var yRange = (yMax - yMin) || 1;
+  var pts = points.map(function(p){
+    var x = padL + ((new Date(p.x).getTime() - new Date(xMin).getTime()) / xRange) * (W - padL - padR);
+    var y = padT + (1 - (p.y - yMin) / yRange) * (H - padT - padB);
+    return {x: x, y: y, val: p.y, date: p.x};
+  });
+  var path = pts.map(function(p,i){return (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1);}).join(' ');
+  var areaPath = path + ' L' + pts[pts.length-1].x.toFixed(1) + ',' + (H-padB) + ' L' + pts[0].x.toFixed(1) + ',' + (H-padB) + ' Z';
+  var html = '<div style="background:#FFFFFF;border-radius:10px;padding:14px;margin-bottom:12px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:600;color:#1A1A2E">' + title + '</span><span style="font-size:10px;color:#9CA3AF">' + points.length + '个点</span></div>';
+  html += '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto">';
+  // Y轴标尺线
+  for (var i=0; i<=2; i++) {
+    var ly = padT + (H-padT-padB) * i / 2;
+    var lv = (yMax - (yMax-yMin)*i/2).toFixed(1);
+    html += '<line x1="' + padL + '" y1="' + ly + '" x2="' + (W-padR) + '" y2="' + ly + '" stroke="#F3F4F6" stroke-width="1"/>';
+    html += '<text x="' + (padL-4) + '" y="' + (ly+3) + '" text-anchor="end" font-size="9" fill="#9CA3AF">' + lv + '</text>';
+  }
+  // 区域填充
+  html += '<defs><linearGradient id="g' + Math.random().toString(36).slice(2,7) + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + color + '" stop-opacity="0.2"/><stop offset="100%" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>';
+  html += '<path d="' + areaPath + '" fill="url(#' + ' )"/>';
+  // 折线
+  html += '<path d="' + path + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  // 点
+  pts.forEach(function(p){
+    html += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="2.5" fill="' + color + '"/>';
+  });
+  // X轴日期
+  if (pts.length >= 2) {
+    html += '<text x="' + pts[0].x + '" y="' + (H-4) + '" text-anchor="middle" font-size="9" fill="#9CA3AF">' + pts[0].date.substring(5) + '</text>';
+    html += '<text x="' + pts[pts.length-1].x + '" y="' + (H-4) + '" text-anchor="middle" font-size="9" fill="#9CA3AF">' + pts[pts.length-1].date.substring(5) + '</text>';
+  }
+  html += '</svg></div>';
+  return html;
+}
+// SVG双线图（血压：高压/低压）
+function renderDualLineChart(title, points, c1, c2){
+  if (!points || points.length < 2) {
+    return '<div style="background:#FFFFFF;border-radius:10px;padding:14px;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:6px">' + title + '</div><div style="font-size:11px;color:#9CA3AF;text-align:center;padding:10px">数据点不足</div></div>';
+  }
+  var W = 280, H = 110, padL = 28, padR = 8, padT = 10, padB = 18;
+  var xs = points.map(function(p){return p.x;});
+  var allY = points.map(function(p){return p.y1;}).concat(points.map(function(p){return p.y2;}));
+  var xMin = xs[0], xMax = xs[xs.length-1];
+  var yMin = Math.min.apply(null, allY), yMax = Math.max.apply(null, allY);
+  if (yMin === yMax) { yMin -= 1; yMax += 1; }
+  var xRange = (new Date(xMax).getTime() - new Date(xMin).getTime()) || 1;
+  var yRange = (yMax - yMin) || 1;
+  var mkPts = function(key){ return points.map(function(p){
+    var x = padL + ((new Date(p.x).getTime() - new Date(xMin).getTime()) / xRange) * (W - padL - padR);
+    var y = padT + (1 - (p[key] - yMin) / yRange) * (H - padT - padB);
+    return {x: x, y: y, val: p[key], date: p.x};
+  }); };
+  var p1 = mkPts('y1'), p2 = mkPts('y2');
+  var mkPath = function(pts){ return pts.map(function(p,i){return (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1);}).join(' '); };
+  var html = '<div style="background:#FFFFFF;border-radius:10px;padding:14px;margin-bottom:12px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:600;color:#1A1A2E">' + title + '</span><span style="font-size:10px;color:#9CA3AF"><span style="color:'+c1+'">●</span>高压 <span style="color:'+c2+';margin-left:6px">●</span>低压</span></div>';
+  html += '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto">';
+  for (var i=0; i<=2; i++) {
+    var ly = padT + (H-padT-padB) * i / 2;
+    var lv = Math.round(yMax - (yMax-yMin)*i/2);
+    html += '<line x1="' + padL + '" y1="' + ly + '" x2="' + (W-padR) + '" y2="' + ly + '" stroke="#F3F4F6" stroke-width="1"/>';
+    html += '<text x="' + (padL-4) + '" y="' + (ly+3) + '" text-anchor="end" font-size="9" fill="#9CA3AF">' + lv + '</text>';
+  }
+  html += '<path d="' + mkPath(p1) + '" fill="none" stroke="' + c1 + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  html += '<path d="' + mkPath(p2) + '" fill="none" stroke="' + c2 + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  p1.forEach(function(p){ html += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="2" fill="' + c1 + '"/>'; });
+  p2.forEach(function(p){ html += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="2" fill="' + c2 + '"/>'; });
+  if (p1.length >= 2) {
+    html += '<text x="' + p1[0].x + '" y="' + (H-4) + '" text-anchor="middle" font-size="9" fill="#9CA3AF">' + p1[0].date.substring(5) + '</text>';
+    html += '<text x="' + p1[p1.length-1].x + '" y="' + (H-4) + '" text-anchor="middle" font-size="9" fill="#9CA3AF">' + p1[p1.length-1].date.substring(5) + '</text>';
+  }
+  html += '</svg></div>';
+  return html;
+}
+
+// ============================================================
+// v5.6 周月计划
+// ============================================================
+var currentPlanType = 'week';
+async function openPlan(){
+  currentPlanType = 'week';
+  await renderPlanList();
+}
+async function renderPlanList(){
+  openModal2('📋 ' + (currentPlanType==='week'?'周':'月') + '计划', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/plan?type=' + currentPlanType);
+    var list = await r.json();
+    var cmpR = await fetch('/api/plan/compare?type=' + currentPlanType);
+    var cmp = await cmpR.json();
+    var html = '';
+    // 类型切换
+    html += '<div style="display:flex;gap:6px;margin-bottom:10px">';
+    html += '<button onclick="currentPlanType=\'week\';renderPlanList()" style="flex:1;padding:8px;border:'+(currentPlanType==='week'?'2px solid #6366F1':'1px solid #E5E7EB')+';background:'+(currentPlanType==='week'?'#EEF2FF':'#fff')+';color:'+(currentPlanType==='week'?'#6366F1':'#6B7280')+';border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">📅 周计划</button>';
+    html += '<button onclick="currentPlanType=\'month\';renderPlanList()" style="flex:1;padding:8px;border:'+(currentPlanType==='month'?'2px solid #6366F1':'1px solid #E5E7EB')+';background:'+(currentPlanType==='month'?'#EEF2FF':'#fff')+';color:'+(currentPlanType==='month'?'#6366F1':'#6B7280')+';border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🗓️ 月计划</button>';
+    html += '</div>';
+    // 对比信息
+    if (cmp && cmp.message) {
+      html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#4B5563;line-height:1.6">' + cmp.message + '</div>';
+    }
+    // 创建按钮
+    html += '<button onclick="openCreatePlan()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">+ 创建新' + (currentPlanType==='week'?'周':'月') + '计划</button>';
+    // 计划列表
+    if (!list.length) {
+      html += '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px;line-height:1.8">📭 暂无' + (currentPlanType==='week'?'周':'月') + '计划<br>创建一个，开始追踪执行</div>';
+    } else {
+      list.forEach(function(p){
+        var pct = p.progress || 0;
+        var barColor = pct === 100 ? '#10B981' : pct >= 50 ? '#6366F1' : '#F59E0B';
+        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:8px">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+        html += '<span style="font-size:13px;font-weight:600;color:#1A1A2E">' + escapeHtml(p.title || p.period) + '</span>';
+        html += '<span style="font-size:11px;color:' + barColor + ';font-weight:700">' + p.done + '/' + p.total + ' · ' + pct + '%</span>';
+        html += '</div>';
+        html += '<div style="height:4px;background:#F3F4F6;border-radius:2px;margin-bottom:8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+barColor+';border-radius:2px;transition:width .3s"></div></div>';
+        // 事项列表
+        if (p.items && p.items.length) {
+          p.items.forEach(function(it){
+            var checked = it.done ? '☑' : '☐';
+            var color = it.done ? '#10B981' : '#9CA3AF';
+            var decor = it.done ? 'line-through;color:#9CA3AF' : 'color:#374151';
+            html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px">';
+            html += '<span onclick="togglePlanItem(\''+p.id+'\',\''+it.id+'\')" style="cursor:pointer;color:'+color+';font-size:14px">'+checked+'</span>';
+            html += '<span style="flex:1;'+decor+'">'+escapeHtml(it.text)+'</span>';
+            html += '<span onclick="delPlanItem(\''+p.id+'\',\''+it.id+'\')" style="color:#EF4444;cursor:pointer;font-size:11px">✕</span>';
+            html += '</div>';
+          });
+        }
+        // 添加事项
+        html += '<div style="display:flex;gap:6px;margin-top:8px">';
+        html += '<input id="planItemInput_'+p.id+'" placeholder="添加事项..." style="flex:1;padding:6px 8px;border:1px solid #E5E7EB;border-radius:6px;font-size:11px">';
+        html += '<button onclick="addPlanItem(\''+p.id+'\')" style="padding:6px 10px;border:none;border-radius:6px;background:#6366F1;color:#fff;font-size:11px;cursor:pointer">+</button>';
+        html += '</div>';
+        html += '<div style="margin-top:6px;text-align:right"><span onclick="delPlan(\''+p.id+'\')" style="font-size:11px;color:#EF4444;cursor:pointer">🗑 删除计划</span></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('📋 ' + (currentPlanType==='week'?'周':'月') + '计划', html);
+  } catch(e) {
+    openModal2('📋 计划', '<div style="color:#EF4444;padding:20px;text-align:center">加载失败</div>');
+  }
+}
+function openCreatePlan(){
+  var html = '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">类型：' + (currentPlanType==='week'?'周计划':'月计划') + '</div>';
+  html += '<label style="font-size:12px;color:#374151">标题（可选）</label>';
+  html += '<input id="newPlanTitle" placeholder="' + (currentPlanType==='week'?'如：第31周重点攻坚':'如：8月战略目标') + '" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:10px;font-size:13px">';
+  html += '<label style="font-size:12px;color:#374151">事项（每行一条）</label>';
+  html += '<textarea id="newPlanItems" rows="5" placeholder="读书30分钟&#10;锻炼&#10;写日记" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px"></textarea>';
+  html += '<div style="display:flex;gap:8px;margin-top:12px">';
+  html += '<button onclick="createPlan()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:600;cursor:pointer">创建</button>';
+  html += '<button onclick="renderPlanList()" style="flex:1;padding:10px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;color:#6B7280;font-size:13px;cursor:pointer">取消</button>';
+  html += '</div>';
+  openModal2('➕ 创建' + (currentPlanType==='week'?'周':'月') + '计划', html);
+}
+async function createPlan(){
+  var title = document.getElementById('newPlanTitle').value.trim();
+  var itemsRaw = document.getElementById('newPlanItems').value;
+  var items = itemsRaw.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+  if (!items.length) { alert('请至少添加一条事项'); return; }
+  try {
+    await fetch('/api/plan', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ type: currentPlanType, title: title, items: items })
+    });
+    renderPlanList();
+    loadCognitiveCounts();
+  } catch(e) { alert('创建失败'); }
+}
+async function togglePlanItem(planId, itemId){
+  try {
+    await fetch('/api/plan/'+planId+'/item/'+itemId+'/toggle', { method: 'POST' });
+    renderPlanList();
+  } catch(e) { alert('操作失败'); }
+}
+async function addPlanItem(planId){
+  var inp = document.getElementById('planItemInput_'+planId);
+  var text = inp.value.trim();
+  if (!text) return;
+  try {
+    await fetch('/api/plan/'+planId+'/item', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text: text })
+    });
+    renderPlanList();
+  } catch(e) { alert('添加失败'); }
+}
+async function delPlanItem(planId, itemId){
+  if (!confirm('删除该事项？')) return;
+  try {
+    await fetch('/api/plan/'+planId+'/item/'+itemId, { method: 'DELETE' });
+    renderPlanList();
+  } catch(e) { alert('删除失败'); }
+}
+async function delPlan(planId){
+  if (!confirm('删除整个计划？')) return;
+  try {
+    await fetch('/api/plan/'+planId, { method: 'DELETE' });
+    renderPlanList();
+    loadCognitiveCounts();
+  } catch(e) { alert('删除失败'); }
+}
+
+// ============================================================
+// v5.7 因果推断引擎
+// ============================================================
+async function openCausal(){
+  openModal2('🔗 因果推断引擎', '<div style="text-align:center;color:#9CA3AF;padding:20px">分析滞后效应中...</div>');
+  try {
+    var r = await fetch('/api/eng/causal?maxLag=7');
+    var d = await r.json();
+    if (!d.success) {
+      openModal2('🔗 因果推断引擎', '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px;line-height:1.8">📊 数据不足<br><br>' + (d.message || '需要更多记录') + '<br><br>请持续记录情绪、睡眠、锻炼数据<br>系统将通过滞后相关性分析"什么导致什么"</div>');
+      return;
+    }
+    var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">基于' + d.sampleSize + '条情绪记录 · 测试0-7天滞后相关性</div>';
+    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">🎯 因果 ≠ 相关。本引擎通过"滞后时间窗"分析：今天的情绪，是否由N天前的睡眠/锻炼导致。<br>滞后相关性越强，因果方向越可信。</div>';
+    if (d.factors && d.factors.length) {
+      d.factors.forEach(function(f){
+        var strengthColor = f.strength === '强' ? '#EF4444' : f.strength === '中' ? '#F59E0B' : '#9CA3AF';
+        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+        html += '<span style="font-size:13px;font-weight:600;color:#1A1A2E">' + f.factorName + '</span>';
+        html += '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:'+strengthColor+'20;color:'+strengthColor+';font-weight:600">' + f.strength + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:12px;color:#4B5563;margin-bottom:8px;line-height:1.6">' + f.insight + '</div>';
+        // 滞后曲线
+        if (f.lagTests && f.lagTests.length > 1) {
+          var maxAbsR = 0;
+          f.lagTests.forEach(function(t){ if (Math.abs(t.r) > maxAbsR) maxAbsR = Math.abs(t.r); });
+          if (maxAbsR > 0) {
+            html += '<div style="margin-top:6px">';
+            html += '<div style="font-size:10px;color:#9CA3AF;margin-bottom:4px">滞后相关性曲线（横轴=滞后天数，纵轴=相关系数r）</div>';
+            html += '<svg viewBox="0 0 280 80" style="width:100%;height:auto">';
+            // 0线
+            var xStep = 260 / (f.lagTests.length - 1 || 1);
+            html += '<line x1="10" y1="40" x2="280" y2="40" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="2,2"/>';
+            // 点和线
+            var pathPoints = f.lagTests.map(function(t,i){
+              var x = 10 + i * xStep;
+              var y = 40 - (t.r / Math.max(maxAbsR, 0.1)) * 30;
+              return {x:x, y:y, r:t.r, lag:t.lag};
+            });
+            var pathStr = pathPoints.map(function(p,i){ return (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+            html += '<path d="' + pathStr + '" fill="none" stroke="#6366F1" stroke-width="2"/>';
+            pathPoints.forEach(function(p){
+              var isBest = (p.lag === f.bestLag);
+              html += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isBest?4:2.5) + '" fill="' + (isBest?'#EF4444':'#6366F1') + '"/>';
+            });
+            // X标签
+            pathPoints.forEach(function(p,i){
+              if (i % 2 === 0) html += '<text x="' + p.x.toFixed(1) + '" y="74" text-anchor="middle" font-size="9" fill="#9CA3AF">' + p.lag + 'd</text>';
+            });
+            html += '</svg></div>';
+          }
+        }
+        html += '<div style="margin-top:6px;font-size:11px;color:#9CA3AF">最佳滞后：' + f.bestLag + '天 · r=' + f.bestR + ' · 方向：' + f.direction + '</div>';
+        html += '</div>';
+      });
+    }
+    html += '<div style="margin-top:10px;font-size:11px;color:#9CA3AF;text-align:center;line-height:1.6">💡 滞后0天=当天影响，1天=昨天的事今天显现<br>记录越多，滞后效应越清晰</div>';
+    openModal2('🔗 因果推断引擎', html);
+  } catch(e) {
+    openModal2('🔗 因果推断引擎', '<div style="color:#EF4444;padding:20px;text-align:center">加载失败</div>');
+  }
+}
+
+// ============================================================
+// v5.7 个人基线
+// ============================================================
+async function openBaseline(){
+  openModal2('📐 个人基线算法', '<div style="text-align:center;color:#9CA3AF;padding:20px">计算基线中...</div>');
+  try {
+    var r = await fetch('/api/eng/baseline?days=30');
+    var d = await r.json();
+    if (!d.success) {
+      openModal2('📐 个人基线算法', '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px">' + (d.message || '数据不足') + '</div>');
+      return;
+    }
+    var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">基于近' + d.days + '天数据建立个人常态基线</div>';
+    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
+    // 各维度基线
+    var dims = d.baselines || {};
+    var dimKeys = Object.keys(dims);
+    if (!dimKeys.length) {
+      html += '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px;line-height:1.8">📊 暂无足够数据<br><br>请持续记录情绪、睡眠、锻炼<br>系统将建立你的"常态区间"</div>';
+    } else {
+      dimKeys.forEach(function(key){
+        var b = dims[key];
+        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+        html += '<span style="font-size:13px;font-weight:600;color:#1A1A2E">' + b.label + '</span>';
+        html += '<span style="font-size:11px;color:#6366F1;font-weight:700">均' + b.mean + b.unit + '</span>';
+        html += '</div>';
+        html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:6px">';
+        html += '<span>P25: ' + b.p25 + b.unit + '</span>';
+        html += '<span>中位: ' + b.median + b.unit + '</span>';
+        html += '<span>P75: ' + b.p75 + b.unit + '</span>';
+        html += '</div>';
+        // 基线区间条
+        var range = b.max - b.min || 1;
+        var p25Pct = ((b.p25 - b.min) / range) * 100;
+        var p75Pct = ((b.p75 - b.min) / range) * 100;
+        var meanPct = ((b.mean - b.min) / range) * 100;
+        html += '<div style="position:relative;height:18px;background:linear-gradient(90deg,#DBEAFE 0%,#DBEAFE ' + p25Pct + '%, #6366F1 ' + p25Pct + '%, #6366F1 ' + p75Pct + '%, #DBEAFE ' + p75Pct + '%);border-radius:9px;overflow:hidden">';
+        html += '<div style="position:absolute;top:0;left:' + meanPct + '%;width:2px;height:18px;background:#1A1A2E"></div>';
+        html += '</div>';
+        html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;margin-top:2px">';
+        html += '<span>最低' + b.min + '</span>';
+        html += '<span>变异系数' + b.cv + '%</span>';
+        html += '<span>最高' + b.max + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:11px;color:#9CA3AF;margin-top:4px">样本数：' + b.count + ' · 标准差：' + b.std + '</div>';
+        html += '</div>';
+      });
+      // 今日偏离
+      if (d.deviations && d.deviations.length) {
+        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+        html += '<div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:8px">📍 今日偏离基线</div>';
+        d.deviations.forEach(function(dev){
+          var devColor = dev.status === 'below' ? '#EF4444' : dev.status === 'above' ? '#F59E0B' : '#10B981';
+          var statusText = dev.status === 'below' ? '↓ 低于基线' : dev.status === 'above' ? '↑ 高于基线' : '✓ 在正常区间';
+          html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #F3F4F6">';
+          html += '<span style="font-size:12px;color:#374151">' + dev.label + '</span>';
+          html += '<span style="font-size:12px;color:' + devColor + ';font-weight:600">' + dev.value + ' (' + (dev.dev>=0?'+':'') + dev.dev + ') ' + statusText + '</span>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+    }
+    html += '<div style="margin-top:10px;font-size:11px;color:#9CA3AF;text-align:center;line-height:1.6">💡 基线=你的常态。偏离基线的事件才值得关注——<br>知道"为什么偏"比"维持平稳"更重要</div>';
+    openModal2('📐 个人基线算法', html);
+  } catch(e) {
+    openModal2('📐 个人基线算法', '<div style="color:#EF4444;padding:20px;text-align:center">加载失败</div>');
+  }
+}
+
+// ============================================================
+// v5.7 人生节点标记
+// ============================================================
+async function openLifeMilestone(){
+  openModal2('⚓ 人生节点', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/life-milestone');
+    var list = await r.json();
+    var html = '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">⚓ 人生节点=你回头看时，定义"你是谁"的那些时刻。<br>不是大事记，是转折点——它改变了你之后的方向。</div>';
+    html += '<button onclick="openCreateMilestone()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">+ 标记一个人生节点</button>';
+    if (!list.length) {
+      html += '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px;line-height:1.8">📭 暂无人生节点<br>标记一个：毕业、换工作、独立、觉醒...<br>都是你成为今天的自己的关键点</div>';
+    } else {
+      // 按日期倒序
+      list.sort(function(a,b){ return a.date < b.date ? 1 : -1; });
+      // 时间轴
+      html += '<div style="position:relative;padding-left:14px">';
+      html += '<div style="position:absolute;left:4px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#6366F1,#8B5CF6,#E5E7EB)"></div>';
+      list.forEach(function(m){
+        var typeColor = m.type === '转折' ? '#6366F1' : m.type === '成就' ? '#10B981' : m.type === '挫折' ? '#EF4444' : m.type === '觉醒' ? '#F59E0B' : '#6B7280';
+        html += '<div style="position:relative;margin-bottom:14px">';
+        html += '<div style="position:absolute;left:-14px;top:4px;width:10px;height:10px;border-radius:50%;background:'+typeColor+';border:2px solid #fff;box-shadow:0 0 0 2px '+typeColor+'"></div>';
+        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-left:8px">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+        html += '<span style="font-size:13px;font-weight:600;color:#1A1A2E">' + escapeHtml(m.title) + '</span>';
+        html += '<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:'+typeColor+'20;color:'+typeColor+'">' + (m.type || '节点') + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">📅 ' + m.date + '</div>';
+        if (m.description) html += '<div style="font-size:12px;color:#374151;line-height:1.6;margin-bottom:4px">' + escapeHtml(m.description) + '</div>';
+        if (m.impact) html += '<div style="font-size:11px;color:#6366F1;margin-bottom:4px">💥 影响：' + escapeHtml(m.impact) + '</div>';
+        if (m.lesson) html += '<div style="font-size:11px;color:#F59E0B">💡 教训：' + escapeHtml(m.lesson) + '</div>';
+        html += '<div style="margin-top:6px;text-align:right"><span onclick="delMilestone(\''+m.id+'\')" style="font-size:11px;color:#EF4444;cursor:pointer">🗑 删除</span></div>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+    }
+    openModal2('⚓ 人生节点', html);
+  } catch(e) {
+    openModal2('⚓ 人生节点', '<div style="color:#EF4444;padding:20px;text-align:center">加载失败</div>');
+  }
+}
+function openCreateMilestone(){
+  var html = '<label style="font-size:12px;color:#374151">标题 *</label>';
+  html += '<input id="msTitle" placeholder="如：独立出海/毕业/觉醒时刻" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:10px;font-size:13px">';
+  html += '<label style="font-size:12px;color:#374151">日期 *</label>';
+  html += '<input id="msDate" type="date" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:10px;font-size:13px">';
+  html += '<label style="font-size:12px;color:#374151">类型</label>';
+  html += '<select id="msType" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:10px;font-size:13px">';
+  ['转折','成就','挫折','觉醒','相遇','离别','选择'].forEach(function(t){
+    html += '<option value="'+t+'">'+t+'</option>';
+  });
+  html += '</select>';
+  html += '<label style="font-size:12px;color:#374151">描述</label>';
+  html += '<textarea id="msDesc" rows="2" placeholder="发生了什么..." style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:10px;font-size:13px"></textarea>';
+  html += '<label style="font-size:12px;color:#374151">影响</label>';
+  html += '<textarea id="msImpact" rows="2" placeholder="它如何改变了我之后的方向..." style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:10px;font-size:13px"></textarea>';
+  html += '<label style="font-size:12px;color:#374151">教训/收获</label>';
+  html += '<textarea id="msLesson" rows="2" placeholder="我从中学到了什么..." style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:10px;font-size:13px"></textarea>';
+  html += '<div style="display:flex;gap:8px;margin-top:12px">';
+  html += '<button onclick="createMilestone()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:600;cursor:pointer">保存</button>';
+  html += '<button onclick="openLifeMilestone()" style="flex:1;padding:10px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;color:#6B7280;font-size:13px;cursor:pointer">取消</button>';
+  html += '</div>';
+  openModal2('➕ 标记人生节点', html);
+}
+async function createMilestone(){
+  var title = document.getElementById('msTitle').value.trim();
+  var date = document.getElementById('msDate').value;
+  var type = document.getElementById('msType').value;
+  var desc = document.getElementById('msDesc').value.trim();
+  var impact = document.getElementById('msImpact').value.trim();
+  var lesson = document.getElementById('msLesson').value.trim();
+  if (!title || !date) { alert('标题和日期必填'); return; }
+  try {
+    await fetch('/api/life-milestone', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ title:title, date:date, type:type, description:desc, impact:impact, lesson:lesson })
+    });
+    openLifeMilestone();
+    loadCognitiveCounts();
+  } catch(e) { alert('保存失败'); }
+}
+async function delMilestone(id){
+  if (!confirm('删除此节点？')) return;
+  try {
+    await fetch('/api/life-milestone/'+id, { method: 'DELETE' });
+    openLifeMilestone();
+    loadCognitiveCounts();
+  } catch(e) { alert('删除失败'); }
+}
+
+// ============================================================
+// v5.7 季节性情绪分析
+// ============================================================
+async function openSeasonal(){
+  openModal2('🌦️ 季节性情绪分析', '<div style="text-align:center;color:#9CA3AF;padding:20px">分析季节规律中...</div>');
+  try {
+    var r = await fetch('/api/eng/seasonal');
+    var d = await r.json();
+    if (!d.success) {
+      openModal2('🌦️ 季节性情绪分析', '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px;line-height:1.8">📊 数据不足<br><br>' + (d.message || '需要更多情绪记录') + '<br><br>请持续记录情绪评分<br>系统将识别你的"季节性模式"</div>');
+      return;
+    }
+    var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">基于' + d.sampleSize + '条情绪记录 · 按月/季节聚合</div>';
+    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
+    // 季节对比
+    if (d.seasonal && d.seasonal.length) {
+      html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+      html += '<div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:8px">🌿 季节平均情绪</div>';
+      var maxAvg = Math.max.apply(null, d.seasonal.map(function(s){return s.avg;}));
+      var minAvg = Math.min.apply(null, d.seasonal.map(function(s){return s.avg;}));
+      var seasonIcons = {'春季':'🌸','夏季':'☀️','秋季':'🍂','冬季':'❄️'};
+      d.seasonal.forEach(function(s){
+        var isBest = d.bestSeason && s.season === d.bestSeason.season;
+        var isWorst = d.worstSeason && s.season === d.worstSeason.season;
+        var isCurrent = s.season === d.currentSeason;
+        var color = isBest ? '#10B981' : isWorst ? '#EF4444' : '#6366F1';
+        var pct = (s.avg / 10) * 100;
+        html += '<div style="margin-bottom:6px">';
+        html += '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">';
+        html += '<span style="color:#374151">' + (seasonIcons[s.season]||'📅') + ' ' + s.season + (isCurrent?' <span style="color:#F59E0B;font-size:10px">[当前]</span>':'') + '</span>';
+        html += '<span style="color:' + color + ';font-weight:700">' + s.avg + '/10 <span style="color:#9CA3AF;font-weight:400">(' + s.count + '条)</span></span>';
+        html += '</div>';
+        html += '<div style="height:6px;background:#F3F4F6;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:3px"></div></div>';
+        html += '</div>';
+      });
+      if (d.bestSeason && d.worstSeason && d.bestSeason.season !== d.worstSeason.season) {
+        html += '<div style="margin-top:8px;font-size:11px;color:#9CA3AF;text-align:center">差距 ' + (d.bestSeason.avg - d.worstSeason.avg).toFixed(1) + '分</div>';
+      }
+      html += '</div>';
+    }
+    // 月度柱状图
+    if (d.monthly && d.monthly.length) {
+      html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+      html += '<div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:8px">📅 月度情绪分布</div>';
+      var maxM = Math.max.apply(null, d.monthly.map(function(m){return m.avg;}));
+      // 12个月柱状图
+      html += '<svg viewBox="0 0 280 90" style="width:100%;height:auto">';
+      var barW = 280 / 12;
+      d.monthly.forEach(function(m){
+        var idx = m.month - 1;
+        var x = idx * barW + 2;
+        var h = (m.avg / 10) * 60;
+        var y = 70 - h;
+        var color = m.avg >= 7 ? '#10B981' : m.avg >= 5 ? '#6366F1' : '#F59E0B';
+        html += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + (barW-4).toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + color + '" rx="2"/>';
+        html += '<text x="' + (x + (barW-4)/2).toFixed(1) + '" y="80" text-anchor="middle" font-size="8" fill="#9CA3AF">' + m.month + '月</text>';
+        html += '<text x="' + (x + (barW-4)/2).toFixed(1) + '" y="' + (y-2).toFixed(1) + '" text-anchor="middle" font-size="8" fill="#4B5563">' + m.avg + '</text>';
+      });
+      html += '</svg></div>';
+    }
+    html += '<div style="margin-top:10px;font-size:11px;color:#9CA3AF;text-align:center;line-height:1.6">💡 季节性揭示你的"内在节律"<br>知道哪个季节低落，可以提前干预而非被动承受</div>';
+    openModal2('🌦️ 季节性情绪分析', html);
+  } catch(e) {
+    openModal2('🌦️ 季节性情绪分析', '<div style="color:#EF4444;padding:20px;text-align:center">加载失败</div>');
+  }
 }
 
 function renderRecord(){

@@ -111,7 +111,7 @@ if (fs.existsSync(path.join(__dirname, 'frontend'))) {
 }
 
 // ============ 修复：health 和 insights 必须在通用路由前 ============
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.5' }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.7' }));
 
 // ============ 今日之问 API ============
 const QUESTION_POOL = [
@@ -3260,6 +3260,513 @@ app.delete('/api/habit/checkin/:hid/:date', (req, res) => {
 });
 
 // ============================================================
+// v5.6: 健康指标趋势 API
+// ============================================================
+app.get('/api/health-trends', (req, res) => {
+  const days = parseInt(req.query.days) || 90;
+  const body = readData('body');
+  // 收集体重和血压数据，按日期排序
+  const weightPoints = [];
+  const bpPoints = [];
+  for (const r of body) {
+    if (!r.date) continue;
+    const w = parseFloat(r.weight);
+    if (!isNaN(w) && w > 0) weightPoints.push({ date: r.date, weight: w });
+    if (r.bloodPressure && typeof r.bloodPressure === 'string') {
+      const m = r.bloodPressure.match(/(\d+)\s*\/\s*(\d+)/);
+      if (m) {
+        const sys = parseInt(m[1]);
+        const dia = parseInt(m[2]);
+        if (sys > 0 && dia > 0) bpPoints.push({ date: r.date, sys, dia });
+      }
+    }
+  }
+  weightPoints.sort((a,b) => a.date < b.date ? -1 : 1);
+  bpPoints.sort((a,b) => a.date < b.date ? -1 : 1);
+  // 只取最近N天
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const wFiltered = weightPoints.filter(p => p.date >= cutoffStr);
+  const bpFiltered = bpPoints.filter(p => p.date >= cutoffStr);
+  // 统计
+  const stats = {};
+  if (wFiltered.length) {
+    const vals = wFiltered.map(p => p.weight);
+    const first = vals[0], last = vals[vals.length - 1];
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const avg = vals.reduce((a,b) => a+b, 0) / vals.length;
+    stats.weight = {
+      count: vals.length, first: +first.toFixed(1), last: +last.toFixed(1),
+      min: +min.toFixed(1), max: +max.toFixed(1), avg: +avg.toFixed(1),
+      change: +(last - first).toFixed(1),
+      trend: last > first + 0.5 ? '上升' : last < first - 0.5 ? '下降' : '稳定'
+    };
+  }
+  if (bpFiltered.length) {
+    const sysVals = bpFiltered.map(p => p.sys);
+    const diaVals = bpFiltered.map(p => p.dia);
+    const sysAvg = sysVals.reduce((a,b) => a+b, 0) / sysVals.length;
+    const diaAvg = diaVals.reduce((a,b) => a+b, 0) / diaVals.length;
+    const lastBp = bpFiltered[bpFiltered.length - 1];
+    stats.bp = {
+      count: bpFiltered.length,
+      sysAvg: Math.round(sysAvg), diaAvg: Math.round(diaAvg),
+      lastSys: lastBp.sys, lastDia: lastBp.dia,
+      level: lastBp.sys >= 140 || lastBp.dia >= 90 ? '偏高' :
+             lastBp.sys < 90 || lastBp.dia < 60 ? '偏低' : '正常'
+    };
+  }
+  res.json({
+    weight: wFiltered,
+    bloodPressure: bpFiltered,
+    stats,
+    days
+  });
+});
+
+// ============================================================
+// v5.6: 周/月计划 API
+// ============================================================
+function getPlans() {
+  const row = db.prepare("SELECT value FROM kv WHERE key=?").get('plans');
+  if (!row) return [];
+  try { const arr = JSON.parse(row.value); return Array.isArray(arr) ? arr : []; } catch(e) { return []; }
+}
+function savePlans(list) {
+  db.prepare("INSERT OR REPLACE INTO kv(key,value) VALUES(?,?)").run('plans', JSON.stringify(list));
+}
+function isoWeek(d) {
+  const date = new Date(d);
+  date.setHours(0,0,0,0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+function getPeriodKey(type, dateStr) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  if (type === 'week') {
+    const y = d.getFullYear();
+    const w = isoWeek(d);
+    return `${y}-W${String(w).padStart(2,'0')}`;
+  } else {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+}
+app.get('/api/plan', (req, res) => {
+  const type = req.query.type; // 'week' or 'month'
+  const period = req.query.period;
+  let plans = getPlans();
+  if (type) plans = plans.filter(p => p.type === type);
+  if (period) plans = plans.filter(p => p.period === period);
+  // 计算完成度
+  plans = plans.map(p => {
+    const total = (p.items || []).length;
+    const done = (p.items || []).filter(i => i.done).length;
+    return { ...p, total, done, progress: total > 0 ? Math.round(done/total*100) : 0 };
+  });
+  // 按period倒序
+  plans.sort((a,b) => (a.period < b.period ? 1 : -1));
+  res.json(plans);
+});
+app.post('/api/plan', (req, res) => {
+  const { type, period, title, items } = req.body;
+  if (!type || !['week','month'].includes(type)) return res.json({ success: false, message: '类型应为 week 或 month' });
+  const targetPeriod = period || getPeriodKey(type);
+  const plans = getPlans();
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const newPlan = {
+    id,
+    type,
+    period: targetPeriod,
+    title: title || (type === 'week' ? '第'+targetPeriod.split('-W')[1]+'周计划' : targetPeriod+'月计划'),
+    items: Array.isArray(items) ? items.map((t,i) => ({ id: 'pi_'+i, text: t, done: false })) : [],
+    createdAt: new Date().toISOString()
+  };
+  plans.push(newPlan);
+  savePlans(plans);
+  res.json({ success: true, plan: newPlan });
+});
+app.delete('/api/plan/:id', (req, res) => {
+  const plans = getPlans();
+  const filtered = plans.filter(p => p.id !== req.params.id);
+  savePlans(filtered);
+  res.json({ success: true, removed: plans.length - filtered.length });
+});
+app.post('/api/plan/:id/item', (req, res) => {
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.json({ success: false, message: '内容不能为空' });
+  const plans = getPlans();
+  const p = plans.find(p => p.id === req.params.id);
+  if (!p) return res.json({ success: false, message: '计划不存在' });
+  if (!p.items) p.items = [];
+  p.items.push({ id: 'pi_' + Date.now().toString(36), text: text.trim(), done: false });
+  savePlans(plans);
+  res.json({ success: true, items: p.items });
+});
+app.post('/api/plan/:planId/item/:itemId/toggle', (req, res) => {
+  const plans = getPlans();
+  const p = plans.find(p => p.id === req.params.planId);
+  if (!p) return res.json({ success: false, message: '计划不存在' });
+  const it = (p.items || []).find(i => i.id === req.params.itemId);
+  if (!it) return res.json({ success: false, message: '事项不存在' });
+  it.done = !it.done;
+  if (it.done) it.completedAt = new Date().toISOString();
+  else delete it.completedAt;
+  savePlans(plans);
+  const done = (p.items || []).filter(i => i.done).length;
+  const total = (p.items || []).length;
+  res.json({ success: true, item: it, done, total, progress: total > 0 ? Math.round(done/total*100) : 0 });
+});
+app.delete('/api/plan/:planId/item/:itemId', (req, res) => {
+  const plans = getPlans();
+  const p = plans.find(p => p.id === req.params.planId);
+  if (!p) return res.json({ success: false, message: '计划不存在' });
+  p.items = (p.items || []).filter(i => i.id !== req.params.itemId);
+  savePlans(plans);
+  res.json({ success: true, items: p.items });
+});
+// 计划执行对比（与上一周期对比完成率）
+app.get('/api/plan/compare', (req, res) => {
+  const type = req.query.type || 'week';
+  const plans = getPlans().filter(p => p.type === type).sort((a,b) => (a.period < b.period ? -1 : 1));
+  if (plans.length === 0) return res.json({ history: [], message: '暂无'+(type==='week'?'周':'月')+'计划数据' });
+  const history = plans.map(p => {
+    const total = (p.items || []).length;
+    const done = (p.items || []).filter(i => i.done).length;
+    return {
+      period: p.period,
+      title: p.title,
+      total, done,
+      rate: total > 0 ? Math.round(done/total*100) : 0
+    };
+  });
+  let message = '';
+  if (history.length >= 2) {
+    const last = history[history.length - 1];
+    const prev = history[history.length - 2];
+    const diff = last.rate - prev.rate;
+    if (diff > 5) message = `📈 ${last.period}完成率${last.rate}%，比上一周期提升${diff}个百分点`;
+    else if (diff < -5) message = `📉 ${last.period}完成率${last.rate}%，比上一周期下降${Math.abs(diff)}个百分点，需要关注`;
+    else message = `➡️ ${last.period}完成率${last.rate}%，与上一周期基本持平`;
+  } else {
+    message = `首个${type==='week'?'周':'月'}计划，完成率${history[0].rate}%`;
+  }
+  res.json({ history, message });
+});
+
+// ============================================================
+// v5.7: 因果推断引擎（滞后时间窗）
+// ============================================================
+function pearsonCorrelation(x, y) {
+  const n = x.length;
+  if (n < 3) return 0;
+  const mx = x.reduce((a,b) => a+b, 0) / n;
+  const my = y.reduce((a,b) => a+b, 0) / n;
+  let num = 0, dx = 0, dy = 0;
+  for (let i = 0; i < n; i++) {
+    num += (x[i] - mx) * (y[i] - my);
+    dx += (x[i] - mx) ** 2;
+    dy += (y[i] - my) ** 2;
+  }
+  if (dx === 0 || dy === 0) return 0;
+  return num / Math.sqrt(dx * dy);
+}
+app.get('/api/eng/causal', (req, res) => {
+  const lagDays = parseInt(req.query.lag) || 1; // 滞后天数
+  const maxLag = parseInt(req.query.maxLag) || 7;
+  // 因变量候选：情绪rating
+  // 自变量候选：睡眠hours、锻炼duration、饮食calories
+  const emotion = readData('emotion').filter(e => e.date && e.rating);
+  const sleep = readData('sleep').filter(s => s.date && s.hours);
+  const exercise = readData('exercise').filter(e => e.date && e.duration);
+  if (emotion.length < 7) {
+    return res.json({
+      success: false, message: '需要至少7条情绪记录才能进行因果推断',
+      sampleSize: emotion.length
+    });
+  }
+  // 构建每日指标map
+  const dayMap = {};
+  emotion.forEach(e => {
+    const d = e.date;
+    if (!dayMap[d]) dayMap[d] = {};
+    dayMap[d].mood = parseFloat(e.rating) || 0;
+  });
+  sleep.forEach(s => {
+    if (!dayMap[s.date]) dayMap[s.date] = {};
+    dayMap[s.date].sleep = parseFloat(s.hours) || 0;
+  });
+  exercise.forEach(e => {
+    if (!dayMap[e.date]) dayMap[e.date] = {};
+    dayMap[e.date].exercise = parseFloat(e.duration) || 0;
+  });
+  // 因子列表
+  const factors = [
+    { key: 'sleep', name: '睡眠时长', unit: '小时' },
+    { key: 'exercise', name: '锻炼时长', unit: '分钟' }
+  ];
+  // 对每个因子，测试0~maxLag天的滞后相关性
+  const results = factors.map(f => {
+    const lagTests = [];
+    for (let lag = 0; lag <= maxLag; lag++) {
+      const x = [], y = [];
+      Object.keys(dayMap).forEach(d => {
+        if (dayMap[d].mood === undefined) return;
+        const srcDate = new Date(d);
+        srcDate.setDate(srcDate.getDate() - lag);
+        const srcKey = srcDate.toISOString().split('T')[0];
+        const srcVal = dayMap[srcKey] && dayMap[srcKey][f.key];
+        if (srcVal !== undefined) {
+          x.push(srcVal);
+          y.push(dayMap[d].mood);
+        }
+      });
+      if (x.length >= 5) {
+        const r = pearsonCorrelation(x, y);
+        lagTests.push({ lag, r: +r.toFixed(3), n: x.length });
+      }
+    }
+    // 找最强滞后
+    let bestLag = 0, bestR = 0;
+    lagTests.forEach(t => {
+      if (Math.abs(t.r) > Math.abs(bestR)) { bestR = t.r; bestLag = t.lag; }
+    });
+    return {
+      factor: f.key, factorName: f.name, unit: f.unit,
+      lagTests, bestLag, bestR: +bestR.toFixed(3),
+      strength: Math.abs(bestR) > 0.5 ? '强' : Math.abs(bestR) > 0.3 ? '中' : '弱',
+      direction: bestR > 0 ? '正向' : '负向',
+      insight: bestR > 0.3
+        ? `${f.name}${bestLag === 0 ? '当天' : bestLag + '天前'}对情绪有${Math.abs(bestR) > 0.5 ? '显著' : '一定'}影响（r=${bestR.toFixed(2)}），${bestR > 0 ? '越多情绪越好' : '越多情绪反而越差'}`
+        : `${f.name}与情绪的关联较弱，可能不是关键因素`
+    };
+  });
+  res.json({
+    success: true,
+    sampleSize: emotion.length,
+    lagDays, maxLag,
+    factors: results,
+    generatedAt: new Date().toISOString()
+  });
+});
+
+// ============================================================
+// v5.7: 个人基线算法
+// ============================================================
+app.get('/api/eng/baseline', (req, res) => {
+  const days = parseInt(req.query.days) || 30;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const filterRecent = (arr, key) => arr
+    .filter(r => r.date && r.date >= cutoffStr && r[key] !== undefined && r[key] !== '' && !isNaN(parseFloat(r[key])))
+    .map(r => parseFloat(r[key]));
+  const stats = (vals) => {
+    if (!vals.length) return null;
+    vals.sort((a,b) => a-b);
+    const sum = vals.reduce((a,b) => a+b, 0);
+    const mean = sum / vals.length;
+    const variance = vals.reduce((a,b) => a + (b-mean)**2, 0) / vals.length;
+    return {
+      count: vals.length,
+      mean: +mean.toFixed(2),
+      median: +vals[Math.floor(vals.length/2)].toFixed(2),
+      min: +vals[0].toFixed(2),
+      max: +vals[vals.length-1].toFixed(2),
+      p25: +vals[Math.floor(vals.length*0.25)].toFixed(2),
+      p75: +vals[Math.floor(vals.length*0.75)].toFixed(2),
+      std: +Math.sqrt(variance).toFixed(2),
+      cv: mean !== 0 ? +(Math.sqrt(variance)/Math.abs(mean)*100).toFixed(1) : 0
+    };
+  };
+  // 各维度基线
+  const emotion = readData('emotion');
+  const sleep = readData('sleep');
+  const exercise = readData('exercise');
+  const diet = readData('diet');
+  const baselines = {};
+  const moodStats = stats(filterRecent(emotion, 'rating'));
+  if (moodStats) baselines.mood = { ...moodStats, label: '情绪基线', unit: '/10', normal: [moodStats.p25, moodStats.p75] };
+  const sleepStats = stats(filterRecent(sleep, 'hours'));
+  if (sleepStats) baselines.sleep = { ...sleepStats, label: '睡眠基线', unit: '小时', normal: [sleepStats.p25, sleepStats.p75] };
+  const exStats = stats(filterRecent(exercise, 'duration'));
+  if (exStats) baselines.exercise = { ...exStats, label: '锻炼基线', unit: '分钟', normal: [exStats.p25, exStats.p75] };
+  // 今日偏离
+  const today = new Date().toISOString().split('T')[0];
+  const deviations = [];
+  const todayMood = emotion.find(e => e.date === today);
+  const todaySleep = sleep.find(s => s.date === today);
+  const todayEx = exercise.find(e => e.date === today);
+  if (baselines.mood && todayMood && todayMood.rating) {
+    const v = parseFloat(todayMood.rating);
+    deviations.push({ key: 'mood', label: '今日情绪', value: v, baseline: baselines.mood.mean, dev: +(v - baselines.mood.mean).toFixed(2), status: v < baselines.mood.p25 ? 'below' : v > baselines.mood.p75 ? 'above' : 'normal' });
+  }
+  if (baselines.sleep && todaySleep && todaySleep.hours) {
+    const v = parseFloat(todaySleep.hours);
+    deviations.push({ key: 'sleep', label: '今日睡眠', value: v, baseline: baselines.sleep.mean, dev: +(v - baselines.sleep.mean).toFixed(2), status: v < baselines.sleep.p25 ? 'below' : v > baselines.sleep.p75 ? 'above' : 'normal' });
+  }
+  if (baselines.exercise && todayEx && todayEx.duration) {
+    const v = parseFloat(todayEx.duration);
+    deviations.push({ key: 'exercise', label: '今日锻炼', value: v, baseline: baselines.exercise.mean, dev: +(v - baselines.exercise.mean).toFixed(2), status: v < baselines.exercise.p25 ? 'below' : v > baselines.exercise.p75 ? 'above' : 'normal' });
+  }
+  // 综合评估
+  const dimensions = Object.keys(baselines).length;
+  const insight = dimensions === 0
+    ? `近${days}天数据不足，无法建立基线。建议持续记录情绪、睡眠、锻炼数据。`
+    : `已基于近${days}天${dimensions}个维度数据建立个人基线。基线是"你的常态"，偏离基线的事件才值得关注——平稳不一定是好事，剧烈波动也不一定是坏事，关键是知道"为什么偏"。`;
+  res.json({
+    success: true,
+    days,
+    baselines,
+    deviations,
+    insight,
+    generatedAt: new Date().toISOString()
+  });
+});
+
+// ============================================================
+// v5.7: 人生节点标记
+// ============================================================
+app.get('/api/life-milestone', (req, res) => {
+  res.json(readData('life_milestone'));
+});
+app.post('/api/life-milestone', (req, res) => {
+  const { title, date, type, description, impact, lesson } = req.body;
+  if (!title || !date) return res.json({ success: false, message: '标题和日期必填' });
+  const list = readData('life_milestone');
+  const item = {
+    id: genId(),
+    title,
+    date,
+    type: type || '转折',
+    description: description || '',
+    impact: impact || '',
+    lesson: lesson || '',
+    createdAt: new Date().toISOString()
+  };
+  list.push(item);
+  writeData('life_milestone', list);
+  res.json({ success: true, item });
+});
+app.put('/api/life-milestone/:id', (req, res) => {
+  const list = readData('life_milestone');
+  const item = list.find(i => String(i.id) === String(req.params.id));
+  if (!item) return res.json({ success: false, message: '节点不存在' });
+  Object.assign(item, req.body);
+  writeData('life_milestone', list);
+  res.json({ success: true, item });
+});
+app.delete('/api/life-milestone/:id', (req, res) => {
+  const list = readData('life_milestone');
+  const filtered = list.filter(i => String(i.id) !== String(req.params.id));
+  writeData('life_milestone', filtered);
+  res.json({ success: true, removed: list.length - filtered.length });
+});
+
+// ============================================================
+// v5.7: 季节性情绪分析
+// ============================================================
+app.get('/api/eng/seasonal', (req, res) => {
+  const emotion = readData('emotion').filter(e => e.date && e.rating);
+  if (emotion.length < 14) {
+    return res.json({
+      success: false,
+      message: '需要至少14条情绪记录才能进行季节性分析',
+      sampleSize: emotion.length
+    });
+  }
+  // 按月聚合
+  const byMonth = {};
+  for (let m = 1; m <= 12; m++) byMonth[m] = [];
+  emotion.forEach(e => {
+    const d = new Date(e.date);
+    if (isNaN(d.getTime())) return;
+    const m = d.getMonth() + 1;
+    byMonth[m].push(parseFloat(e.rating) || 0);
+  });
+  const monthly = [];
+  for (let m = 1; m <= 12; m++) {
+    const vals = byMonth[m];
+    if (vals.length > 0) {
+      monthly.push({
+        month: m,
+        monthName: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][m-1],
+        avg: +(vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(2),
+        count: vals.length,
+        min: +Math.min(...vals).toFixed(1),
+        max: +Math.max(...vals).toFixed(1)
+      });
+    }
+  }
+  // 按季节聚合
+  const seasons = {
+    '春季': [3,4,5],
+    '夏季': [6,7,8],
+    '秋季': [9,10,11],
+    '冬季': [12,1,2]
+  };
+  const seasonal = [];
+  Object.keys(seasons).forEach(name => {
+    const months = seasons[name];
+    const vals = months.flatMap(m => byMonth[m] || []);
+    if (vals.length > 0) {
+      seasonal.push({
+        season: name,
+        months: months.join(','),
+        avg: +(vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(2),
+        count: vals.length
+      });
+    }
+  });
+  // 找最高/最低季节
+  let bestSeason = null, worstSeason = null;
+  if (seasonal.length >= 2) {
+    const sorted = [...seasonal].sort((a,b) => b.avg - a.avg);
+    bestSeason = sorted[0];
+    worstSeason = sorted[sorted.length - 1];
+  }
+  // 当前季节
+  const nowMonth = new Date().getMonth() + 1;
+  let currentSeason = null;
+  Object.keys(seasons).forEach(name => {
+    if (seasons[name].includes(nowMonth)) currentSeason = name;
+  });
+  const currentSeasonData = seasonal.find(s => s.season === currentSeason);
+  // 生成洞察
+  let insight = '';
+  if (bestSeason && worstSeason && bestSeason.season !== worstSeason.season) {
+    const diff = bestSeason.avg - worstSeason.avg;
+    if (diff > 0.5) {
+      insight = `检测到明显季节性差异：${bestSeason.season}情绪最高(${bestSeason.avg}分)，${worstSeason.season}最低(${worstSeason.avg}分)，相差${diff.toFixed(1)}分。`;
+      if (worstSeason.season === '冬季') insight += '可能存在冬季情绪低落（SAD），建议增加日照、补充维生素D。';
+      else if (worstSeason.season === '夏季') insight += '夏季情绪偏低，可能与高温、湿度有关，注意降温避暑。';
+      else if (worstSeason.season === '春季') insight += '春季情绪偏低，注意"春困"，保持规律作息。';
+      else insight += '注意识别该季节的低落诱因，提前预防。';
+    } else {
+      insight = `各季节情绪差异不大(${diff.toFixed(1)}分)，情绪相对稳定，季节性影响不显著。`;
+    }
+  } else {
+    insight = '数据不足以判断季节性差异，建议记录满一年后再做分析。';
+  }
+  if (currentSeasonData) {
+    insight += ` 当前为${currentSeason}，平均${currentSeasonData.avg}分。`;
+  }
+  res.json({
+    success: true,
+    sampleSize: emotion.length,
+    monthly,
+    seasonal,
+    bestSeason,
+    worstSeason,
+    currentSeason,
+    currentSeasonData,
+    insight,
+    generatedAt: new Date().toISOString()
+  });
+});
+
+// ============================================================
 // 备份 API
 // ============================================================
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
@@ -3382,5 +3889,5 @@ app.delete('/api/trash', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🍆 茄子管家 v5.5 运行在 http://localhost:${PORT}`);
+  console.log(`🍆 茄子管家 v5.7 运行在 http://localhost:${PORT}`);
 });
