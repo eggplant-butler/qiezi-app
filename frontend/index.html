@@ -889,14 +889,79 @@ function getFormConfig(sceneId){
   return null;
 }
 
+// === 填写体验增强 ===
+// 记忆上次填写的值
+function getLastValues(sceneId){
+  try { return JSON.parse(localStorage.getItem('fv_'+sceneId) || '{}'); } catch(e){ return {}; }
+}
+function saveLastValues(sceneId, data){
+  try { localStorage.setItem('fv_'+sceneId, JSON.stringify(data)); } catch(e){}
+}
+// 快捷标签：text 字段最近5次输入
+function getRecentTexts(sceneId, key){
+  try { return JSON.parse(localStorage.getItem('rt_'+sceneId+'_'+key) || '[]'); } catch(e){ return []; }
+}
+function addRecentText(sceneId, key, val){
+  if(!val) return;
+  try {
+    var k = 'rt_'+sceneId+'_'+key;
+    var arr = JSON.parse(localStorage.getItem(k) || '[]');
+    arr = arr.filter(function(x){ return x !== val; });
+    arr.unshift(val);
+    arr = arr.slice(0, 5);
+    localStorage.setItem(k, JSON.stringify(arr));
+  } catch(e){}
+}
+// 必填字段配置
+var REQUIRED_KEYS = {
+  finance:['amount'], sleep:['hours'], exercise:['type','duration'],
+  emotion:['rating'], diet:['content'], diary:['content'],
+  think:['content'], learn:['subject'], photo:['title'],
+  inventory:['name'], space:['name'],
+  work:['task'], home:['space'], travel:['from'],
+  body:['symptom'], relation:['person'], time:['duration','category'],
+  growth:['skill'], spirit:['mood']
+};
+function isFieldRequired(sceneId, fieldKey){
+  var arr = REQUIRED_KEYS[sceneId] || [];
+  return arr.indexOf(fieldKey) !== -1;
+}
+// 睡眠时长自动计算
+function calcSleepHours(){
+  var st = document.getElementById('f_sleepTime');
+  var wt = document.getElementById('f_wakeTime');
+  var h = document.getElementById('f_hours');
+  if(st && wt && h && st.value && wt.value){
+    var s = new Date('2000-01-01T'+st.value+':00');
+    var w = new Date('2000-01-01T'+wt.value+':00');
+    var diff = (w - s) / 3600000;
+    if(diff < 0) diff += 24;
+    h.value = diff.toFixed(1);
+  }
+}
+function bindFormEvents(sceneId){
+  if(sceneId === 'sleep'){
+    var st = document.getElementById('f_sleepTime');
+    var wt = document.getElementById('f_wakeTime');
+    if(st) st.addEventListener('change', calcSleepHours);
+    if(wt) wt.addEventListener('change', calcSleepHours);
+  }
+}
+function applyQuickTag(key, encodedVal){
+  var input = document.getElementById('f_'+key);
+  if(input) input.value = decodeURIComponent(encodedVal);
+}
 function renderFormHtml(sceneId, item){
   var config = getFormConfig(sceneId);
   if(!config) return null;
+  var lastVals = item ? {} : getLastValues(sceneId);
   var html = '';
   config.fields.forEach(function(f){
-    var val = item ? (item[f.key] || '') : '';
+    var val = item ? (item[f.key] || '') : (lastVals[f.key] !== undefined ? lastVals[f.key] : '');
     if(f.type === 'date' && !val) val = TODAY;
-    html += '<label>'+f.label+'</label>';
+    var req = isFieldRequired(sceneId, f.key);
+    var reqMark = req ? ' <span style="color:#EF4444">*</span>' : '';
+    html += '<label>'+f.label+reqMark+'</label>';
     if(f.type === 'select'){
       html += '<select id="f_'+f.key+'">';
       html += '<option value="">请选择</option>';
@@ -910,6 +975,17 @@ function renderFormHtml(sceneId, item){
       html += '<textarea id="f_'+f.key+'" rows="3" placeholder="'+(f.placeholder||'')+'">'+val+'</textarea>';
     } else {
       html += '<input id="f_'+f.key+'" type="'+f.type+'" placeholder="'+(f.placeholder||'')+'" value="'+val+'">';
+      // text 字段加快捷标签（最近5次输入）
+      if(f.type === 'text' && !item){
+        var recents = getRecentTexts(sceneId, f.key);
+        if(recents.length){
+          html += '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">';
+          recents.forEach(function(r){
+            html += '<span onclick="applyQuickTag(\''+f.key+'\',\''+encodeURIComponent(r)+'\')" style="font-size:12px;padding:4px 10px;background:var(--c-accent);color:var(--c-primary);border-radius:12px;cursor:pointer">'+escapeHtml(r)+'</span>';
+          });
+          html += '</div>';
+        }
+      }
     }
   });
   return html;
@@ -966,6 +1042,7 @@ function openAdd(){
   } else {
     document.getElementById('modalBody').innerHTML = '<label>内容</label><input id="f_c" placeholder="记录内容"><label>日期</label><input type="date" id="f_d" value="'+TODAY+'"><label>评分(可选)</label><select id="f_r"><option value="">无</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select><label>备注</label><textarea id="f_n" rows="2"></textarea>';
   }
+  bindFormEvents(curScene);
   document.getElementById('modal').classList.add('act');
 }
 
@@ -983,6 +1060,7 @@ function editRec(sceneId,id){
   } else {
     document.getElementById('modalBody').innerHTML = '<label>内容</label><input id="f_c" value="'+(item.content||'')+'"><label>日期</label><input type="date" id="f_d" value="'+(item.date||TODAY)+'"><label>评分</label><select id="f_r"><option value="">无</option>'+[1,2,3,4,5].map(function(r){ return '<option '+(item.rating==r?'selected':'')+'>'+r+'</option>'; }).join('')+'</select><label>备注</label><textarea id="f_n" rows="2">'+(item.note||'')+'</textarea>';
   }
+  bindFormEvents(sceneId);
   document.getElementById('modal').classList.add('act');
 }
 
@@ -993,8 +1071,15 @@ async function saveRecord(){
     var c = formData.content;
     if(!c){ alert('请填写内容'); return; }
   } else {
-    var required = config.fields.find(function(f){ return f.key === 'content' || f.key === 'amount' || f.key === 'hours'; });
-    if(required && !formData[required.key]){ alert('请填写'+required.label); return; }
+    var reqs = REQUIRED_KEYS[curScene] || [];
+    for(var i=0; i<reqs.length; i++){
+      var fk = reqs[i];
+      var fd = config.fields.find(function(f){ return f.key === fk; });
+      if(fd && (formData[fk] === '' || formData[fk] === undefined || formData[fk] === null)){
+        alert('请填写'+fd.label.replace(/\s*1-\d.*/,'').replace(/\s*\(.*\)/,''));
+        return;
+      }
+    }
   }
   // 走认知引擎 API（带反思/关联/风险反馈）
   try {
@@ -1003,6 +1088,13 @@ async function saveRecord(){
     var r = await fetch('/api/record/add', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
     var res = await r.json();
     if (res.success) {
+      // 记忆本次填写值 + 快捷标签
+      if(!editId){
+        saveLastValues(curScene, formData);
+        config.fields.forEach(function(f){
+          if(f.type === 'text' && formData[f.key]) addRecentText(curScene, f.key, formData[f.key]);
+        });
+      }
       // 同步前端 dataCache
       if (!Array.isArray(dataCache[curScene])) dataCache[curScene] = [];
       if (editId) {
