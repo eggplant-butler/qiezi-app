@@ -3,42 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>茄子管家 · 复利版</title>
+<title>🧭 船长日志 · 航海版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
-body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
-#lock{position:fixed;inset:0;background:#0F0A1E;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
+body{background:#0a1f33;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
+#lock{position:fixed;inset:0;background:#0a1f33;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
 #lock input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 20px;width:280px;color:#fff;font-size:18px;text-align:center;outline:none}
-#lock input:focus{border-color:#8B5CF6}
-#lock button{background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:12px;padding:14px 30px;color:#fff;font-size:18px;font-weight:600;cursor:pointer;margin-top:16px}
+#lock input:focus{border-color:#2a6f97}
+#lock button{background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;border-radius:12px;padding:14px 30px;color:#fff;font-size:18px;font-weight:600;cursor:pointer;margin-top:16px}
 #lock .err{color:#EF4444;margin-top:8px;display:none}
 #app{display:none;max-width:480px;margin:0 auto;padding:16px 16px 80px}
 .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.hd h1{font-size:20px;font-weight:700;background:linear-gradient(to right,#fff,#C4B5FD);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hd h1{font-size:20px;font-weight:700;background:linear-gradient(to right,#fff,#e8c468);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hd-r{display:flex;gap:8px;align-items:center}
 .hd-r .badge{background:#EF4444;color:#fff;font-size:10px;border-radius:10px;padding:0 8px;line-height:18px}
 .hd-r button{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:6px 12px;color:#CBD5E1;font-size:14px;cursor:pointer}
-.greet{background:rgba(255,255,255,0.04);border-radius:14px;padding:14px 18px;margin-bottom:16px;border-left:4px solid #8B5CF6}
+.greet{background:rgba(255,255,255,0.04);border-radius:14px;padding:14px 18px;margin-bottom:16px;border-left:4px solid #2a6f97}
 .greet .d{font-size:13px;color:#94A3B8}
 .greet .t{font-size:15px;color:#E2E8F0;margin-top:4px;display:flex;justify-content:space-between;align-items:center}
 .greet .t strong{color:#fff}
-.greet .t .phase-badge{background:rgba(139,92,246,0.2);color:#A78BFA;font-size:11px;border-radius:12px;padding:2px 12px;line-height:22px}
+.greet .t .phase-badge{background:rgba(42,111,151,0.2);color:#6fa8c9;font-size:11px;border-radius:12px;padding:2px 12px;line-height:22px}
 .greet .t .remind-badge{background:#EF4444;color:#fff;font-size:10px;border-radius:10px;padding:0 10px;line-height:20px;cursor:pointer}
 .growth-bar{background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04)}
 .growth-bar .row{display:flex;justify-content:space-between;align-items:center}
-.growth-bar .phase{font-size:13px;font-weight:600;color:#A78BFA}
+.growth-bar .phase{font-size:13px;font-weight:600;color:#6fa8c9}
 .growth-bar .progress{font-size:12px;color:#94A3B8}
 .growth-bar .bar{height:4px;background:rgba(255,255,255,0.06);border-radius:4px;margin-top:6px;overflow:hidden}
-.growth-bar .bar .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#8B5CF6,#EC4899);transition:width 0.8s}
+.growth-bar .bar .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2a6f97,#d4a574);transition:width 0.8s}
 .growth-bar .desc{font-size:11px;color:#64748B;margin-top:4px}
 .overview{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
 .overview-card{background:rgba(255,255,255,0.04);border-radius:12px;padding:10px 8px;text-align:center;border:1px solid rgba(255,255,255,0.04)}
-.overview-card .num{font-size:20px;font-weight:700;color:#A78BFA}
+.overview-card .num{font-size:20px;font-weight:700;color:#6fa8c9}
 .overview-card .label{font-size:10px;color:#94A3B8;margin-top:2px}
 .input-area{background:rgba(255,255,255,0.04);border-radius:14px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;border:1px solid rgba(255,255,255,0.06)}
 .input-area input{flex:1;background:transparent;border:none;color:#F1F5F9;font-size:15px;outline:none;padding:6px 0}
 .input-area input::placeholder{color:#64748B}
-.input-area button{background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:10px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.input-area button{background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;border-radius:10px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
 .focus-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
 .focus-card{background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 14px;border:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:0.15s}
 .focus-card:active{transform:scale(0.96)}
@@ -47,11 +47,11 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 .focus-card .nm{font-size:13px;font-weight:600;color:#F1F5F9}
 .focus-card .br{font-size:10px;color:#94A3B8;margin-top:2px}
 .focus-card .progress{height:3px;background:rgba(255,255,255,0.06);border-radius:4px;margin-top:8px;overflow:hidden}
-.focus-card .progress .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#8B5CF6,#EC4899);transition:width 0.5s}
+.focus-card .progress .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2a6f97,#d4a574);transition:width 0.5s}
 .focus-card .status{font-size:9px;padding:1px 8px;border-radius:10px}
 .focus-card .status.active{background:rgba(34,197,94,0.2);color:#22C55E}
 .focus-card .status.steady{background:rgba(251,191,36,0.2);color:#FBBF24}
-.focus-card .status.learning{background:rgba(139,92,246,0.2);color:#A78BFA}
+.focus-card .status.learning{background:rgba(42,111,151,0.2);color:#6fa8c9}
 .quick-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px}
 .quick-module{background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 4px;text-align:center;border:1px solid rgba(255,255,255,0.03);cursor:pointer;transition:0.15s}
 .quick-module:active{transform:scale(0.94)}
@@ -59,7 +59,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 .quick-module .nm{font-size:10px;color:#94A3B8;margin-top:2px}
 .quick-module .cnt{font-size:9px;color:#64748B}
 .correlation-list{margin:8px 0}
-.corr-item{background:rgba(167,139,250,0.06);border-radius:10px;padding:10px 14px;margin-bottom:6px;border-left:3px solid #A78BFA}
+.corr-item{background:rgba(111,168,201,0.06);border-radius:10px;padding:10px 14px;margin-bottom:6px;border-left:3px solid #6fa8c9}
 .corr-item .title{font-size:13px;font-weight:600;color:#F1F5F9}
 .corr-item .detail{font-size:12px;color:#94A3B8;margin-top:2px}
 .suggestion-item{background:rgba(251,191,36,0.06);border-radius:10px;padding:10px 14px;margin-bottom:6px;border-left:3px solid #FBBF24;font-size:13px;color:#E2E8F0}
@@ -71,18 +71,18 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 .bar{position:fixed;bottom:0;left:0;right:0;background:rgba(15,10,30,0.92);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.04);display:flex;padding:6px 0 14px;max-width:480px;margin:0 auto;z-index:100}
 .tab{flex:1;text-align:center;color:#64748B;font-size:10px;cursor:pointer;padding:2px 0}
 .tab .ic{font-size:20px;display:block}
-.tab.act{color:#A78BFA}
+.tab.act{color:#6fa8c9}
 .pg{display:none}
 .pg.act{display:block}
 .detail{display:none;padding-bottom:80px}
 .detail.act{display:block}
-.back{background:transparent;border:none;color:#A78BFA;font-size:16px;cursor:pointer;margin-bottom:12px}
+.back{background:transparent;border:none;color:#6fa8c9;font-size:16px;cursor:pointer;margin-bottom:12px}
 .rec{background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 14px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;align-items:center}
 .rec .tt{font-size:13px;color:#F1F5F9}
 .rec .sb{font-size:10px;color:#94A3B8;margin-top:2px}
 .rec .ac button{background:transparent;border:none;color:#64748B;cursor:pointer;padding:0 4px;font-size:14px}
 .rec .ac .dl{color:#EF4444}
-.add{position:fixed;bottom:80px;right:20px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;color:#fff;font-size:28px;box-shadow:0 4px 16px rgba(139,92,246,0.4);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center}
+.add{position:fixed;bottom:80px;right:20px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;color:#fff;font-size:28px;box-shadow:0 4px 16px rgba(42,111,151,0.4);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px)}
 .modal.act{display:flex}
 .modal-b{background:#1E1B4B;border-radius:16px;padding:24px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto}
@@ -92,7 +92,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 .modal-b textarea{min-height:50px;resize:vertical}
 .modal-b .row{display:flex;gap:8px;margin-top:12px}
 .modal-b .row button{flex:1;padding:10px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer}
-.modal-b .sv{background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff}
+.modal-b .sv{background:linear-gradient(135deg,#2a6f97,#d4a574);color:#fff}
 .modal-b .cn{background:rgba(255,255,255,0.06);color:#94A3B8}
 .space-item{background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.04);cursor:pointer}
 .space-item .top{display:flex;justify-content:space-between;align-items:center}
@@ -108,18 +108,18 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 <body>
 <div id="lock">
 <div style="text-align:center;max-width:320px">
-<h1 style="font-size:28px;font-weight:700;background:linear-gradient(to right,#fff,#C4B5FD);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px">🍆 茄子管家</h1>
-<p style="color:#94A3B8;margin-bottom:24px">输入密码进入你的空间</p>
+<h1 style="font-size:28px;font-weight:700;background:linear-gradient(to right,#fff,#e8c468);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px">🧭 船长日志</h1>
+<p style="color:#94A3B8;margin-bottom:24px">输入口令，启航你的航程</p>
 <input type="password" id="pwdI" placeholder="请输入密码">
-<button onclick="login()">进入</button>
+<button onclick="login()">启航</button>
 <div class="err" id="pwdErr">密码错误</div>
 </div>
 </div>
 <div id="app">
-<div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="togglePrivacy()">👁️</button><button onclick="switchTab('me')">⚙️</button></div></div>
+<div class="hd"><h1>🧭 船长日志</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="togglePrivacy()">👁️</button><button onclick="switchTab('me')">⚙️</button></div></div>
 <div class="greet"><div class="d" id="todayD"></div><div class="t"><span id="greetT">加载中...</span><span class="phase-badge" id="phaseBadge">🌱 萌芽期</span></div></div>
 
-<div id="dailyQuestionArea" style="background:rgba(255,255,255,0.04);border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:4px solid #A78BFA;">
+<div id="dailyQuestionArea" style="background:rgba(255,255,255,0.04);border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:4px solid #6fa8c9;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <span style="font-size:11px;color:#94A3B8;">💭 今日之问</span>
     <span style="font-size:10px;color:#64748B;cursor:pointer;" onclick="viewQuestionHistory()">历史</span>
@@ -127,7 +127,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
   <div id="dailyQuestionText" style="font-size:15px;color:#F1F5F9;font-weight:500;margin-bottom:8px;">加载中...</div>
   <div style="display:flex;gap:8px;">
     <input type="text" id="dailyQuestionInput" placeholder="写下你的回答..." style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;outline:none;">
-    <button onclick="submitDailyAnswer()" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">回答</button>
+    <button onclick="submitDailyAnswer()" style="background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">回答</button>
   </div>
   <div id="dailyAnswerDisplay" style="margin-top:8px;font-size:13px;color:#94A3B8;display:none;"></div>
 </div>
@@ -156,7 +156,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
   </div>
   <div style="display:flex;gap:8px;">
     <input type="text" id="quickNoteInput" placeholder="随便记一下... 系统会自动归类" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;outline:none;">
-    <button onclick="submitQuickNote()" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记</button>
+    <button onclick="submitQuickNote()" style="background:linear-gradient(135deg,#2a6f97,#d4a574);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记</button>
   </div>
   <div id="quickNoteFeedback" style="margin-top:6px;font-size:12px;color:#94A3B8;"></div>
 </div>
@@ -185,7 +185,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🧹 家务</span>
     <span style="display:flex;gap:6px;align-items:center;">
-      <span id="houseworkModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(139,92,246,0.15);color:#A78BFA;">正常</span>
+      <span id="houseworkModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(42,111,151,0.15);color:#6fa8c9;">正常</span>
       <button onclick="switchHouseworkMode()" style="background:transparent;border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:2px 8px;color:#94A3B8;font-size:10px;cursor:pointer;">切换</button>
     </span>
   </div>
@@ -215,7 +215,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <span style="font-size:13px;font-weight:600;color:#F1F5F9;">💼 工作</span>
     <span style="display:flex;gap:6px;align-items:center;">
-      <span id="workModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(139,92,246,0.15);color:#A78BFA;">日常</span>
+      <span id="workModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(42,111,151,0.15);color:#6fa8c9;">日常</span>
       <button onclick="switchWorkMode()" style="background:transparent;border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:2px 8px;color:#94A3B8;font-size:10px;cursor:pointer;">切换</button>
     </span>
   </div>
@@ -224,7 +224,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 </div>
 
 <!-- ====== 认知引擎（Phase 1）====== -->
-<div style="background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(236,72,153,0.05));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(139,92,246,0.15);">
+<div style="background:linear-gradient(135deg,rgba(42,111,151,0.08),rgba(212,165,116,0.05));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(42,111,151,0.15);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
     <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🧠 认知引擎</span>
     <span style="font-size:10px;color:#64748B;">鬼谷子视角 · 不以物喜不以己悲</span>
@@ -241,7 +241,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
       <div style="font-size:10px;color:#64748B;margin-top:2px;" id="decisionCount">0 条</div>
     </div>
   </div>
-  <div id="todayReflectionCard" style="margin-top:10px;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;display:none;border-left:3px solid #A78BFA;">
+  <div id="todayReflectionCard" style="margin-top:10px;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;display:none;border-left:3px solid #6fa8c9;">
     <div style="font-size:11px;color:#94A3B8;margin-bottom:4px;">📝 今日认知反馈</div>
     <div id="todayReflectionText" style="font-size:12px;color:#CBD5E1;line-height:1.6;"></div>
   </div>
@@ -287,7 +287,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 </div>
 
 <!-- ====== Phase 3：成长轴 ====== -->
-<div style="background:linear-gradient(135deg,rgba(236,72,153,0.06),rgba(168,85,247,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(236,72,153,0.15);">
+<div style="background:linear-gradient(135deg,rgba(212,165,116,0.06),rgba(168,85,247,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(212,165,116,0.15);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
     <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🌳 成长轴</span>
     <span style="font-size:10px;color:#64748B;">信念 · 品格 · 画像 · 反熵增 · 反脆弱</span>
@@ -347,7 +347,7 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 <!-- 认知引擎专用弹窗 -->
 <div class="modal" id="modal2"><div class="modal-b"><h3 id="modal2Title">认知引擎</h3><div id="modal2Body"></div><div class="row" id="modal2Actions"><button class="cn" onclick="closeModal2()">关闭</button></div></div></div>
 
-<div class="bar"><div class="tab act" onclick="switchTab('home')"><span class="ic">🏠</span>首页</div><div class="tab" onclick="switchTab('record')"><span class="ic">📋</span>记录</div><div class="tab" onclick="switchTab('insight')"><span class="ic">🔮</span>洞察</div><div class="tab" onclick="switchTab('me')"><span class="ic">👤</span>我</div></div>
+<div class="bar"><div class="tab act" onclick="switchTab('home')"><span class="ic">🧭</span>航海</div><div class="tab" onclick="switchTab('record')"><span class="ic">📖</span>日志</div><div class="tab" onclick="switchTab('insight')"><span class="ic">🔭</span>瞭望</div><div class="tab" onclick="switchTab('me')"><span class="ic">⚓</span>船长</div></div>
 </div>
 
 <script>
@@ -506,8 +506,8 @@ function renderHome(){
   var n = new Date();
   document.getElementById('todayD').textContent = n.toLocaleDateString('zh-CN', {year:'numeric', month:'long', day:'numeric', weekday:'short'});
   var h = n.getHours();
-  var greet = h<6 ? '深夜' : h<9 ? '早安' : h<12 ? '上午好' : h<14 ? '午安' : h<18 ? '下午好' : h<21 ? '晚上好' : '夜深了';
-  document.getElementById('greetT').innerHTML = '<strong>'+greet+'</strong> · 今天状态如何？';
+  var greet = h<6 ? '夜航中' : h<9 ? '晨光启航' : h<12 ? '顺风航行' : h<14 ? '正午瞭望' : h<18 ? '午后巡航' : h<21 ? '暮色归港' : '星夜停泊';
+  document.getElementById('greetT').innerHTML = '<strong>'+greet+'</strong> · 今日海况如何？';
 
   renderOverview();
   renderGrowth();
@@ -927,14 +927,14 @@ async function openPrinciples(){
     var html = '<div style="margin-bottom:14px">';
     html += '<textarea id="newPrincipleText" placeholder="提炼一条你的人生原则..." style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;font-family:inherit;min-height:60px;resize:vertical"></textarea>';
     html += '<input id="newPrincipleSource" placeholder="来源（可选：范仲淹/自我感悟/反思提炼）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-top:6px">';
-    html += '<button onclick="addPrinciple()" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff;font-weight:600;cursor:pointer">添加原则</button>';
+    html += '<button onclick="addPrinciple()" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#2a6f97,#d4a574);color:#fff;font-weight:600;cursor:pointer">添加原则</button>';
     html += '</div>';
     if (list.length === 0) {
       html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有原则。<br>每次反思后提炼一条，这是你的人生智慧积累。<br><br>例如：「不以物喜，不以己悲」「权衡利弊，先看势再看人」「能量不足时不做重要决策」</div>';
     } else {
       html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条</div>';
       list.forEach(function(p){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #A78BFA">';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6fa8c9">';
         html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.5">'+escapeHtml(p.text)+'</div>';
         if (p.source) html += '<div style="font-size:11px;color:#64748B;margin-top:4px">— '+escapeHtml(p.source)+'</div>';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span style="font-size:10px;color:#475569">'+(p.createdAt||'').split('T')[0]+'</span><span style="font-size:11px;color:#EF4444;cursor:pointer" onclick="delPrinciple(\''+p.id+'\')">删除</span></div>';
@@ -996,7 +996,7 @@ async function openDecisions(){
           if (d.outcome) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:6px;padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px"><b>结果：</b>'+escapeHtml(d.outcome)+'</div>';
           html += '<div style="font-size:11px;color:'+(correct===true?'#22C55E':correct===false?'#EF4444':'#94A3B8')+';margin-top:4px">'+(correct===true?'✅ 判断正确':correct===false?'❌ 判断错误':'⚖️ 中性')+'</div>';
         } else {
-          html += '<button onclick="reviewDecision(\''+d.id+'\')" style="margin-top:6px;font-size:11px;padding:4px 12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:#A78BFA;cursor:pointer">回溯结果</button>';
+          html += '<button onclick="reviewDecision(\''+d.id+'\')" style="margin-top:6px;font-size:11px;padding:4px 12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:#6fa8c9;cursor:pointer">回溯结果</button>';
         }
         html += '</div>';
       });
@@ -1195,12 +1195,12 @@ async function openMindfulness(){
     var r2 = await fetch('/api/mindfulness/baseline'); var base = await r2.json();
     var html = '';
     if (base && base.interpretation) {
-      html += '<div style="background:rgba(139,92,246,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #8B5CF6">';
-      html += '<div style="font-size:12px;color:#A78BFA;margin-bottom:6px">📊 心境基线</div>';
+      html += '<div style="background:rgba(42,111,151,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #2a6f97">';
+      html += '<div style="font-size:12px;color:#6fa8c9;margin-bottom:6px">📊 心境基线</div>';
       html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(base.interpretation)+'</div>';
       html += '</div>';
     }
-    html += '<div style="background:rgba(139,92,246,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(139,92,246,0.15)">';
+    html += '<div style="background:rgba(42,111,151,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(42,111,151,0.15)">';
     html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新训练记录</div>';
     html += '<label style="font-size:11px;color:#94A3B8">类型</label>';
     html += '<select id="mfType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
@@ -1214,7 +1214,7 @@ async function openMindfulness(){
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><label style="font-size:11px;color:#94A3B8">触发前心境(1-5)</label><input id="mfBefore" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div><div><label style="font-size:11px;color:#94A3B8">触发后心境(1-5)</label><input id="mfAfter" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div></div>';
     html += '<input id="mfMethod" placeholder="用了什么方法（深呼吸/离开现场/数到10）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
     html += '<textarea id="mfNote" placeholder="感悟（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
-    html += '<button onclick="saveMindfulness()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:#fff;font-weight:600;cursor:pointer">保存训练</button>';
+    html += '<button onclick="saveMindfulness()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#2a6f97,#6fa8c9);color:#fff;font-weight:600;cursor:pointer">保存训练</button>';
     html += '</div>';
     if (list.length === 0) {
       html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有训练记录。<br>定力不是"忍住"，是"看见而不被带走"。<br>每次情绪冲击，都是一次训练机会——记录下来，看清自己的反应模式。</div>';
@@ -1227,7 +1227,7 @@ async function openMindfulness(){
         if (m.trigger) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:4px">触发：'+escapeHtml(m.trigger)+'</div>';
         html += '<div style="font-size:11px;color:'+dColor+';margin-top:4px">心境 '+m.beforeLevel+' → '+m.afterLevel+' ('+(m.delta>=0?'+':'')+m.delta+')</div>';
         if (m.method) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">方法：'+escapeHtml(m.method)+'</div>';
-        if (m.note) html += '<div style="font-size:11px;color:#A78BFA;margin-top:4px;padding:4px 8px;background:rgba(139,92,246,0.06);border-radius:6px">📝 '+escapeHtml(m.note)+'</div>';
+        if (m.note) html += '<div style="font-size:11px;color:#6fa8c9;margin-top:4px;padding:4px 8px;background:rgba(42,111,151,0.06);border-radius:6px">📝 '+escapeHtml(m.note)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delMindfulness(\''+m.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -1335,7 +1335,7 @@ async function openReview(){
     var r2 = await fetch('/api/review/auto?period=week'); var autoWeek = await r2.json();
     var r3 = await fetch('/api/review/auto?period=month'); var autoMonth = await r3.json();
 
-    var html = '<div style="background:rgba(139,92,246,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #8B5CF6">';
+    var html = '<div style="background:rgba(42,111,151,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #2a6f97">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#F1F5F9">🤖 本周自动复盘</span><span style="font-size:10px;color:#64748B">'+autoWeek.range+'</span></div>';
     html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap;margin-bottom:6px">'+escapeHtml(autoWeek.summary)+'</div>';
     if (autoWeek.suggestions && autoWeek.suggestions.length) {
@@ -1350,22 +1350,22 @@ async function openReview(){
     html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap">'+escapeHtml(autoMonth.summary)+'</div>';
     html += '</div>';
 
-    html += '<div style="background:rgba(139,92,246,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(139,92,246,0.15)">';
+    html += '<div style="background:rgba(42,111,151,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(42,111,151,0.15)">';
     html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 写一条自己的复盘</div>';
     html += '<select id="rvPeriod" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px"><option value="week">本周</option><option value="month">本月</option></select>';
     html += '<textarea id="rvContent" placeholder="这周/月你最重要的反思是什么？" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
     html += '<input id="rvHighlights" placeholder="亮点（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
     html += '<input id="rvRegrets" placeholder="遗憾（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
     html += '<input id="rvNextActions" placeholder="下周/月要做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:8px">';
-    html += '<button onclick="saveReview()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff;font-weight:600;cursor:pointer">保存复盘</button>';
+    html += '<button onclick="saveReview()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#2a6f97,#d4a574);color:#fff;font-weight:600;cursor:pointer">保存复盘</button>';
     html += '</div>';
 
     if (list.length > 0) {
       html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史复盘 '+list.length+' 条</div>';
       list.forEach(function(rv){
         var pLabel = rv.period === 'month' ? '月度' : '周度';
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #8B5CF6">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#A78BFA">'+pLabel+'复盘</span><span style="font-size:10px;color:#64748B">'+rv.date+'</span></div>';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #2a6f97">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#6fa8c9">'+pLabel+'复盘</span><span style="font-size:10px;color:#64748B">'+rv.date+'</span></div>';
         html += '<div style="font-size:12px;color:#F1F5F9;margin-top:4px;line-height:1.6">'+escapeHtml(rv.content)+'</div>';
         if (rv.highlights) html += '<div style="font-size:11px;color:#22C55E;margin-top:4px">✨ '+escapeHtml(rv.highlights)+'</div>';
         if (rv.regrets) html += '<div style="font-size:11px;color:#EF4444;margin-top:2px">💭 '+escapeHtml(rv.regrets)+'</div>';
@@ -1410,23 +1410,23 @@ async function openBeliefs(){
   openModal2('💎 信念追踪', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/beliefs'); var list = await r.json();
-    var html = '<div style="background:rgba(236,72,153,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(236,72,153,0.15)">';
+    var html = '<div style="background:rgba(212,165,116,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(212,165,116,0.15)">';
     html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 记录一条信念</div>';
     html += '<textarea id="blBelief" placeholder="你坚信的事，如：努力会有回报 / 人性本善 / 我能掌控自己" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
     html += '<input id="blSource" placeholder="来源（自己验证/父母教的/书上看的/创伤形成的）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><div><label style="font-size:11px;color:#94A3B8">信心(1-5)</label><input id="blConfidence" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div><div><label style="font-size:11px;color:#94A3B8">分类</label><select id="blCategory" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><option>人生</option><option>金钱</option><option>关系</option><option>工作</option><option>自己</option></select></div></div>';
-    html += '<button onclick="saveBelief()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#EC4899,#F472B6);color:#fff;font-weight:600;cursor:pointer">记录信念</button>';
+    html += '<button onclick="saveBelief()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#d4a574,#F472B6);color:#fff;font-weight:600;cursor:pointer">记录信念</button>';
     html += '</div>';
     if (list.length === 0) {
       html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有信念记录。<br>信念是人生的操作系统——你所有的决策都基于它。<br>但很多信念你从没验证过，只是"以为"它对。<br>记录下来，定期让现实打脸。</div>';
     } else {
       html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条信念</div>';
       list.forEach(function(b){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #EC4899">';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #d4a574">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#94A3B8">'+b.category+' · 信心'+b.confidence+'/5</span><span style="font-size:10px;color:#64748B">'+b.date+'</span></div>';
         html += '<div style="font-size:13px;color:#F1F5F9;margin-top:4px;font-weight:500">'+escapeHtml(b.belief)+'</div>';
         if (b.source) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">来源：'+escapeHtml(b.source)+'</div>';
-        if (b.tested > 0) html += '<div style="font-size:11px;color:#A78BFA;margin-top:4px">已检验'+b.tested+'次 · 成立'+b.heldUp+' · 被打破'+b.broken+'</div>';
+        if (b.tested > 0) html += '<div style="font-size:11px;color:#6fa8c9;margin-top:4px">已检验'+b.tested+'次 · 成立'+b.heldUp+' · 被打破'+b.broken+'</div>';
         html += '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
         html += '<button onclick="testBelief(\''+b.id+'\',\'held\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(34,197,94,0.3);border-radius:8px;background:rgba(34,197,94,0.06);color:#22C55E;cursor:pointer">✓ 成立</button>';
         html += '<button onclick="testBelief(\''+b.id+'\',\'broken\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;background:rgba(239,68,68,0.06);color:#EF4444;cursor:pointer">✗ 打破</button>';
@@ -1541,8 +1541,8 @@ async function openSelfPortrait(){
   openModal2('🪞 自我画像', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/self-portrait'); var list = await r.json();
-    var html = '<div style="background:linear-gradient(135deg,rgba(236,72,153,0.1),rgba(168,85,247,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(236,72,153,0.2);text-align:center">';
-    html += '<button onclick="generatePortrait()" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#EC4899,#A855F7);color:#fff;font-weight:600;cursor:pointer">🪞 生成当前画像</button>';
+    var html = '<div style="background:linear-gradient(135deg,rgba(212,165,116,0.1),rgba(168,85,247,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(212,165,116,0.2);text-align:center">';
+    html += '<button onclick="generatePortrait()" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#d4a574,#A855F7);color:#fff;font-weight:600;cursor:pointer">🪞 生成当前画像</button>';
     html += '<div style="font-size:11px;color:#64748B;margin-top:6px">基于你所有记录，系统会画出"你是谁"</div>';
     html += '</div>';
     if (list.length === 0) {
@@ -1550,8 +1550,8 @@ async function openSelfPortrait(){
     } else {
       html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史画像 '+list.length+' 份（最多保留12份）</div>';
       list.forEach(function(p){
-        html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid #EC4899">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#EC4899">'+p.date+' 画像</span><span style="font-size:10px;color:#64748B">基于'+p.sampleSize+'条</span></div>';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid #d4a574">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#d4a574">'+p.date+' 画像</span><span style="font-size:10px;color:#64748B">基于'+p.sampleSize+'条</span></div>';
         if (p.oneLine) html += '<div style="font-size:14px;color:#F1F5F9;font-weight:600;margin-top:6px">'+escapeHtml(p.oneLine)+'</div>';
         if (p.narrative) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:6px;line-height:1.7;white-space:pre-wrap">'+escapeHtml(p.narrative)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delPortrait(\''+p.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
@@ -1881,9 +1881,9 @@ async function openNarrative(){
   try {
     var r = await fetch('/api/narrative'); var list = await r.json();
     var curYear = new Date().getFullYear();
-    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(236,72,153,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2);text-align:center">';
+    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(212,165,116,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2);text-align:center">';
     html += '<div style="font-size:13px;color:#F1F5F9;margin-bottom:8px">生成 '+curYear+' 年的故事</div>';
-    html += '<button onclick="generateNarrative('+curYear+')" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#EC4899);color:#fff;font-weight:600;cursor:pointer">📖 生成年度叙事</button>';
+    html += '<button onclick="generateNarrative('+curYear+')" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#d4a574);color:#fff;font-weight:600;cursor:pointer">📖 生成年度叙事</button>';
     html += '<div style="font-size:11px;color:#64748B;margin-top:6px">基于你的所有记录，系统会写出"你这一年活成了什么"</div>';
     html += '</div>';
     if (list.length === 0) {
@@ -1893,7 +1893,7 @@ async function openNarrative(){
         html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;margin-bottom:8px;border-left:3px solid #F59E0B">';
         html += '<div style="font-size:14px;color:#F59E0B;font-weight:600;margin-bottom:8px">📖 '+n.year+' 年叙事</div>';
         if (n.story) html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.8;white-space:pre-wrap">'+escapeHtml(n.story)+'</div>';
-        if (n.conclusion) html += '<div style="font-size:12px;color:#EC4899;margin-top:10px;padding:8px 10px;background:rgba(236,72,153,0.06);border-radius:6px;white-space:pre-wrap">'+escapeHtml(n.conclusion)+'</div>';
+        if (n.conclusion) html += '<div style="font-size:12px;color:#d4a574;margin-top:10px;padding:8px 10px;background:rgba(212,165,116,0.06);border-radius:6px;white-space:pre-wrap">'+escapeHtml(n.conclusion)+'</div>';
         html += '<div style="margin-top:8px"><button onclick="delNarrative(\''+n.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -2010,13 +2010,13 @@ function showTodayReflection(text){
 function showCognitiveFeedback(res){
   if (!res || !res.success) return;
   var parts = [];
-  if (res.reflection) parts.push('<div style="background:rgba(167,139,250,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #A78BFA"><div style="font-size:11px;color:#A78BFA;margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
+  if (res.reflection) parts.push('<div style="background:rgba(111,168,201,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #6fa8c9"><div style="font-size:11px;color:#6fa8c9;margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
   if (res.dailySummary) parts.push('<div style="font-size:11px;color:#64748B;margin-bottom:8px">📊 '+escapeHtml(res.dailySummary)+'</div>');
   if (res.correlations && res.correlations.length > 0) {
-    var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:#A78BFA;margin-bottom:6px">🔗 关联发现</div>';
+    var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:#6fa8c9;margin-bottom:6px">🔗 关联发现</div>';
     res.correlations.forEach(function(c){
-      var color = c.s === 'crit' ? '#EF4444' : c.s === 'high' ? '#F59E0B' : '#A78BFA';
-      ch += '<div style="background:rgba(167,139,250,0.06);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#CBD5E1;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
+      var color = c.s === 'crit' ? '#EF4444' : c.s === 'high' ? '#F59E0B' : '#6fa8c9';
+      ch += '<div style="background:rgba(111,168,201,0.06);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#CBD5E1;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
     });
     ch += '</div>';
     parts.push(ch);
@@ -2035,7 +2035,7 @@ function showCognitiveFeedback(res){
   }
   // 在保存反馈里加一个"提炼为原则"的快捷按钮
   if (res.reflection) {
-    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid rgba(167,139,250,0.3);border-radius:8px;background:transparent;color:#A78BFA;font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
+    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid rgba(111,168,201,0.3);border-radius:8px;background:transparent;color:#6fa8c9;font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
     window.__lastReflection = res.reflection;
   }
   openModal2('✨ 保存后的认知反馈', parts.join(''), '<button class="sv" onclick="closeModal2()">知道了</button>');
@@ -2080,8 +2080,8 @@ function renderInsight(){
   var html = '';
   if(insightsCache.growth){
     var g = insightsCache.growth;
-    html += '<div style="background:rgba(167,139,250,0.06);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(167,139,250,0.1)">';
-    html += '<div style="font-size:18px;font-weight:700;color:#A78BFA">'+g.phase+'</div>';
+    html += '<div style="background:rgba(111,168,201,0.06);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(111,168,201,0.1)">';
+    html += '<div style="font-size:18px;font-weight:700;color:#6fa8c9">'+g.phase+'</div>';
     html += '<div style="font-size:13px;color:#E2E8F0;margin-top:4px">'+g.phaseDesc+'</div>';
     html += '<div style="font-size:13px;color:#94A3B8;margin-top:4px">📝 已记录 '+g.days+' 天 · 下一里程碑：'+g.nextMilestone+'</div>';
     if(insightsCache.compoundRate) {
@@ -2089,7 +2089,7 @@ function renderInsight(){
       var color = cr.value > 0.1 ? '#22C55E' : cr.value < -0.1 ? '#EF4444' : '#94A3B8';
       html += '<div style="font-size:13px;color:'+color+';margin-top:4px">'+cr.text+'</div>';
     }
-    html += '<div style="margin-top:8px;height:4px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,#8B5CF6,#EC4899);border-radius:4px"></div></div>';
+    html += '<div style="margin-top:8px;height:4px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,#2a6f97,#d4a574);border-radius:4px"></div></div>';
     html += '</div>';
   }
   if(insightsCache.milestones && insightsCache.milestones.length>0){
@@ -2126,9 +2126,9 @@ function renderInsight(){
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
   html += '<div onclick="openRootCause()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#10B981">🔬 根因分析</div><div style="font-size:10px;color:#64748B;margin-top:2px">挖到能改的那一层</div></div>';
   html += '<div onclick="openInterpersonal()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#F59E0B">♟️ 人际博弈</div><div style="font-size:10px;color:#64748B;margin-top:2px">看穿利益与成本</div></div>';
-  html += '<div onclick="openMindfulness()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#8B5CF6">🧘 定力训练</div><div style="font-size:10px;color:#64748B;margin-top:2px">看见而不被带走</div></div>';
+  html += '<div onclick="openMindfulness()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#2a6f97">🧘 定力训练</div><div style="font-size:10px;color:#64748B;margin-top:2px">看见而不被带走</div></div>';
   html += '<div onclick="openEnergy()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#FBBF24">⚡ 能量审计</div><div style="font-size:10px;color:#64748B;margin-top:2px">黑洞与源泉</div></div>';
-  html += '<div onclick="openReview()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;grid-column:span 2;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#EC4899">📅 周月自动复盘</div><div style="font-size:10px;color:#64748B;margin-top:2px">系统替你看一周/一月的轨迹</div></div>';
+  html += '<div onclick="openReview()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;grid-column:span 2;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#d4a574">📅 周月自动复盘</div><div style="font-size:10px;color:#64748B;margin-top:2px">系统替你看一周/一月的轨迹</div></div>';
   html += '</div>';
   html += '</div>';
   if(!html) html = '<div class="empty"><span class="ic">📭</span>继续记录，系统会生成洞察</div>';
@@ -2139,7 +2139,7 @@ function renderMe(){
   var c = document.getElementById('meContent');
   var total = 0;
   SCENES.forEach(function(s){ total += (dataCache[s.id]||[]).length; });
-  c.innerHTML = '<div style="margin-top:12px"><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">👤 个人信息</div><div style="font-size:13px;color:#94A3B8">总记录：'+total+' 条</div><div style="font-size:13px;color:#94A3B8">版本：v5.1 复利版</div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">🔐 密码</div><div style="display:flex;gap:8px;margin-top:8px"><input id="newPwd" placeholder="新密码" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#fff"><button onclick="changePwd()" style="background:#8B5CF6;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer">修改</button></div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">💾 数据</div><button onclick="exportData()" style="background:#10B981;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-top:8px">导出备份</button><button onclick="clearAll()" style="background:#EF4444;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-left:8px">清空</button></div></div>';
+  c.innerHTML = '<div style="margin-top:12px"><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">👤 个人信息</div><div style="font-size:13px;color:#94A3B8">总记录：'+total+' 条</div><div style="font-size:13px;color:#94A3B8">版本：v5.2 航海版</div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">🔐 密码</div><div style="display:flex;gap:8px;margin-top:8px"><input id="newPwd" placeholder="新密码" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.04);color:#fff"><button onclick="changePwd()" style="background:#2a6f97;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer">修改</button></div></div><div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">💾 数据</div><button onclick="exportData()" style="background:#10B981;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-top:8px">导出备份</button><button onclick="clearAll()" style="background:#EF4444;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-left:8px">清空</button></div></div>';
 }
 
 function changePwd(){ var np=document.getElementById('newPwd').value; if(np.length<4){ alert('至少4位'); return; } PWD=np; alert('密码已修改'); }
@@ -2384,7 +2384,7 @@ async function loadAchievements() {
       return;
     }
     container.innerHTML = data.unlocked.slice(0, 4).map(function(a) {
-      return '<span style="background:rgba(167,139,250,0.1);border-radius:12px;padding:2px 10px;font-size:11px;color:#A78BFA;">' + a.name + '</span>';
+      return '<span style="background:rgba(111,168,201,0.1);border-radius:12px;padding:2px 10px;font-size:11px;color:#6fa8c9;">' + a.name + '</span>';
     }).join('');
   } catch(e) { document.getElementById('achievementList').textContent = '加载失败'; }
   try { await fetch('/api/achievements/check', { method: 'POST' }); } catch(e) {}
@@ -2445,7 +2445,7 @@ async function loadWork() {
       var topSkills = skills.skills ? skills.skills.slice(0, 3) : [];
       if (topSkills.length > 0) {
         html += topSkills.map(function(s) {
-          return '<span style="display:inline-block;background:rgba(167,139,250,0.08);border-radius:8px;padding:2px 10px;font-size:11px;color:#A78BFA;margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
+          return '<span style="display:inline-block;background:rgba(111,168,201,0.08);border-radius:8px;padding:2px 10px;font-size:11px;color:#6fa8c9;margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
         }).join('');
       } else {
         html += '<span style="color:#64748B;font-size:12px;">还没有技能评分，点击下方添加</span>';
