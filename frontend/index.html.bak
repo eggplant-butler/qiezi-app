@@ -5,25 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>🍆 茄子管家 · 船长版</title>
 <style>
-:root{
---c-bg1:#7B8CFF;--c-bg2:#6366F1;--c-bg3:#A855F7;
---c-primary:#6366F1;--c-primary-2:#8B5CF6;--c-tab-act:#6366F1;
---c-accent:rgba(99,102,241,0.12);--c-accent-2:rgba(139,92,246,0.12);
---c-shadow:rgba(99,102,241,0.35);--c-shadow-soft:rgba(99,102,241,0.12);
---c-border:rgba(99,102,241,0.15);
-}
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 html,body{min-height:100vh}
-body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-bg3) 100%);color:#1A1A2E;background-attachment:fixed;padding-bottom:80px;transition:background .5s}
-#lock{position:fixed;inset:0;background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-bg3) 100%);background-attachment:fixed;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
+body{background:linear-gradient(180deg,#7B8CFF 0%,#6366F1 45%,#A855F7 100%);color:#1A1A2E;background-attachment:fixed;padding-bottom:80px}
+#lock{position:fixed;inset:0;background:linear-gradient(180deg,#7B8CFF 0%,#6366F1 45%,#A855F7 100%);background-attachment:fixed;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
 #lock .login-card{background:#FFFFFF;border-radius:24px;padding:40px 32px 36px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.18);text-align:center}
-#lock .login-ic{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:40px}
+#lock .login-ic{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:40px}
 #lock .login-title{font-size:24px;font-weight:700;color:#4F46E5;margin-bottom:6px;letter-spacing:1px}
 #lock .login-sub{font-size:13px;color:#6B7280;margin-bottom:28px}
 #lock input{background:#F8F9FC;border:1px solid #E5E7EB;border-radius:12px;padding:14px 18px;width:100%;color:#1A1A2E;font-size:16px;text-align:left;outline:none;transition:border-color .2s;box-sizing:border-box}
 #lock input::placeholder{color:#9CA3AF;text-align:center}
-#lock input:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-shadow-soft)}
-#lock button{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:12px;padding:14px 30px;color:#fff;font-size:17px;font-weight:600;cursor:pointer;margin-top:16px;width:100%;box-shadow:0 6px 16px var(--c-shadow)}
+#lock input:focus{border-color:#6366F1;box-shadow:0 0 0 3px rgba(99,102,241,0.12)}
+#lock button{background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:12px;padding:14px 30px;color:#fff;font-size:17px;font-weight:600;cursor:pointer;margin-top:16px;width:100%;box-shadow:0 6px 16px rgba(99,102,241,0.35)}
 #lock button:active{transform:scale(0.98)}
 #lock .err{color:#EF4444;margin-top:12px;display:none;font-size:13px;text-align:center}
 #app{display:none;max-width:480px;margin:0 auto;padding:16px 16px 80px}
@@ -32,27 +25,27 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .hd-r{display:flex;gap:8px;align-items:center}
 .hd-r .badge{background:#EF4444;color:#fff;font-size:10px;border-radius:10px;padding:0 8px;line-height:18px}
 .hd-r button{background:rgba(255,255,255,0.9);border:none;border-radius:20px;padding:6px 12px;color:#4B5563;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-.greet{background:#FFFFFF;border-radius:16px;padding:14px 18px;margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,0.06);border-left:4px solid var(--c-primary)}
+.greet{background:#FFFFFF;border-radius:16px;padding:14px 18px;margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,0.06);border-left:4px solid #6366F1}
 .greet .d{font-size:12px;color:#9CA3AF}
 .greet .t{font-size:15px;color:#374151;margin-top:4px;display:flex;justify-content:space-between;align-items:center}
 .greet .t strong{color:#1A1A2E}
-.greet .t .phase-badge{background:linear-gradient(135deg,var(--c-accent),var(--c-accent-2));color:var(--c-primary);font-size:11px;font-weight:600;border-radius:12px;padding:2px 12px;line-height:22px}
+.greet .t .phase-badge{background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12));color:#6366F1;font-size:11px;font-weight:600;border-radius:12px;padding:2px 12px;line-height:22px}
 .greet .t .remind-badge{background:#EF4444;color:#fff;font-size:10px;border-radius:10px;padding:0 10px;line-height:20px;cursor:pointer}
 .growth-bar{background:#FFFFFF;border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .growth-bar .row{display:flex;justify-content:space-between;align-items:center}
-.growth-bar .phase{font-size:13px;font-weight:700;color:var(--c-primary)}
+.growth-bar .phase{font-size:13px;font-weight:700;color:#6366F1}
 .growth-bar .progress{font-size:12px;color:#6B7280}
 .growth-bar .bar{height:6px;background:#E5E7EB;border-radius:4px;margin-top:8px;overflow:hidden}
-.growth-bar .bar .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));transition:width 0.8s}
+.growth-bar .bar .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#6366F1,#8B5CF6);transition:width 0.8s}
 .growth-bar .desc{font-size:11px;color:#9CA3AF;margin-top:4px}
 .overview{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
 .overview-card{background:#FFFFFF;border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
-.overview-card .num{font-size:22px;font-weight:700;color:var(--c-primary)}
+.overview-card .num{font-size:22px;font-weight:700;color:#6366F1}
 .overview-card .label{font-size:10px;color:#6B7280;margin-top:3px;font-weight:500}
 .input-area{background:#FFFFFF;border-radius:16px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .input-area input{flex:1;background:transparent;border:none;color:#1A1A2E;font-size:15px;outline:none;padding:6px 0}
 .input-area input::placeholder{color:#9CA3AF}
-.input-area button{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px var(--c-shadow)}
+.input-area button{background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px rgba(99,102,241,0.3)}
 .focus-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .focus-card{background:#FFFFFF;border-radius:14px;padding:14px 14px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer;transition:transform .15s}
 .focus-card:active{transform:scale(0.96)}
@@ -61,7 +54,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .focus-card .nm{font-size:14px;font-weight:700;color:#1A1A2E}
 .focus-card .br{font-size:10px;color:#6B7280;margin-top:4px}
 .focus-card .progress{height:4px;background:#E5E7EB;border-radius:4px;margin-top:10px;overflow:hidden}
-.focus-card .progress .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));transition:width 0.5s}
+.focus-card .progress .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#6366F1,#8B5CF6);transition:width 0.5s}
 .focus-card .status{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600}
 .focus-card .status.active{background:rgba(34,197,94,0.12);color:#16A34A}
 .focus-card .status.steady{background:rgba(251,191,36,0.12);color:#D97706}
@@ -73,7 +66,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .quick-module .nm{font-size:10px;color:#374151;margin-top:4px;font-weight:600}
 .quick-module .cnt{font-size:9px;color:#9CA3AF}
 .correlation-list{margin:8px 0}
-.corr-item{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid var(--c-primary)}
+.corr-item{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid #6366F1}
 .corr-item .title{font-size:13px;font-weight:700;color:#1A1A2E}
 .corr-item .detail{font-size:12px;color:#6B7280;margin-top:3px;line-height:1.6}
 .suggestion-item{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid #F59E0B;font-size:13px;color:#374151}
@@ -85,29 +78,29 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .bar{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,0.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,0.04);display:flex;padding:8px 0 18px;max-width:480px;margin:0 auto;z-index:100;box-shadow:0 -4px 18px rgba(0,0,0,0.04)}
 .tab{flex:1;text-align:center;color:#9CA3AF;font-size:10px;cursor:pointer;padding:2px 0;font-weight:500}
 .tab .ic{font-size:22px;display:block;margin-bottom:2px}
-.tab.act{color:var(--c-tab-act);font-weight:700}
+.tab.act{color:#6366F1;font-weight:700}
 .pg{display:none}
 .pg.act{display:block}
 .detail{display:none;padding-bottom:80px}
 .detail.act{display:block}
-.back{background:transparent;border:none;color:var(--c-primary);font-size:16px;cursor:pointer;margin-bottom:12px;font-weight:600}
+.back{background:transparent;border:none;color:#6366F1;font-size:16px;cursor:pointer;margin-bottom:12px;font-weight:600}
 .rec{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04);display:flex;justify-content:space-between;align-items:center}
 .rec .tt{font-size:13px;color:#1A1A2E;font-weight:500}
 .rec .sb{font-size:10px;color:#9CA3AF;margin-top:3px}
 .rec .ac button{background:transparent;border:none;color:#9CA3AF;cursor:pointer;padding:0 4px;font-size:16px}
 .rec .ac .dl{color:#EF4444}
-.add{position:fixed;bottom:88px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--c-primary),#8B5CF6);border:none;color:#fff;font-size:30px;box-shadow:0 6px 20px rgba(99,102,241,0.4);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center}
+.add{position:fixed;bottom:88px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;color:#fff;font-size:30px;box-shadow:0 6px 20px rgba(99,102,241,0.4);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .modal.act{display:flex}
 .modal-b{background:#FFFFFF;border-radius:20px;padding:24px;max-width:440px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.15)}
 .modal-b h3{font-size:18px;margin-bottom:16px;color:#1A1A2E;font-weight:700}
 .modal-b label{display:block;font-size:12px;color:#6B7280;margin-bottom:5px;margin-top:12px;font-weight:600}
 .modal-b input,.modal-b select,.modal-b textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #E5E7EB;background:#FAFAFC;color:#1A1A2E;font-size:14px;font-family:inherit;margin-bottom:4px;box-sizing:border-box;outline:none;transition:border-color .2s}
-.modal-b input:focus,.modal-b select:focus,.modal-b textarea:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-shadow-soft)}
+.modal-b input:focus,.modal-b select:focus,.modal-b textarea:focus{border-color:#6366F1;box-shadow:0 0 0 3px rgba(99,102,241,0.12)}
 .modal-b textarea{min-height:60px;resize:vertical}
 .modal-b .row{display:flex;gap:10px;margin-top:16px}
 .modal-b .row button{flex:1;padding:11px;border-radius:10px;border:none;font-size:15px;font-weight:700;cursor:pointer}
-.modal-b .sv{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;box-shadow:0 4px 12px var(--c-shadow)}
+.modal-b .sv{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;box-shadow:0 4px 12px rgba(99,102,241,0.28)}
 .modal-b .cn{background:#F3F4F6;color:#4B5563}
 .space-item{background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer}
 .space-item .top{display:flex;justify-content:space-between;align-items:center}
@@ -118,22 +111,6 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .empty .ic{font-size:40px;display:block;margin-bottom:10px;opacity:0.7}
 .milestone-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;font-size:13px;color:#374151;font-weight:500}
 .milestone-item .ic{font-size:20px}
-.scene-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-.scene-card{background:#FFFFFF;border-radius:12px;padding:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s}
-.scene-card:active{transform:scale(0.95)}
-.scene-card .s-ic{font-size:18px}
-.scene-card .s-nm{font-size:12px;color:#1A1A2E;font-weight:600;margin-top:2px}
-.scene-card .s-cnt{font-size:10px;color:#9CA3AF;margin-top:2px}
-.tool-section{background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
-.tool-section .ts-title{font-size:13px;font-weight:600;color:#1A1A2E;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
-.tool-section .ts-sub{font-size:10px;color:#9CA3AF}
-.tool-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.tool-item{background:#FAFAFC;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;transition:transform .15s}
-.tool-item:active{transform:scale(0.92)}
-.tool-item .t-ic{font-size:20px}
-.tool-item .t-nm{font-size:10px;color:#1A1A2E;font-weight:600;margin-top:3px;line-height:1.2}
-.tool-item .t-cnt{font-size:9px;color:#9CA3AF;margin-top:1px}
-.tool-item.primary{background:var(--c-accent);border:1px solid var(--c-border)}
 </style>
 </head>
 <body>
@@ -164,6 +141,12 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
   <div id="dailyAnswerDisplay" style="margin-top:8px;font-size:13px;color:#6B7280;display:none;"></div>
 </div>
 
+<div class="growth-bar" id="growthBar">
+<div class="row"><span class="phase" id="phaseLabel">🌱 萌芽期</span><span class="progress" id="progressLabel">0%</span></div>
+<div class="bar"><div class="fill" id="growthFill" style="width:0%"></div></div>
+<div class="desc" id="phaseDesc">开始记录，让习惯成为自然</div>
+</div>
+
 <div class="pg act" id="pgHome">
 <div class="overview" id="overviewGrid">
 <div class="overview-card"><div class="num" id="ovSleep">-</div><div class="label">平均睡眠</div></div>
@@ -174,9 +157,6 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div class="focus-grid" id="focusGrid"></div>
 <div class="quick-modules" id="quickModules"></div>
 
-<div id="homeCorrelations"></div>
-<div id="homeSuggestions"></div>
-
 <!-- ====== 闪念笔记 ====== -->
 <div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -185,135 +165,189 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
   </div>
   <div style="display:flex;gap:8px;">
     <input type="text" id="quickNoteInput" placeholder="随便记一下... 系统会自动归类" style="flex:1;padding:8px 12px;border-radius:8px;background:#FFFFFF;color:#1A1A2E;font-size:14px;outline:none;">
-    <button onclick="submitQuickNote()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记</button>
+    <button onclick="submitQuickNote()" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记</button>
   </div>
   <div id="quickNoteFeedback" style="margin-top:6px;font-size:12px;color:#6B7280;"></div>
 </div>
+
+<!-- ====== 缴费管理 ====== -->
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">💰 待缴费</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="openAddBill()">+ 添加</span>
+  </div>
+  <div id="billsList" style="font-size:13px;color:#6B7280;min-height:20px;">加载中...</div>
 </div>
 
-<!-- ====== 日志Tab: 场景记录 ====== -->
-<div class="pg" id="pgRecord">
-<div class="scene-grid" id="sceneGrid"></div>
+<!-- ====== 阅读打卡 ====== -->
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">📚 阅读打卡</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="openAddReading()">+ 添加</span>
+  </div>
+  <div id="readingStats" style="display:flex;gap:16px;font-size:12px;color:#6B7280;margin-bottom:4px;"></div>
+  <div id="readingToday" style="font-size:13px;color:#4B5563;"></div>
 </div>
 
-<!-- ====== 瞭望Tab: 认知引擎 + 深度闭环 + 成长轴 ====== -->
-<div class="pg" id="pgInsight">
-
-<div class="tool-section">
-<div class="ts-title">🧠 认知引擎 <span class="ts-sub">鬼谷子视角</span></div>
-<div class="tool-grid">
-<div class="tool-item primary" onclick="openPrinciples()">
-<div class="t-ic">📐</div><div class="t-nm">原则库</div><div class="t-cnt" id="principleCount">0</div>
-</div>
-<div class="tool-item primary" onclick="openDecisions()">
-<div class="t-ic">🎯</div><div class="t-nm">决策推演</div><div class="t-cnt" id="decisionCount">0</div>
-</div>
-</div>
+<!-- ====== 家务引擎 ====== -->
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🧹 家务</span>
+    <span style="display:flex;gap:6px;align-items:center;">
+      <span id="houseworkModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(99,102,241,0.15);color:#6366F1;">正常</span>
+      <button onclick="switchHouseworkMode()" style="background:transparent;border-radius:6px;padding:2px 8px;color:#6B7280;font-size:10px;cursor:pointer;">切换</button>
+    </span>
+  </div>
+  <div id="houseworkList" style="font-size:13px;color:#6B7280;min-height:20px;">加载中...</div>
 </div>
 
-<div class="tool-section">
-<div class="ts-title">🌀 深度闭环 <span class="ts-sub">追根因·看博弈·练定力·算能量</span></div>
-<div class="tool-grid">
-<div class="tool-item" onclick="openRootCause()">
-<div class="t-ic">🔬</div><div class="t-nm">5Why根因</div><div class="t-cnt" id="rootCauseCount">0</div>
-</div>
-<div class="tool-item" onclick="openInterpersonal()">
-<div class="t-ic">♟️</div><div class="t-nm">人际博弈</div><div class="t-cnt" id="interpersonalCount">0</div>
-</div>
-<div class="tool-item" onclick="openMindfulness()">
-<div class="t-ic">🧘</div><div class="t-nm">定力训练</div><div class="t-cnt" id="mindfulnessCount">0</div>
-</div>
-<div class="tool-item" onclick="openEnergy()">
-<div class="t-ic">⚡</div><div class="t-nm">能量审计</div><div class="t-cnt" id="energyNet">0</div>
-</div>
-<div class="tool-item" onclick="openReview()">
-<div class="t-ic">📅</div><div class="t-nm">周月复盘</div><div class="t-cnt" id="reviewCount">0</div>
-</div>
-</div>
+<!-- ====== 社交人脉 ====== -->
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">👥 社交</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="openAddContact()">+ 添加</span>
+  </div>
+  <div id="socialList" style="font-size:13px;color:#6B7280;min-height:20px;">加载中...</div>
 </div>
 
-<div class="tool-section">
-<div class="ts-title">🌳 成长轴 <span class="ts-sub">信念·品格·画像·反熵增·反脆弱</span></div>
-<div class="tool-grid">
-<div class="tool-item" onclick="openBeliefs()">
-<div class="t-ic">💎</div><div class="t-nm">信念追踪</div><div class="t-cnt" id="beliefCount">0</div>
-</div>
-<div class="tool-item" onclick="openCharacter()">
-<div class="t-ic">🎯</div><div class="t-nm">品格雷达</div><div class="t-cnt" id="characterCount">0</div>
-</div>
-<div class="tool-item" onclick="openSelfPortrait()">
-<div class="t-ic">🪞</div><div class="t-nm">自我画像</div><div class="t-cnt" id="portraitCount">0</div>
-</div>
-<div class="tool-item" onclick="openEntropy()">
-<div class="t-ic">📉</div><div class="t-nm">反熵增</div><div class="t-cnt" id="entropyScore">0</div>
-</div>
-<div class="tool-item" onclick="openAntifragile()">
-<div class="t-ic">🛡️</div><div class="t-nm">反脆弱</div><div class="t-cnt" id="antifragileAvg">-</div>
-</div>
-</div>
+<!-- ====== 成就系统 ====== -->
+<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🏆 成就</span>
+    <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="viewAchievements()">查看全部</span>
+  </div>
+  <div id="achievementList" style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;min-height:20px;">加载中...</div>
 </div>
 
-<div class="tool-section">
-<div class="ts-title">🧠 深度认知 <span class="ts-sub">元认知·偏差检测·价值观</span></div>
-<div class="tool-grid">
-<div class="tool-item" onclick="openMetacognition()">
-<div class="t-ic">🔄</div><div class="t-nm">元认知</div><div class="t-cnt" id="metacogScore">-</div>
-</div>
-<div class="tool-item" onclick="openCognitiveBias()">
-<div class="t-ic">🎭</div><div class="t-nm">偏差检测</div><div class="t-cnt" id="biasScore">-</div>
-</div>
-<div class="tool-item" onclick="openTrajectory()">
-<div class="t-ic">📈</div><div class="t-nm">轨迹分析</div><div class="t-cnt" id="trajStatus">-</div>
-</div>
-<div class="tool-item" onclick="openSecondOrder()">
-<div class="t-ic">⚡</div><div class="t-nm">二阶效应</div><div class="t-cnt">新</div>
-</div>
-<div class="tool-item" onclick="openValues()">
-<div class="t-ic">🎯</div><div class="t-nm">价值观</div><div class="t-cnt" id="alignScore">-</div>
-</div>
-<div class="tool-item" onclick="openAntiHuman()">
-<div class="t-ic">🚫</div><div class="t-nm">反人性</div><div class="t-cnt" id="antiScore">-</div>
-</div>
-</div>
+<!-- ====== 工作模式 ====== -->
+<div id="workArea" style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">💼 工作</span>
+    <span style="display:flex;gap:6px;align-items:center;">
+      <span id="workModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(99,102,241,0.15);color:#6366F1;">日常</span>
+      <button onclick="switchWorkMode()" style="background:transparent;border-radius:6px;padding:2px 8px;color:#6B7280;font-size:10px;cursor:pointer;">切换</button>
+    </span>
+  </div>
+  <div id="workStats" style="display:flex;gap:12px;font-size:11px;color:#6B7280;margin-bottom:4px;"></div>
+  <div id="workContent" style="font-size:13px;color:#4B5563;min-height:20px;">加载中...</div>
 </div>
 
+<!-- ====== 认知引擎（Phase 1）====== -->
+<div style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.05));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(99,102,241,0.15);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🧠 认知引擎</span>
+    <span style="font-size:10px;color:#9CA3AF;">鬼谷子视角 · 不以物喜不以己悲</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <div onclick="openPrinciples()" style="background:#FFFFFF;border-radius:10px;padding:12px 10px;text-align:center;cursor:pointer;">
+      <div style="font-size:22px;">📐</div>
+      <div style="font-size:12px;color:#1A1A2E;font-weight:600;margin-top:4px;">原则库</div>
+      <div style="font-size:10px;color:#9CA3AF;margin-top:2px;" id="principleCount">0 条</div>
+    </div>
+    <div onclick="openDecisions()" style="background:#FFFFFF;border-radius:10px;padding:12px 10px;text-align:center;cursor:pointer;">
+      <div style="font-size:22px;">🎯</div>
+      <div style="font-size:12px;color:#1A1A2E;font-weight:600;margin-top:4px;">决策推演台</div>
+      <div style="font-size:10px;color:#9CA3AF;margin-top:2px;" id="decisionCount">0 条</div>
+    </div>
+  </div>
+  <div id="todayReflectionCard" style="margin-top:10px;background:#FFFFFF;border-radius:8px;padding:10px 12px;display:none;border-left:3px solid #6366F1;">
+    <div style="font-size:11px;color:#6B7280;margin-bottom:4px;">📝 今日认知反馈</div>
+    <div id="todayReflectionText" style="font-size:12px;color:#4B5563;line-height:1.6;"></div>
+  </div>
 </div>
 
-<!-- ====== 船长Tab: 船长工具 ====== -->
-<div class="pg" id="pgMe">
+<!-- ====== Phase 2：深度闭环 ====== -->
+<div style="background:linear-gradient(135deg,rgba(16,185,129,0.06),rgba(59,130,246,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(16,185,129,0.15);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🌀 深度闭环</span>
+    <span style="font-size:10px;color:#9CA3AF;">追根因 · 看博弈 · 练定力 · 算能量 · 自动复盘</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+    <div onclick="openRootCause()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🔬</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">5Why根因</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="rootCauseCount">0</div>
+    </div>
+    <div onclick="openInterpersonal()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">♟️</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">人际博弈</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="interpersonalCount">0</div>
+    </div>
+    <div onclick="openMindfulness()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🧘</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">定力训练</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="mindfulnessCount">0</div>
+    </div>
+    <div onclick="openEnergy()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">⚡</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">能量审计</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="energyNet">0</div>
+    </div>
+    <div onclick="openReview()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">📅</div>
+      <div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">周月复盘</div>
+      <div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="reviewCount">0</div>
+    </div>
+  </div>
+</div>
 
-<div class="tool-section">
-<div class="ts-title">🧭 船长工具 <span class="ts-sub">你是这艘船的船长</span></div>
-<div class="tool-grid">
-<div class="tool-item primary" onclick="openNorthStar()">
-<div class="t-ic">⭐</div><div class="t-nm">北极星</div><div class="t-cnt" id="northStarStatus">未设</div>
-</div>
-<div class="tool-item primary" onclick="openCrisisPlan()">
-<div class="t-ic">🚨</div><div class="t-nm">危机预案</div><div class="t-cnt" id="crisisCount">0</div>
-</div>
-<div class="tool-item primary" onclick="openDeathTest()">
-<div class="t-ic">⚰️</div><div class="t-nm">临终测试</div><div class="t-cnt" id="deathTestCount">0</div>
-</div>
-<div class="tool-item primary" onclick="openNarrative()">
-<div class="t-ic">📖</div><div class="t-nm">年度叙事</div><div class="t-cnt" id="narrativeCount">0</div>
-</div>
-<div class="tool-item primary" onclick="openManifesto()">
-<div class="t-ic">📜</div><div class="t-nm">船长宣言</div><div class="t-cnt" id="manifestoStatus">未立</div>
-</div>
-</div>
+<div id="homeCorrelations"></div>
+<div id="homeSuggestions"></div>
 </div>
 
-<div class="tool-section">
-<div class="ts-title">👤 个人中心</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="color:#6B7280">版本：v5.2 船长版</div>
-<div style="color:#6B7280;cursor:pointer;" onclick="exportData()">💾 导出备份</div>
-<div style="color:#6B7280;cursor:pointer;" onclick="changePwd()">🔐 修改密码</div>
-<div style="color:#EF4444;cursor:pointer;" onclick="clearAll()">🗑️ 清空数据</div>
-</div>
+<!-- ====== Phase 3：成长轴 ====== -->
+<div style="background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(168,85,247,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(139,92,246,0.15);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🌳 成长轴</span>
+    <span style="font-size:10px;color:#9CA3AF;">信念 · 品格 · 画像 · 反熵增 · 反脆弱</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+    <div onclick="openBeliefs()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">💎</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">信念追踪</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="beliefCount">0</div>
+    </div>
+    <div onclick="openCharacter()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🎯</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">品格雷达</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="characterCount">0</div>
+    </div>
+    <div onclick="openSelfPortrait()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🪞</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">自我画像</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="portraitCount">0</div>
+    </div>
+    <div onclick="openEntropy()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">📉</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">反熵增</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="entropyScore">0</div>
+    </div>
+    <div onclick="openAntifragile()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🛡️</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">反脆弱</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="antifragileAvg">-</div>
+    </div>
+  </div>
 </div>
 
+<!-- ====== Phase 4：船长工具 ====== -->
+<div style="background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(239,68,68,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(245,158,11,0.2);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:600;color:#1A1A2E;">🧭 船长工具</span>
+    <span style="font-size:10px;color:#9CA3AF;">你是这艘船的船长</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+    <div onclick="openNorthStar()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">⭐</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">北极星</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="northStarStatus">未设</div>
+    </div>
+    <div onclick="openCrisisPlan()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">🚨</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">危机预案</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="crisisCount">0</div>
+    </div>
+    <div onclick="openDeathTest()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">⚰️</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">临终测试</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="deathTestCount">0</div>
+    </div>
+    <div onclick="openNarrative()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">📖</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">年度叙事</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="narrativeCount">0</div>
+    </div>
+    <div onclick="openManifesto()" style="background:#FFFFFF;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;">
+      <div style="font-size:20px;">📜</div><div style="font-size:11px;color:#1A1A2E;font-weight:600;margin-top:4px;">船长宣言</div><div style="font-size:9px;color:#9CA3AF;margin-top:2px;" id="manifestoStatus">未立</div>
+    </div>
+  </div>
 </div>
+
+<div class="pg" id="pgRecord"><div id="recordList"></div></div>
+<div class="pg" id="pgInsight"><div id="insightContent"></div></div>
+<div class="pg" id="pgMe"><div id="meContent"></div></div>
 
 <div class="detail" id="detail"><button class="back" onclick="closeDetail()">‹ 返回</button><h2 id="detailTitle"></h2><div id="detailContent"></div><button class="add" onclick="openAdd()">+</button></div>
 
@@ -386,7 +420,7 @@ function genId(){ return Date.now().toString(36) + Math.random().toString(36).sl
 
 function login(){
   var p = document.getElementById('pwdI').value;
-  if(p === PWD){ document.getElementById('lock').style.display = 'none'; document.getElementById('app').style.display = 'block'; applyTheme('home'); initApp(); }
+  if(p === PWD){ document.getElementById('lock').style.display = 'none'; document.getElementById('app').style.display = 'block'; initApp(); }
   else { document.getElementById('pwdErr').style.display = 'block'; }
 }
 document.getElementById('pwdI').addEventListener('keydown', function(e){ if(e.key === 'Enter') login(); });
@@ -398,6 +432,13 @@ async function initApp() {
   renderHome();
   renderInsight();
   loadDailyQuestion();
+  loadBills();
+  loadReading();
+  loadHousework();
+  loadSocial();
+  loadAchievements();
+  loadWork();
+  loadCognitiveCounts();
 }
 
 async function loadDailyQuestion() {
@@ -495,35 +536,32 @@ function renderOverview(){
 function renderGrowth(){
   if(!insightsCache || !insightsCache.growth) return;
   var g = insightsCache.growth;
-  var el1=document.getElementById('phaseLabel'); if(el1) el1.textContent = g.phase;
-  var el2=document.getElementById('phaseBadge'); if(el2) el2.textContent = g.phase;
-  var el3=document.getElementById('progressLabel'); if(el3) el3.textContent = g.progress + '%';
-  var el4=document.getElementById('growthFill'); if(el4) el4.style.width = g.progress + '%';
-  var el5=document.getElementById('phaseDesc'); if(el5) el5.textContent = g.phaseDesc + ' · 下一里程碑：' + g.nextMilestone;
+  document.getElementById('phaseLabel').textContent = g.phase;
+  document.getElementById('phaseBadge').textContent = g.phase;
+  document.getElementById('progressLabel').textContent = g.progress + '%';
+  document.getElementById('growthFill').style.width = g.progress + '%';
+  document.getElementById('phaseDesc').textContent = g.phaseDesc + ' · 下一里程碑：' + g.nextMilestone;
 }
 
 function renderHomeInsights(){
   if(!insightsCache) return;
   var corrDiv = document.getElementById('homeCorrelations');
-  if(corrDiv){
-    if(insightsCache.correlations && insightsCache.correlations.length > 0){
-      corrDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:#6B7280;margin:8px 0 4px">🔗 发现关联</div>' +
-        insightsCache.correlations.slice(0,2).map(function(c){
-          return '<div class="corr-item"><div class="title">'+c.title+'</div><div class="detail">'+c.detail+'</div></div>';
-        }).join('');
-    } else {
-      corrDiv.innerHTML = '';
-    }
+  if(insightsCache.correlations && insightsCache.correlations.length > 0){
+    corrDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:#6B7280;margin:8px 0 4px">🔗 发现关联</div>' +
+      insightsCache.correlations.slice(0,2).map(function(c){
+        return '<div class="corr-item"><div class="title">'+c.title+'</div><div class="detail">'+c.detail+'</div></div>';
+      }).join('');
+  } else {
+    corrDiv.innerHTML = '<div style="font-size:12px;color:#9CA3AF;margin:8px 0">📊 继续积累数据，系统会为你发现规律</div>';
   }
   var sugDiv = document.getElementById('homeSuggestions');
-  if(sugDiv){
-    if(insightsCache.suggestions && insightsCache.suggestions.length > 0){
-      sugDiv.innerHTML = insightsCache.suggestions.slice(0,2).map(function(s){
+  if(insightsCache.suggestions && insightsCache.suggestions.length > 0){
+    sugDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:#6B7280;margin:8px 0 4px">💡 今日建议</div>' +
+      insightsCache.suggestions.slice(0,2).map(function(s){
         return '<div class="suggestion-item">'+s.text+'</div>';
       }).join('');
-    } else {
-      sugDiv.innerHTML = '';
-    }
+  } else {
+    sugDiv.innerHTML = '';
   }
 }
 
@@ -562,47 +600,17 @@ function parseNL(text){
   return '✅ 已存入「' + (names[target] || target) + '」';
 }
 
-var THEMES = {
-home:  {bg1:'#7B8CFF',bg2:'#6366F1',bg3:'#A855F7',primary:'#6366F1',primary2:'#8B5CF6',tabAct:'#6366F1'},
-record:{bg1:'#059669',bg2:'#10B981',bg3:'#6EE7B7',primary:'#059669',primary2:'#34D399',tabAct:'#059669'},
-insight:{bg1:'#D97706',bg2:'#F59E0B',bg3:'#FCD34D',primary:'#D97706',primary2:'#FB923C',tabAct:'#D97706'},
-me:    {bg1:'#BE185D',bg2:'#EC4899',bg3:'#F472B6',primary:'#BE185D',primary2:'#F472B6',tabAct:'#BE185D'}
-};
-function applyTheme(t){
-var th=THEMES[t]||THEMES.home;
-var r=document.documentElement.style;
-r.setProperty('--c-bg1',th.bg1);
-r.setProperty('--c-bg2',th.bg2);
-r.setProperty('--c-bg3',th.bg3);
-r.setProperty('--c-primary',th.primary);
-r.setProperty('--c-primary-2',th.primary2);
-r.setProperty('--c-tab-act',th.tabAct);
-r.setProperty('--c-accent',hexToRgba(th.primary,0.12));
-r.setProperty('--c-accent-2',hexToRgba(th.primary2,0.12));
-r.setProperty('--c-shadow',hexToRgba(th.primary,0.35));
-r.setProperty('--c-shadow-soft',hexToRgba(th.primary,0.12));
-r.setProperty('--c-border',hexToRgba(th.primary,0.15));
-}
-function hexToRgba(h,a){
-h=h.replace('#','');
-if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
-var r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);
-return'rgba('+r+','+g+','+b+','+a+')';
-}
-
 function switchTab(t){
-document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('act'); });
-document.querySelectorAll('.pg').forEach(function(el){ el.classList.remove('act'); });
-var map = {home:'首页', record:'日志', insight:'洞察', me:'我'};
-document.querySelectorAll('.tab').forEach(function(el){ if(el.textContent.trim().includes(map[t])) el.classList.add('act'); });
-var targetId = 'pg' + t.charAt(0).toUpperCase() + t.slice(1);
-var pg = document.getElementById(targetId);
-if(pg) pg.classList.add('act');
-applyTheme(t);
-if(t==='record') renderRecord();
-else if(t==='insight') renderInsight();
-else if(t==='me') renderMe();
-else if(t==='home') renderHome();
+  document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('act'); });
+  document.querySelectorAll('.pg').forEach(function(el){ el.classList.remove('act'); });
+  var map = {home:'首页', record:'记录', insight:'洞察', me:'我'};
+  document.querySelectorAll('.tab').forEach(function(el){ if(el.textContent.trim().includes(map[t])) el.classList.add('act'); });
+  var targetId = 'pg' + t.charAt(0).toUpperCase() + t.slice(1);
+  var pg = document.getElementById(targetId);
+  if(pg) pg.classList.add('act');
+  if(t==='record') renderRecord();
+  else if(t==='insight') renderInsight();
+  else if(t==='me') renderMe();
 }
 
 function openScene(id){
@@ -621,7 +629,8 @@ function renderDetail(id){
   var c=document.getElementById('detailContent');
   if(!data.length){ c.innerHTML='<div class="empty"><span class="ic">📭</span>还没有记录，点 + 添加</div>'; return; }
   c.innerHTML='<div>'+data.slice().reverse().map(function(item){
-    var l='';
+    var l='', s=item.date||'';
+    // 根据模块类型智能展示字段
     if(id==='finance'){
       l=(item.type||'')+' · '+(item.category||'')+' · '+(item.content||item.note||'');
       if(item.amount) l+=' ¥'+item.amount;
@@ -660,8 +669,8 @@ function renderDetail(id){
       if(item.amount) l+=' ¥'+item.amount;
       if(item.rating) l+=' · 评分'+item.rating;
     }
-    var dateStr=item.date?'<div class="sb">'+item.date+'</div>':'';
-    return '<div class="rec"><div><div class="tt">'+l+'</div>'+dateStr+'</div><div class="ac"><button onclick="editRec(\''+id+'\',\''+item.id+'\')">✏️</button><button class="dl" onclick="delRec(\''+id+'\',\''+item.id+'\')">🗑️</button></div></div>';
+    if(item.note && id!=='finance') s+=' · '+(item.note||'');
+    return '<div class="rec"><div><div class="tt">'+l+'</div><div class="sb">'+s+'</div></div><div class="ac"><button onclick="editRec(\''+id+'\',\''+item.id+'\')">✏️</button><button class="dl" onclick="delRec(\''+id+'\',\''+item.id+'\')">🗑️</button></div></div>';
   }).join('')+'</div>';
 }
 
@@ -1998,136 +2007,6 @@ async function loadCognitiveCounts(){
     var c4e = document.getElementById('narrativeCount'); if (c4e) c4e.textContent = nr.length + ' 份';
     var c5e = document.getElementById('manifestoStatus'); if (c5e) c5e.textContent = mf2.length && mf2[0].body ? '已立' : '未立';
   } catch(e) {}
-  // Phase 5 深度认知计数
-  try {
-    var d1 = await fetch('/api/eng/metacognition'); var mc = await d1.json();
-    var d2 = await fetch('/api/eng/cognitive-bias'); var cb = await d2.json();
-    var d3 = await fetch('/api/eng/trajectory?days=30'); var tj = await d3.json();
-    var d4 = await fetch('/api/eng/values-clarification'); var vc = await d4.json();
-    var d5 = await fetch('/api/eng/anti-human-nature'); var ah = await d5.json();
-    var d1e = document.getElementById('metacogScore'); if (d1e) d1e.textContent = mc.score ? mc.score + '/10' : '-';
-    var d2e = document.getElementById('biasScore'); if (d2e) d2e.textContent = cb.score ? cb.score + '偏差' : '-';
-    var d3e = document.getElementById('trajStatus'); if (d3e) d3e.textContent = tj.trend || '-';
-    var d4e = document.getElementById('alignScore'); if (d4e) d4e.textContent = vc.alignment ? vc.alignment + '/10' : '-';
-    var d5e = document.getElementById('antiScore'); if (d5e) d5e.textContent = ah.score ? ah.score + '/10' : '-';
-  } catch(e) {}
-}
-
-// ====== Phase 5 深度认知工具 ======
-async function openMetacognition(){
-  openModal2('🔄 元认知反思', '<div style="text-align:center;color:#9CA3AF;padding:20px">分析思维方式中...</div>');
-  try {
-    var r = await fetch('/api/eng/metacognition'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">🧠 你在"如何"思考，比你"思考什么"更重要</div>';
-    if (d.score !== undefined) html += '<div style="background:rgba(99,102,241,0.08);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #6366F1"><div style="font-size:11px;color:#6366F1;margin-bottom:6px">元认知得分</div><div style="font-size:20px;font-weight:700;color:#6366F1">' + d.score + '/10</div></div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">🔍 检测到的思维特征</div>';
-      d.details.forEach(function(item){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : item.severity === 'med' ? '#F59E0B' : '#10B981') + '"><div style="font-size:12px;color:#1A1A2E">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
-      });
-    }
-    openModal2('🔄 元认知反思', html);
-  } catch(e) { openModal2('🔄 元认知反思', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function openCognitiveBias(){
-  openModal2('🎭 认知偏差检测', '<div style="text-align:center;color:#9CA3AF;padding:20px">分析思维偏差中...</div>');
-  try {
-    var r = await fetch('/api/eng/cognitive-bias'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">⚠️ 你的大脑在偷偷骗你吗？</div>';
-    if (d.score !== undefined) html += '<div style="background:rgba(239,68,68,0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #EF4444"><div style="font-size:11px;color:#EF4444;margin-bottom:6px">检测到的偏差</div><div style="font-size:20px;font-weight:700;color:#EF4444">' + d.score + ' 个</div></div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">🎯 偏差详情</div>';
-      d.details.forEach(function(item){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid #F59E0B"><div style="font-size:12px;color:#1A1A2E;font-weight:600">' + escapeHtml(item.name || item.type || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.description || item.detail || '') + '</div></div>';
-      });
-    }
-    openModal2('🎭 认知偏差检测', html);
-  } catch(e) { openModal2('🎭 认知偏差检测', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function openTrajectory(){
-  openModal2('📈 轨迹分析', '<div style="text-align:center;color:#9CA3AF;padding:20px">分析趋势中...</div>');
-  try {
-    var r = await fetch('/api/eng/trajectory?days=30'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">📊 近30天你在变好还是变差？</div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.trend) html += '<div style="background:rgba(' + (d.trend === '↓' ? '239,68,68' : d.trend === '↑' ? '16,185,129' : '107,114,128') + ',0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid ' + (d.trend === '↓' ? '#EF4444' : d.trend === '↑' ? '#10B981' : '#6B7280') + '"><div style="font-size:20px;font-weight:700">趋势：' + d.trend + ' ' + escapeHtml(d.trendLabel || '') + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">📉 各维度变化</div>';
-      d.details.forEach(function(item){
-        var color = item.change > 0 ? '#10B981' : item.change < 0 ? '#EF4444' : '#6B7280';
-        html += '<div style="display:flex;justify-content:space-between;background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px"><span style="font-size:12px;color:#1A1A2E">' + escapeHtml(item.label || item.dim || '') + '</span><span style="font-size:12px;color:' + color + ';font-weight:600">' + (item.change > 0 ? '+' : '') + escapeHtml(String(item.change)) + '</span></div>';
-      });
-    }
-    openModal2('📈 轨迹分析', html);
-  } catch(e) { openModal2('📈 轨迹分析', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function openSecondOrder(){
-  openModal2('⚡ 二阶效应分析', '<div style="text-align:center;color:#9CA3AF;padding:20px">分析连锁反应中...</div>');
-  try {
-    var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">⚡ 你做的每件事都有连锁反应</div>';
-    html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px"><div style="font-size:12px;color:#6B7280;margin-bottom:8px">选择一个要分析的领域：</div>';
-    var mods = [['sleep','😴 睡眠'],['finance','💰 财务'],['emotion','😊 情绪'],['exercise','🏃 运动'],['diet','🥗 饮食'],['work','💼 工作']];
-    mods.forEach(function(m){
-      html += '<button onclick="analyzeSecondOrder(\'' + m[0] + '\')" style="width:100%;padding:10px;margin-bottom:6px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer">' + m[1] + '</button>';
-    });
-    html += '</div>';
-    openModal2('⚡ 二阶效应分析', html);
-  } catch(e) { openModal2('⚡ 二阶效应分析', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function analyzeSecondOrder(mid){
-  try {
-    var r = await fetch('/api/eng/second-order', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mid:mid})});
-    var d = await r.json();
-    var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">⚡ <strong>' + escapeHtml(mid) + '</strong> 的连锁效应</div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.chain && d.chain.length) {
-      html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">🔗 效应链</div>';
-      d.chain.forEach(function(item, i){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (i === 0 ? '#6366F1' : i === 1 ? '#F59E0B' : '#EF4444') + '"><div style="font-size:11px;color:#9CA3AF">第' + (i+1) + '阶效应</div><div style="font-size:12px;color:#1A1A2E;margin-top:2px">' + escapeHtml(item) + '</div></div>';
-      });
-    }
-    openModal2('⚡ 二阶效应：' + escapeHtml(mid), html);
-  } catch(e) { alert('分析失败：' + e.message); }
-}
-
-async function openValues(){
-  openModal2('🎯 价值观澄清', '<div style="text-align:center;color:#9CA3AF;padding:20px">分析真实价值观中...</div>');
-  try {
-    var r = await fetch('/api/eng/values-clarification'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">🎯 你宣称的价值观 vs 你实际在做什么</div>';
-    if (d.alignment !== undefined) html += '<div style="background:rgba(16,185,129,0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #10B981"><div style="font-size:11px;color:#10B981;margin-bottom:6px">人生对齐度</div><div style="font-size:20px;font-weight:700;color:#10B981">' + d.alignment + '/10</div></div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">💎 你的真实价值观</div>';
-      d.details.forEach(function(item){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid #8B5CF6"><div style="font-size:12px;color:#1A1A2E;font-weight:600">' + escapeHtml(item.label || item.name || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.detail || item.description || '') + '</div></div>';
-      });
-    }
-    openModal2('🎯 价值观澄清', html);
-  } catch(e) { openModal2('🎯 价值观澄清', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function openAntiHuman(){
-  openModal2('🚫 反人性检测', '<div style="text-align:center;color:#9CA3AF;padding:20px">检测人性弱点中...</div>');
-  try {
-    var r = await fetch('/api/eng/anti-human-nature'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">🚫 对抗人性弱点，才能超越自己</div>';
-    if (d.score !== undefined) html += '<div style="background:rgba(245,158,11,0.08);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #F59E0B"><div style="font-size:11px;color:#F59E0B;margin-bottom:6px">反人性指数</div><div style="font-size:20px;font-weight:700;color:#F59E0B">' + d.score + '/10</div></div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">⚠️ 检测到的人性弱点</div>';
-      d.details.forEach(function(item){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : '#F59E0B') + '"><div style="font-size:12px;color:#1A1A2E;font-weight:600">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
-      });
-    }
-    openModal2('🚫 反人性检测', html);
-  } catch(e) { openModal2('🚫 反人性检测', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
 }
 
 function showTodayReflection(text){
@@ -2192,49 +2071,84 @@ function escapeHtml(s){
 }
 
 function renderRecord(){
-  var c=document.getElementById('sceneGrid');
+  var c=document.getElementById('recordList');
+  // 合并 SCENES 和 CORE_MODULES，去重
   var allMods = [];
   var seen = {};
   SCENES.forEach(function(s){ if(!seen[s.id]){ allMods.push(s); seen[s.id]=1; } });
   CORE_MODULES.forEach(function(m){ if(!seen[m.id]){ allMods.push({id:m.id, name:m.label, icon:m.icon, brief:''}); seen[m.id]=1; } });
   c.innerHTML=allMods.map(function(s){
     var cnt=(dataCache[s.id]||[]).length;
-    return '<div class="scene-card" onclick="openScene(\''+s.id+'\')"><div class="s-ic">'+(s.icon||'📄')+'</div><div class="s-nm">'+(s.name||s.label||s.id)+'</div><div class="s-cnt">'+cnt+'条</div></div>';
+    return '<div class="space-item" onclick="openScene(\''+s.id+'\')"><div class="top"><span class="nm">'+s.icon+' '+(s.name||s.label||s.id)+'</span><span class="cnt">'+cnt+'条</span></div><div class="sub">'+(s.brief||'点击查看详情')+'</div></div>';
   }).join('');
 }
 
 function renderInsight(){
-  var c=document.getElementById('pgInsight');
-  var summary='';
-  if(insightsCache && insightsCache.growth){
-    var g=insightsCache.growth;
-    summary='<div style="background:rgba(99,102,241,0.08);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(99,102,241,0.15);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:14px;font-weight:700;color:#6366F1">'+g.phase+'</span><span style="font-size:11px;color:#9CA3AF">'+g.progress+'%</span></div><div style="font-size:12px;color:#4B5563;">'+g.phaseDesc+' · 下一里程碑：'+g.nextMilestone+'</div><div style="margin-top:8px;height:4px;background:#E5E7EB;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));border-radius:4px"></div></div></div>';
-    if(insightsCache.correlations && insightsCache.correlations.length>0){
-      summary+='<div style="background:#FFFFFF;border-radius:14px;padding:12px 16px;margin-bottom:16px;"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:6px">🔗 发现关联</div>';
-      insightsCache.correlations.slice(0,2).forEach(function(corr){ summary+='<div class="corr-item"><div class="title">'+corr.title+'</div><div class="detail">'+corr.detail+'</div></div>'; });
-      summary+='</div>';
+  var c=document.getElementById('insightContent');
+  if(!insightsCache){ c.innerHTML='<div class="empty"><span class="ic">🔮</span>正在生成洞察...</div>'; return; }
+  var html = '';
+  if(insightsCache.growth){
+    var g = insightsCache.growth;
+    html += '<div style="background:rgba(99,102,241,0.06);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(99,102,241,0.1)">';
+    html += '<div style="font-size:18px;font-weight:700;color:#6366F1">'+g.phase+'</div>';
+    html += '<div style="font-size:13px;color:#374151;margin-top:4px">'+g.phaseDesc+'</div>';
+    html += '<div style="font-size:13px;color:#6B7280;margin-top:4px">📝 已记录 '+g.days+' 天 · 下一里程碑：'+g.nextMilestone+'</div>';
+    if(insightsCache.compoundRate) {
+      var cr = insightsCache.compoundRate;
+      var color = cr.value > 0.1 ? '#22C55E' : cr.value < -0.1 ? '#EF4444' : '#94A3B8';
+      html += '<div style="font-size:13px;color:'+color+';margin-top:4px">'+cr.text+'</div>';
     }
-    if(insightsCache.suggestions && insightsCache.suggestions.length>0){
-      summary+='<div style="background:rgba(251,191,36,0.04);border-radius:14px;padding:12px 16px;margin-bottom:16px;border-left:3px solid #FBBF24;"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:6px">💡 今日建议</div>';
-      insightsCache.suggestions.slice(0,2).forEach(function(s){ summary+='<div style="font-size:12px;color:#374151;padding:3px 0">• '+s.text+'</div>'; });
-      summary+='</div>';
-    }
+    html += '<div style="margin-top:8px;height:4px;background:#FFFFFF;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:4px"></div></div>';
+    html += '</div>';
   }
-  if(!summary) summary='<div class="empty"><span class="ic">🔮</span>继续记录，系统会生成洞察</div>';
-  var existing=c.innerHTML;
-  c.innerHTML=summary+existing;
-  loadCognitiveCounts();
+  if(insightsCache.milestones && insightsCache.milestones.length>0){
+    html += '<div style="background:#FFFFFF;border-radius:12px;padding:14px;margin-bottom:12px">';
+    html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px">🏆 已达成里程碑</div>';
+    insightsCache.milestones.forEach(function(m){ html += '<div class="milestone-item"><span class="ic">'+m.icon+'</span><span>'+m.name+'</span></div>'; });
+    html += '</div>';
+  }
+  if(insightsCache.correlations && insightsCache.correlations.length>0){
+    html += '<div style="background:#FFFFFF;border-radius:12px;padding:14px;margin-bottom:12px">';
+    html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px">🔗 关联分析</div>';
+    insightsCache.correlations.forEach(function(c){ html += '<div class="corr-item"><div class="title">'+c.title+'</div><div class="detail">'+c.detail+'</div></div>'; });
+    html += '</div>';
+  }
+  if(insightsCache.suggestions && insightsCache.suggestions.length>0){
+    html += '<div style="background:rgba(251,191,36,0.04);border-radius:12px;padding:14px;margin-bottom:12px;border-left:3px solid #FBBF24">';
+    html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px">💡 个性化建议</div>';
+    insightsCache.suggestions.forEach(function(s){
+      html += '<div style="font-size:13px;color:#374151;padding:4px 0">• '+s.text+'</div>';
+    });
+    html += '</div>';
+  }
+  if(insightsCache.monthly && insightsCache.monthly.mood){
+    var m = insightsCache.monthly;
+    html += '<div style="background:#FFFFFF;border-radius:12px;padding:14px;margin-bottom:12px">';
+    html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">📅 月度总结</div>';
+    html += '<div style="font-size:13px;color:#6B7280">情绪 '+m.mood+' 分 · 记录 '+m.days+' 天</div>';
+    if(m.changeText) html += '<div style="font-size:13px;color:'+(m.change>0.3?'#22C55E':m.change<-0.3?'#EF4444':'#94A3B8')+'">'+m.changeText+'</div>';
+    html += '</div>';
+  }
+  // Phase 2 深度闭环入口
+  html += '<div style="background:linear-gradient(135deg,rgba(16,185,129,0.06),rgba(59,130,246,0.04));border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid rgba(16,185,129,0.15)">';
+  html += '<div style="font-weight:600;font-size:14px;margin-bottom:10px">🌀 深度闭环</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html += '<div onclick="openRootCause()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;border:1px solid #FFFFFF"><div style="font-size:11px;color:#10B981">🔬 根因分析</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">挖到能改的那一层</div></div>';
+  html += '<div onclick="openInterpersonal()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;border:1px solid #FFFFFF"><div style="font-size:11px;color:#F59E0B">♟️ 人际博弈</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">看穿利益与成本</div></div>';
+  html += '<div onclick="openMindfulness()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;border:1px solid #FFFFFF"><div style="font-size:11px;color:#6366F1">🧘 定力训练</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">看见而不被带走</div></div>';
+  html += '<div onclick="openEnergy()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;border:1px solid #FFFFFF"><div style="font-size:11px;color:#FBBF24">⚡ 能量审计</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">黑洞与源泉</div></div>';
+  html += '<div onclick="openReview()" style="background:#FFFFFF;border-radius:10px;padding:10px;cursor:pointer;grid-column:span 2;border:1px solid #FFFFFF"><div style="font-size:11px;color:#8B5CF6">📅 周月自动复盘</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">系统替你看一周/一月的轨迹</div></div>';
+  html += '</div>';
+  html += '</div>';
+  if(!html) html = '<div class="empty"><span class="ic">📭</span>继续记录，系统会生成洞察</div>';
+  c.innerHTML = html;
 }
 
 function renderMe(){
-  var c = document.getElementById('pgMe');
+  var c = document.getElementById('meContent');
   var total = 0;
   SCENES.forEach(function(s){ total += (dataCache[s.id]||[]).length; });
-  CORE_MODULES.forEach(function(m){ total += (dataCache[m.id]||[]).length; });
-  var header='<div style="background:rgba(99,102,241,0.08);border-radius:14px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(99,102,241,0.15);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;color:#1A1A2E;">📊 船长日志</span><span style="font-size:12px;color:#6366F1;font-weight:700;">共 '+total+' 条记录</span></div></div>';
-  var existing=c.innerHTML;
-  c.innerHTML=header+existing;
-  loadCognitiveCounts();
+  c.innerHTML = '<div style="margin-top:12px"><div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">👤 个人信息</div><div style="font-size:13px;color:#6B7280">总记录：'+total+' 条</div><div style="font-size:13px;color:#6B7280">版本：v5.2 船长版</div></div><div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">🔐 密码</div><div style="display:flex;gap:8px;margin-top:8px"><input id="newPwd" placeholder="新密码" style="flex:1;padding:8px 12px;border-radius:8px;background:#FFFFFF;color:#fff"><button onclick="changePwd()" style="background:#6366F1;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer">修改</button></div></div><div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:12px"><div style="font-weight:600;font-size:16px">💾 数据</div><button onclick="exportData()" style="background:#10B981;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-top:8px">导出备份</button><button onclick="clearAll()" style="background:#EF4444;border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;margin-left:8px">清空</button></div></div>';
 }
 
 function changePwd(){ var np=document.getElementById('newPwd').value; if(np.length<4){ alert('至少4位'); return; } PWD=np; alert('密码已修改'); }

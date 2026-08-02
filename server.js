@@ -1592,6 +1592,553 @@ const ENG = {
       lines.push('\n宣言已签订。\n但记住：宣言的价值不在"签"，在"履行"——\n每月回看一次：我这个月做的事，对得起这份宣言吗？\n答不上来，要么改行为，要么改宣言——别让宣言变成墙上的装饰。');
     }
     return lines.join('\n');
+  },
+
+  // ===== Phase 5 深度认知引擎方法 =====
+
+  // 1. 元认知反思：检测"思维方式本身"的问题
+  metacognition(hist) {
+    const lines = [];
+    const details = {};
+    if (!hist) hist = this.buildHistory();
+
+    // 检查回避性记录
+    const emo = hist.filter(x => x.mid === 'emotion');
+    const negativeRecords = emo.filter(e => parseFloat(e.data?.rating || e.data?.level || 3) <= 2);
+    const positiveRecords = emo.filter(e => parseFloat(e.data?.rating || e.data?.level || 3) >= 4);
+    if (emo.length >= 5) {
+      const negRatio = negativeRecords.length / emo.length;
+      const posRatio = positiveRecords.length / emo.length;
+      details.avoidantRecording = { negativeCount: negativeRecords.length, positiveCount: positiveRecords.length, total: emo.length, negativeRatio: negRatio };
+      if (negRatio < 0.1 && posRatio > 0.6) {
+        lines.push(`⚠️ 回避性记录：${emo.length}次情绪记录中，负面仅${negativeRecords.length}次，正面${positiveRecords.length}次。\n你可能在"只记好事"——不是生活没负面，是你在回避面对。\n回避不是保护，是让问题在暗处发酵。`);
+      } else if (negRatio > 0.6) {
+        lines.push(`⚠️ 沉溺性记录：${emo.length}次情绪记录中，负面占${(negRatio*100).toFixed(0)}%。\n你可能在"只记坏事"——不是生活没正面，是注意力被痛苦吸走。\n沉溺不是深刻，是被情绪绑架。`);
+      }
+    }
+
+    // 检查选择性记录
+    const moduleCounts = {};
+    hist.forEach(h => { moduleCounts[h.mid] = (moduleCounts[h.mid] || 0) + 1; });
+    const sortedMods = Object.entries(moduleCounts).sort((a, b) => b[1] - a[1]);
+    const allMods = ['finance','sleep','exercise','emotion','diet','diary','learn','think','work','body','relation','growth','spirit'];
+    const coveredMods = Object.keys(moduleCounts);
+    const missingMods = allMods.filter(m => !coveredMods.includes(m));
+    details.selectiveRecording = { totalModules: coveredMods.length, missingModules: missingMods, topModules: sortedMods.slice(0, 3) };
+    if (coveredMods.length <= 3 && hist.length >= 10) {
+      lines.push(`⚠️ 选择性记录：你只覆盖了${coveredMods.length}个维度（${coveredMods.join('、')}）。\n你在选择性地看见自己——被忽略的${missingMods.slice(0, 3).join('、')}，往往藏着真正的问题。`);
+    }
+
+    // 检测叙事偏差
+    const diary = hist.filter(x => x.mid === 'diary');
+    if (diary.length >= 3) {
+      const positiveWords = ['成功','美好','开心','棒','优秀','完美','顺利','赢'];
+      const negativeWords = ['失败','糟糕','痛苦','难','差','糟糕','崩溃','焦虑'];
+      let posCount = 0, negCount = 0;
+      diary.forEach(d => {
+        const c = (d.data?.content || '').toString();
+        if (positiveWords.some(w => c.includes(w))) posCount++;
+        if (negativeWords.some(w => c.includes(w))) negCount++;
+      });
+      details.narrativeBias = { positiveEntries: posCount, negativeEntries: negCount, total: diary.length };
+      if (posCount > negCount * 2 && posCount >= 3) {
+        lines.push(`⚠️ 叙事偏差：日记中正面词汇是负面的${(posCount/Math.max(negCount,1)).toFixed(1)}倍。\n你可能在用"美化"保护自己——但真实的成长需要看见不完美。`);
+      }
+    }
+
+    // 思维方式的反思问题
+    const questions = [];
+    if (details.avoidantRecording && details.avoidantRecording.negativeRatio < 0.1) {
+      questions.push('你回避记录负面情绪，是因为它们不存在，还是因为你不想面对？');
+    }
+    if (details.selectiveRecording && details.selectiveRecording.missingModules.length > 0) {
+      questions.push(`你忽略了${details.selectiveRecording.missingModules.slice(0,2).join('、')}——这些对你来说意味着什么？`);
+    }
+    if (questions.length === 0 && Object.keys(details).length === 0) {
+      questions.push('你的记录习惯目前较均衡。\n但要警觉：均衡可能是真均衡，也可能是"没什么值得记录"——后者是麻木，不是平和。');
+    }
+    lines.push('\n反思你的思维方式：');
+    questions.forEach((q, i) => { lines.push(`  ${i+1}. ${q}`); });
+
+    const score = Math.round((details.avoidantRecording ? (1 - Math.abs(details.avoidantRecording.negativeRatio - 0.3) * 2) * 5 : 3) +
+      (details.selectiveRecording ? Math.min(coveredMods.length / allMods.length, 1) * 3 : 1) +
+      (details.narrativeBias ? (details.narrativeBias.negativeEntries >= details.narrativeBias.positiveEntries ? 2 : 0.5) : 1));
+
+    return { text: lines.join('\n'), score: Math.max(0, Math.min(10, score)), details };
+  },
+
+  // 2. 认知偏差检测
+  cognitiveBias(hist) {
+    const lines = [];
+    const details = {};
+    if (!hist) hist = this.buildHistory();
+
+    // 确认偏差：是否倾向于寻找支持自己已有判断的证据
+    const emo = hist.filter(x => x.mid === 'emotion').slice(0, 20);
+    const diary = hist.filter(x => x.mid === 'diary').slice(0, 10);
+    let confirmationBias = 0;
+    if (emo.length >= 5) {
+      const lowMoods = emo.filter(e => parseFloat(e.data?.rating || 3) <= 2);
+      const diaryNeg = diary.filter(d => {
+        const c = (d.data?.content || '').toString();
+        return ['难','痛苦','失败','焦虑','差','糟糕'].some(w => c.includes(w));
+      });
+      const samePeriod = lowMoods.filter(lm => {
+        const d = (lm.ts || '').split('T')[0];
+        return diaryNeg.some(dn => (dn.ts || '').split('T')[0] === d);
+      });
+      confirmationBias = lowMoods.length > 0 && samePeriod.length / lowMoods.length > 0.5 ? 1 : 0;
+    }
+    details.confirmationBias = { detected: confirmationBias > 0, score: confirmationBias };
+
+    // 锚定效应：是否被最初数据过度影响
+    const fin = hist.filter(x => x.mid === 'finance').slice(0, 30);
+    if (fin.length >= 5) {
+      const firstHalf = fin.slice(0, Math.floor(fin.length / 2));
+      const secondHalf = fin.slice(Math.floor(fin.length / 2));
+      const firstAvg = firstHalf.reduce((s, x) => s + parseFloat(x.data?.amount || 0), 0) / firstHalf.length;
+      const secondAvg = secondHalf.reduce((s, x) => s + parseFloat(x.data?.amount || 0), 0) / secondHalf.length;
+      const anchoringStrength = firstAvg > 0 && Math.abs(secondAvg - firstAvg) / firstAvg < 0.15 ? 1 : 0;
+      details.anchoringEffect = { firstHalfAvg: firstAvg.toFixed(0), secondHalfAvg: secondAvg.toFixed(0), detected: anchoringStrength > 0 };
+      if (anchoringStrength) lines.push(`⚓ 锚定效应：前半段均值${firstAvg.toFixed(0)}，后半段${secondAvg.toFixed(0)}——变化<15%。\n你可能被最初的消费水平"锚定"了——即使情况变化，你仍在参考那个初始数字。`);
+    }
+
+    // 损失厌恶：是否对"损失"的敏感度远高于"收益"
+    if (fin.length >= 5) {
+      const expenses = fin.filter(x => x.data?.type === 'expense');
+      const income = fin.filter(x => x.data?.type === 'income');
+      const totalExp = expenses.reduce((s, x) => s + parseFloat(x.data?.amount || 0), 0);
+      const totalInc = income.reduce((s, x) => s + parseFloat(x.data?.amount || 0), 0);
+      const lossAversion = totalExp > totalInc * 1.5 && totalInc > 0 ? 1 : 0;
+      details.lossAversion = { totalExpense: totalExp.toFixed(0), totalIncome: totalInc.toFixed(0), detected: lossAversion > 0 };
+      if (lossAversion) lines.push(`💔 损失厌恶：支出${totalExp.toFixed(0)}远大于收入${totalInc.toFixed(0)}。\n你可能对"损失"的敏感度远高于"收益"——这让你过度保守，不敢冒险，也不敢投资自己。`);
+    }
+
+    // 可得性启发：是否用容易想到的例子做判断
+    if (hist.length >= 5) {
+      const recentMoods = emo.slice(0, 5);
+      const olderMoods = emo.slice(5, 15);
+      if (recentMoods.length >= 3 && olderMoods.length >= 3) {
+        const rAvg = recentMoods.reduce((s, x) => s + parseFloat(x.data?.rating || 3), 0) / recentMoods.length;
+        const oAvg = olderMoods.reduce((s, x) => s + parseFloat(x.data?.rating || 3), 0) / olderMoods.length;
+        const availability = Math.abs(rAvg - oAvg) > 1 ? 1 : 0;
+        details.availabilityHeuristic = { recentAvg: rAvg.toFixed(1), olderAvg: oAvg.toFixed(1), detected: availability > 0 };
+        if (availability) lines.push(`📌 可得性启发：近5次情绪${rAvg.toFixed(1)}，之前${oAvg.toFixed(1)}——差异显著。\n你可能在用"最近容易想到的"来判断整体，而非看全貌。`);
+      }
+    }
+
+    // 归因偏差：成功归内因，失败归外因
+    const successEntries = diary.filter(d => {
+      const c = (d.data?.content || '').toString();
+      return ['成功','做成','完成','赢','棒'].some(w => c.includes(w));
+    });
+    const failureEntries = diary.filter(d => {
+      const c = (d.data?.content || '').toString();
+      return ['失败','没成','搞砸','输','错'].some(w => c.includes(w));
+    });
+    if (successEntries.length >= 1 && failureEntries.length >= 1) {
+      const selfAttributionWords = ['我','我的','我做','我选择','我努力'];
+      const externalAttributionWords = ['他','别人','运气','环境','没办法'];
+      const successSelf = successEntries.filter(e => selfAttributionWords.some(w => (e.data?.content || '').includes(w))).length;
+      const failureExternal = failureEntries.filter(e => externalAttributionWords.some(w => (e.data?.content || '').includes(w))).length;
+      const attributionBias = successSelf > successEntries.length * 0.5 && failureExternal > failureEntries.length * 0.5 ? 1 : 0;
+      details.attributionBias = { successInternal: successSelf, successTotal: successEntries.length, failureExternal: failureExternal, failureTotal: failureEntries.length, detected: attributionBias > 0 };
+      if (attributionBias) lines.push(`🎯 归因偏差：成功${successSelf}/${successEntries.length}次归内因，失败${failureExternal}/${failureEntries.length}次归外因。\n你可能在"成功时说'我厉害'，失败时说'环境不好'——这是自我保护，但也是自我欺骗。`);
+    }
+
+    // 汇总
+    const detectedCount = Object.values(details).filter(d => d && d.detected).length;
+    lines.unshift(`检测到${detectedCount}种认知偏差。\n`);
+    if (detectedCount === 0) {
+      lines.push('目前未检测到明显的认知偏差。\n但"没检测到"不等于"没有"——偏差最擅长的就是藏在你看不见的地方。');
+    }
+
+    const score = 10 - detectedCount * 1.5;
+    return { text: lines.join('\n'), score: Math.max(0, score), details };
+  },
+
+  // 3. 轨迹分析：30天/90天趋势
+  trajectory(hist, days) {
+    days = days || 30;
+    const lines = [];
+    const details = {};
+    if (!hist) hist = this.buildHistory();
+
+    const now = new Date();
+    const start = new Date(now); start.setDate(now.getDate() - days);
+    const startStr = start.toISOString().split('T')[0];
+
+    const range = hist.filter(x => {
+      const d = (x.ts || '').split('T')[0];
+      return d >= startStr;
+    });
+
+    // 计算各核心维度趋势
+    const dims = {
+      sleep: { label: '睡眠', extract: (d) => parseFloat(d.data?.hours || d.data?.duration || 0), unit: 'h' },
+      emotion: { label: '情绪', extract: (d) => parseFloat(d.data?.rating || d.data?.level || 0), unit: '/5' },
+      finance: { label: '财务', extract: (d) => { if (d.data?.type === 'expense' || d.data?.type === '支出') return -parseFloat(d.data?.amount || 0); if (d.data?.type === 'income' || d.data?.type === '收入') return parseFloat(d.data?.amount || 0); return 0; }, unit: '元净' },
+      exercise: { label: '运动', extract: (d) => parseFloat(d.data?.duration || 0), unit: 'min' }
+    };
+
+    const trends = {};
+    Object.entries(dims).forEach(([mid, cfg]) => {
+      const records = range.filter(x => x.mid === mid);
+      if (records.length < 2) return;
+      const sorted = records.slice().sort((a, b) => (a.ts < b.ts ? 1 : -1));
+      const half = Math.floor(sorted.length / 2);
+      const firstHalf = sorted.slice(0, half);
+      const secondHalf = sorted.slice(-half);
+      const fAvg = firstHalf.reduce((s, x) => s + cfg.extract(x), 0) / firstHalf.length;
+      const sAvg = secondHalf.reduce((s, x) => s + cfg.extract(x), 0) / secondHalf.length;
+      const change = sAvg - fAvg;
+      const pct = fAvg !== 0 ? (change / Math.abs(fAvg)) * 100 : 0;
+      const direction = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+      trends[mid] = {
+        label: cfg.label,
+        firstHalfAvg: fAvg.toFixed(1),
+        secondHalfAvg: sAvg.toFixed(1),
+        change: change.toFixed(1),
+        changePct: pct.toFixed(1),
+        direction,
+        sampleSize: records.length
+      };
+    });
+
+    details[`trend_${days}d`] = trends;
+
+    // 检测"悄悄恶化"的指标
+    const stealthDecline = [];
+    Object.values(trends).forEach(t => {
+      if (t.direction === 'down' && t.sampleSize >= 3) {
+        stealthDecline.push(`${t.label}：${t.firstHalfAvg}→${t.secondHalfAvg}（${t.changePct}%）`);
+      }
+    });
+    details.stealthDecline = stealthDecline;
+
+    if (stealthDecline.length > 0) {
+      lines.push(`⚠️ 悄悄恶化的指标：\n${stealthDecline.map(s => '  • ' + s).join('\n')}\n这些变化缓慢但持续向下——就像温水煮青蛙，等你察觉时可能已经很深了。`);
+    }
+
+    // 进步vs退步评估
+    const improving = Object.values(trends).filter(t => t.direction === 'up');
+    const declining = Object.values(trends).filter(t => t.direction === 'down');
+    const flat = Object.values(trends).filter(t => t.direction === 'flat');
+
+    lines.push(`\n${days}天评估：`);
+    lines.push(`  进步维度（${improving.length}）：${improving.map(t => t.label + ' ↑').join('、') || '无'}`);
+    lines.push(`  退步维度（${declining.length}）：${declining.map(t => t.label + ' ↓').join('、') || '无'}`);
+    lines.push(`  持平维度（${flat.length}）：${flat.map(t => t.label + ' →').join('、') || '无'}`);
+
+    if (declining.length > improving.length) {
+      lines.push(`\n🚨 退步速度超过进步速度。\n这不是"没进步"的问题，是"在倒退"——有些东西正在悄悄流失。`);
+    } else if (improving.length > declining.length) {
+      lines.push(`\n✨ 进步大于退步。\n但要确认：进步的维度是不是你真正在意的？如果"不重要的进步"盖过了"重要的退步"，那仍是退步。`);
+    } else if (Object.keys(trends).length > 0) {
+      lines.push(`\n持平。\n持平不是稳定，是"没变化"——没变化可能是在等待，也可能是在停滞。`);
+    } else {
+      lines.push(`\n数据不足，无法生成${days}天趋势。`);
+    }
+
+    const score = Object.values(trends).reduce((s, t) => s + (t.direction === 'up' ? 1 : t.direction === 'down' ? -1 : 0), 0);
+    return { text: lines.join('\n'), score: Math.max(0, Math.min(10, 5 + score)), details };
+  },
+
+  // 4. 二阶效应分析：行为连锁反应
+  secondOrderEffect(item, hist) {
+    const lines = [];
+    const details = { firstOrder: [], secondOrder: [], thirdOrder: [], warnings: [] };
+    if (!hist) hist = this.buildHistory();
+    if (!item) return { text: '没有分析对象。', score: 5, details };
+
+    const action = item.action || '';
+    const mid = item.mid || '';
+
+    // 一阶效应：直接结果
+    const firstOrderMap = {
+      sleep: { '少睡': ['精力下降', '判断力下降'], '多睡': ['效率提升', '情绪稳定'] },
+      exercise: { '运动': ['精力消耗', '短期疲惫'], '不运动': ['体力下降', '压力累积'] },
+      finance: { '消费': ['心理安慰', '短期满足'], '储蓄': ['安全感提升', '长期自由'] },
+      emotion: { '压抑': ['短期不爆发', '长期积压'], '表达': ['短期释放', '关系变化'] }
+    };
+
+    // 分析一阶效应
+    if (firstOrderMap[mid]) {
+      const matchKey = Object.keys(firstOrderMap[mid]).find(k => action.includes(k));
+      if (matchKey) {
+        details.firstOrder = firstOrderMap[mid][matchKey].map(r => ({ effect: r, order: 1 }));
+        lines.push(`一阶效应（直接结果）：${details.firstOrder.map(r => r.effect).join('、')}`);
+      }
+    }
+    if (details.firstOrder.length === 0) {
+      const firstGuesses = [
+        { effect: '直接的情绪反应', order: 1 },
+        { effect: '即时的生理感受', order: 1 }
+      ];
+      details.firstOrder = firstGuesses;
+      lines.push(`一阶效应：${firstGuesses.map(r => r.effect).join('、')}`);
+    }
+
+    // 二阶效应：直接结果的结果
+    const secondOrderEffects = [
+      { trigger: '精力下降', effect: '决策质量下降，可能做出糟糕选择' },
+      { trigger: '判断力下降', effect: '更容易冲动消费/决策，事后后悔' },
+      { trigger: '心理安慰', effect: '真实问题未被解决，下次用同样方式逃避' },
+      { trigger: '短期疲惫', effect: '次日效率下降，可能影响工作/关系' },
+      { trigger: '压力累积', effect: '可能在不经意间对他人发火或崩溃' },
+      { trigger: '安全感提升', effect: '更敢于冒险和投资，进入正向循环' },
+      { trigger: '长期积压', effect: '最终以更激烈的方式爆发，伤害关系和自己' }
+    ];
+
+    details.firstOrder.forEach(fo => {
+      const match = secondOrderEffects.find(s => fo.effect.includes(s.trigger) || s.trigger.includes(fo.effect));
+      if (match) {
+        details.secondOrder.push({ effect: match.effect, order: 2, source: fo.effect });
+      }
+    });
+
+    if (details.secondOrder.length === 0) {
+      details.secondOrder = [{ effect: '直接结果影响了你的下一步选择', order: 2, source: '通用' }];
+    }
+
+    lines.push(`二阶效应（结果的结果）：\n${details.secondOrder.map(r => `  ${r.effect}`).join('\n')}`);
+
+    // 三阶效应：长期影响
+    const thirdOrderEffects = [
+      { trigger: '决策质量下降', effect: '多次糟糕决策累积，形成自我怀疑的恶性循环' },
+      { trigger: '事后后悔', effect: '后悔→自责→更低自尊→更差决策，形成闭环' },
+      { trigger: '真实问题未被解决', effect: '问题持续存在且恶化，最终需要更大代价解决' },
+      { trigger: '效率下降', effect: '工作积压→加班→睡眠更少→效率更低，形成恶性循环' },
+      { trigger: '对他人发火', effect: '伤害关系→愧疚→回避社交→更多情绪积压' },
+      { trigger: '正向循环', effect: '信心累积→更大胆行动→更多正向反馈，螺旋上升' },
+      { trigger: '更激烈爆发', effect: '可能导致关系破裂、信任丧失、自我失控' }
+    ];
+
+    details.secondOrder.forEach(so => {
+      const match = thirdOrderEffects.find(t => so.effect.includes(t.trigger) || t.trigger.includes(so.effect));
+      if (match) {
+        details.thirdOrder.push({ effect: match.effect, order: 3, source: so.effect });
+      }
+    });
+
+    if (details.thirdOrder.length === 0) {
+      details.thirdOrder = [{ effect: '长期来看，这个行为会塑造你的习惯和身份认同', order: 3, source: '通用' }];
+    }
+
+    lines.push(`三阶效应（长期影响）：\n${details.thirdOrder.map(r => `  ${r.effect}`).join('\n')}`);
+
+    // 识别"短期有益但长期有害"的行为
+    const shortTermGood = ['心理安慰', '短期满足', '精力下降（换时间）', '压抑（避免冲突）'];
+    const longTermBad = ['问题未被解决', '后悔', '恶性循环', '长期积压'];
+    details.firstOrder.forEach(fo => {
+      if (shortTermGood.some(g => fo.effect.includes(g)) || longTermBad.some(b => details.thirdOrder.some(to => to.effect.includes(b)))) {
+        details.warnings.push({ action, reason: '短期有益但可能长期有害', firstOrder: fo.effect });
+      }
+    });
+
+    if (details.warnings.length > 0) {
+      lines.push(`\n🚨 警示：${details.warnings.map(w => `"${w.action}" — ${w.reason}`).join('\n')}\n短期舒服的选择，往往是长期的陷阱——你在用未来的自己为现在买单。`);
+    } else {
+      lines.push(`\n✅ 此行为未检测到明显的"短期好/长期坏"模式。\n但要注意：二阶和三阶效应往往不在当下显现——定期回顾，别等后果来了才回头。`);
+    }
+
+    const score = 5 - details.warnings.length * 1.5;
+    return { text: lines.join('\n'), score: Math.max(0, Math.min(10, score)), details };
+  },
+
+  // 5. 价值观澄清：基于行为数据推断真实价值观
+  valuesClarification(hist) {
+    const lines = [];
+    const details = {};
+    if (!hist) hist = this.buildHistory();
+
+    const principles = readData('principles');
+    const beliefs = readData('beliefs');
+    const northStar = readData('north_star');
+    const statedValues = [];
+
+    // 收集宣称的价值观
+    if (principles.length > 0) {
+      principles.forEach(p => { if (p.text) statedValues.push({ source: '原则', text: p.text.trim() }); });
+    }
+    if (beliefs.length > 0) {
+      beliefs.forEach(b => { if (b.belief) statedValues.push({ source: '信念', text: b.belief.trim() }); });
+    }
+    if (northStar.length > 0 && northStar[0].ultimate) {
+      statedValues.push({ source: '终局', text: northStar[0].ultimate.trim() });
+    }
+
+    details.statedValues = statedValues;
+
+    // 推断真实价值观（基于行为数据）
+    const moduleWeights = {};
+    hist.forEach(h => {
+      moduleWeights[h.mid] = (moduleWeights[h.mid] || 0) + 1;
+    });
+    const sortedByBehavior = Object.entries(moduleWeights).sort((a, b) => b[1] - a[1]);
+
+    const valueLabels = {
+      finance: '财务安全', sleep: '健康身体', exercise: '身体活力',
+      emotion: '情绪平衡', diet: '身体滋养', diary: '自我反思',
+      think: '深度思考', work: '事业发展', body: '身体关注',
+      relation: '人际关系', growth: '个人成长', spirit: '精神世界',
+      learn: '持续学习', photo: '审美表达', home: '家庭生活',
+      travel: '探索体验', time: '时间管理'
+    };
+
+    const realValues = sortedByBehavior.slice(0, 5).map(([mid, count]) => ({
+      module: mid,
+      value: valueLabels[mid] || mid,
+      recordCount: count
+    }));
+
+    details.realValues = realValues;
+
+    // 对比宣称vs实际
+    const statedKeywords = statedValues.map(v => v.text);
+    const behaviorKeywords = realValues.map(v => v.value);
+    const alignment = [];
+
+    if (statedValues.length > 0 && realValues.length > 0) {
+      const topBehaviorValue = realValues[0].value;
+      const statedContainsTopBehavior = statedKeywords.some(k => k.includes(topBehaviorValue.slice(0, 2)));
+      if (!statedContainsTopBehavior) {
+        alignment.push({
+          type: 'misalignment',
+          stated: statedValues.map(v => v.text.slice(0, 20)).join('、'),
+          actual: topBehaviorValue,
+          note: `你宣称重视的和你实际投入时间的不一致——这不是"你虚伪"，是"你没意识到自己真正在为什么活"。`
+        });
+      }
+    }
+
+    // 检查时间精力分配
+    const totalRecords = hist.length;
+    const timeInvestment = {};
+    const highPriorityMods = sortedByBehavior.slice(0, 3);
+    const lowPriorityMods = sortedByBehavior.slice(-3);
+    highPriorityMods.forEach(([m, c]) => { timeInvestment[m] = { count: c, pct: ((c / Math.max(totalRecords, 1)) * 100).toFixed(1) }; });
+
+    details.alignment = alignment;
+    details.timeInvestment = timeInvestment;
+
+    lines.push(`宣称的价值观（${statedValues.length}条）：`);
+    if (statedValues.length > 0) {
+      lines.push(`  ${statedValues.slice(0, 3).map(v => `[${v.source}] ${v.text.slice(0, 30)}`).join('\n  ')}`);
+    } else {
+      lines.push('  你还没有写下任何原则或信念——没有宣称的价值观，就无法谈对齐度。');
+    }
+
+    lines.push(`\n实际体现的价值观（基于${totalRecords}条行为数据）：`);
+    lines.push(`  ${realValues.map(v => `${v.value}（${v.recordCount}次记录）`).join('\n  ')}`);
+
+    if (alignment.length > 0) {
+      lines.push(`\n⚠️ 对齐问题：`);
+      alignment.forEach(a => { lines.push(`  ${a.note}`); });
+    } else if (statedValues.length > 0) {
+      lines.push(`\n✅ 宣称与行为基本对齐。`);
+    }
+
+    // 人生对齐度评估
+    let alignmentScore = 5;
+    if (alignment.length > 0) alignmentScore -= 2;
+    if (statedValues.length === 0) alignmentScore -= 1;
+    if (realValues.length >= 3) alignmentScore += 1;
+
+    lines.push(`\n人生对齐度：${Math.max(0, Math.min(10, alignmentScore))}/10`);
+    if (alignmentScore < 4) {
+      lines.push('  你活在别人的期待里，或活在"应该"里——不是你真正想活的样子。\n  改变从"觉察"开始：先看见真实的自己，再决定要成为谁。');
+    } else if (alignmentScore < 7) {
+      lines.push('  你在"基本对齐"和"深度对齐"之间。\n  问自己：你最在意的3件事，今天为它们花了多少时间？');
+    } else {
+      lines.push('  你活得比较对齐——你的行为在服务你的价值观。\n  但要持续校准：漂移是常态，每周检查一次。');
+    }
+
+    return { text: lines.join('\n'), score: Math.max(0, Math.min(10, alignmentScore)), details };
+  },
+
+  // 6. 反人性对抗：检测认知惰性、现状偏好、短视偏好、回避性偏好
+  antiHumanNature(hist) {
+    const lines = [];
+    const details = {};
+    if (!hist) hist = this.buildHistory();
+
+    // 认知惰性：是否回避深度思考
+    const thinkRecords = hist.filter(x => x.mid === 'think');
+    const diaryRecords = hist.filter(x => x.mid === 'diary');
+    const shallowThinking = [];
+    if (thinkRecords.length >= 3) {
+      thinkRecords.forEach(t => {
+        const c = (t.data?.content || '').toString();
+        if (c.length < 15) shallowThinking.push({ content: c, length: c.length });
+      });
+    }
+    if (diaryRecords.length >= 3) {
+      diaryRecords.forEach(d => {
+        const c = (d.data?.content || '').toString();
+        if (c.length < 15) shallowThinking.push({ content: c, length: c.length });
+      });
+    }
+    const cognitiveInertia = shallowThinking.length >= 3 ? 1 : 0;
+    details.cognitiveInertia = { detected: cognitiveInertia > 0, shallowCount: shallowThinking.length, samples: shallowThinking.slice(0, 3) };
+    if (cognitiveInertia) lines.push(`🧠 认知惰性：${shallowThinking.length}条记录字数<15。\n你可能在回避深度思考——用"简短"代替"深刻"，用"记录"代替"思考"。`);
+
+    // 现状偏好：是否即使现状不佳也不愿改变
+    const emo = hist.filter(x => x.mid === 'emotion').slice(0, 14);
+    if (emo.length >= 5) {
+      const lowMoods = emo.filter(e => parseFloat(e.data?.rating || 3) <= 2);
+      const lowDays = new Set(lowMoods.map(e => (e.ts || '').split('T')[0]));
+      const entropyLogs = readData('entropy_logs').filter(e => !e.resolved);
+      const statusQuoBias = lowMoods.length >= 3 && entropyLogs.length >= 2 ? 1 : 0;
+      details.statusQuoBias = { detected: statusQuoBias > 0, lowMoodDays: lowDays.size, unresolvedIssues: entropyLogs.length };
+      if (statusQuoBias) lines.push(`🔒 现状偏好：你已有${lowDays.size}天情绪低落，${entropyLogs.length}个未解决问题。\n你可能在"即使现状不佳也不愿改变"——改变的痛苦在当下，不改变的痛苦在未来，但未来的痛你感受不到。`);
+    }
+
+    // 短视偏好：是否更重视即时满足而非长期收益
+    const fin = hist.filter(x => x.mid === 'finance').slice(0, 30);
+    if (fin.length >= 5) {
+      const expenses = fin.filter(x => x.data?.type === 'expense' || x.data?.type === '支出');
+      const smallExp = expenses.filter(e => parseFloat(e.data?.amount || 0) < 50);
+      const totalSpend = expenses.reduce((s, x) => s + parseFloat(x.data?.amount || 0), 0);
+      const smallRatio = expenses.length > 0 ? smallExp.length / expenses.length : 0;
+      const shortTermBias = smallRatio > 0.6 && totalSpend > 0 ? 1 : 0;
+      details.shortTermBias = { detected: shortTermBias > 0, smallExpenseRatio: (smallRatio * 100).toFixed(0), smallCount: smallExp.length, totalExpenses: expenses.length };
+      if (shortTermBias) lines.push(`⏰ 短视偏好：${(smallRatio*100).toFixed(0)}%的支出是<50元的小额消费。\n你可能在用"小确幸"逃避"大问题"——小额消费的即时满足，让你忘记长期目标需要持续投入。`);
+    }
+
+    // 回避性偏好：是否回避面对困难但重要的事
+    const allMods = ['finance','sleep','exercise','emotion','diet','diary','think','work','body','relation','growth','spirit'];
+    const moduleCounts = {};
+    hist.forEach(h => { moduleCounts[h.mid] = (moduleCounts[h.mid] || 0) + 1; });
+    const missingMods = allMods.filter(m => !moduleCounts[m]);
+    const exerciseGap = !moduleCounts['exercise'] || hist.filter(x => x.mid === 'exercise').length < 2;
+    const relationGap = !moduleCounts['relation'];
+    const avoidancePreference = (missingMods.length >= 4 || exerciseGap || relationGap) ? 1 : 0;
+    details.avoidancePreference = { detected: avoidancePreference > 0, missingModules: missingMods, exerciseGap, relationGap };
+    if (avoidancePreference) lines.push(`🙈 回避性偏好：你忽略了${missingMods.slice(0, 4).join('、')}等维度。\n你可能在回避"困难但重要"的事——困难的事往往是成长最快的地方，回避它们等于回避成长。`);
+
+    // 汇总
+    const detectedCount = [cognitiveInertia, details.statusQuoBias?.detected ? 1 : 0, details.shortTermBias?.detected ? 1 : 0, avoidancePreference].filter(x => x > 0).length;
+
+    lines.unshift(`反人性检测：${detectedCount}/4 项被检出。\n`);
+    if (detectedCount === 0) {
+      lines.push('目前未检测到明显的"反人性"倾向。\n但"没检测到"不代表"不存在"——这些偏好是人类出厂设置，每个人都有，只是程度不同。');
+    }
+
+    // 对抗建议
+    const suggestions = [];
+    if (cognitiveInertia) suggestions.push('每天写一段50字以上的深度反思——强迫自己思考，而不是敷衍。');
+    if (details.statusQuoBias?.detected) suggestions.push('找一件你明知该改但一直在回避的小事，本周行动——从最小的事开始打破惯性。');
+    if (details.shortTermBias?.detected) suggestions.push('记录每笔消费的"3天后果"——3天后还觉得值得吗？');
+    if (avoidancePreference) suggestions.push('选一个你回避的维度，用"最小行动"开始——回避的本质是恐惧，恐惧的解药是行动。');
+
+    if (suggestions.length > 0) {
+      lines.push('\n对抗建议：');
+      suggestions.forEach((s, i) => { lines.push(`  ${i + 1}. ${s}`); });
+    }
+
+    const score = 10 - detectedCount * 2;
+    return { text: lines.join('\n'), score: Math.max(0, score), details };
   }
 };
 
@@ -2228,6 +2775,55 @@ app.post('/api/manifesto', (req, res) => {
 app.delete('/api/manifesto', (req, res) => {
   writeData('manifesto', []);
   res.json({ success: true });
+});
+
+// ============================================================
+// Phase 5：深度认知引擎 API
+// ============================================================
+
+// ---------- 1. 元认知反思 ----------
+app.get('/api/eng/metacognition', (req, res) => {
+  const hist = ENG.buildHistory();
+  const result = ENG.metacognition(hist);
+  res.json({ ...result, generatedAt: new Date().toISOString(), sampleSize: hist.length });
+});
+
+// ---------- 2. 认知偏差检测 ----------
+app.get('/api/eng/cognitive-bias', (req, res) => {
+  const hist = ENG.buildHistory();
+  const result = ENG.cognitiveBias(hist);
+  res.json({ ...result, generatedAt: new Date().toISOString(), sampleSize: hist.length });
+});
+
+// ---------- 3. 轨迹分析 ----------
+app.get('/api/eng/trajectory', (req, res) => {
+  const days = parseInt(req.query.days) || 30;
+  const hist = ENG.buildHistory();
+  const result = ENG.trajectory(hist, days);
+  res.json({ ...result, days, generatedAt: new Date().toISOString(), sampleSize: hist.length });
+});
+
+// ---------- 4. 二阶效应分析 ----------
+app.post('/api/eng/second-order', (req, res) => {
+  const { mid, action } = req.body;
+  if (!mid || !action) return res.json({ success: false, message: '缺少mid或action参数' });
+  const hist = ENG.buildHistory();
+  const result = ENG.secondOrderEffect({ mid, action }, hist);
+  res.json({ success: true, ...result, generatedAt: new Date().toISOString() });
+});
+
+// ---------- 5. 价值观澄清 ----------
+app.get('/api/eng/values-clarification', (req, res) => {
+  const hist = ENG.buildHistory();
+  const result = ENG.valuesClarification(hist);
+  res.json({ ...result, generatedAt: new Date().toISOString(), sampleSize: hist.length });
+});
+
+// ---------- 6. 反人性对抗 ----------
+app.get('/api/eng/anti-human-nature', (req, res) => {
+  const hist = ENG.buildHistory();
+  const result = ENG.antiHumanNature(hist);
+  res.json({ ...result, generatedAt: new Date().toISOString(), sampleSize: hist.length });
 });
 
 // ============================================================
