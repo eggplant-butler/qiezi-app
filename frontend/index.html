@@ -307,9 +307,10 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div class="tool-section">
 <div class="ts-title">👤 个人中心</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="color:#6B7280">版本：v5.2 船长版</div>
+<div style="color:#6B7280">版本：v5.5 船长版</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="exportData()">💾 导出备份</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="changePwd()">🔐 修改密码</div>
+<div style="color:#6B7280;cursor:pointer;" onclick="openTrash()">♻️ 回收站</div>
 <div style="color:#EF4444;cursor:pointer;" onclick="clearAll()">🗑️ 清空数据</div>
 </div>
 </div>
@@ -953,6 +954,7 @@ var MODAL_FORMS = {
       {key:'interaction', label:'互动方式', type:'select', options:['见面','电话','微信','吵架','合作','其他']},
       {key:'topic', label:'话题/事件', type:'textarea', placeholder:'聊了什么/发生了什么...'},
       {key:'cost', label:'花费', type:'number', placeholder:'可选'},
+      {key:'favorType', label:'人情类型', type:'select', options:['无','送礼','请客','随份子','借出','借入','帮人','被帮','还人情']},
       {key:'feel', label:'感受 1-10', type:'select', options:['1','2','3','4','5','6','7','8','9','10']},
       {key:'lesson', label:'收获/教训', type:'textarea', placeholder:'学到了什么...'},
       {key:'date', label:'日期', type:'date'}
@@ -1098,7 +1100,11 @@ function renderFormHtml(sceneId, item){
     }
   }
   var html = '';
-  config.fields.forEach(function(f){
+  var extraHtml = '';
+  var reqs = REQUIRED_KEYS[sceneId] || [];
+  var coreKeys = config.fields.slice(0,3).map(function(f){return f.key;}).concat(reqs).concat(['date']);
+  var hasExtra = config.fields.length > 4;
+  config.fields.forEach(function(f, idx){
     var val = '';
     if(item){
       val = item[f.key] || '';
@@ -1114,32 +1120,39 @@ function renderFormHtml(sceneId, item){
     if(f.type === 'date' && !val) val = TODAY;
     var req = isFieldRequired(sceneId, f.key);
     var reqMark = req ? ' <span style="color:#EF4444">*</span>' : '';
-    html += '<label>'+f.label+reqMark+'</label>';
+    var fieldHtml = '<label>'+f.label+reqMark+'</label>';
     if(f.type === 'select'){
-      html += '<select id="f_'+f.key+'">';
-      html += '<option value="">请选择</option>';
+      fieldHtml += '<select id="f_'+f.key+'">';
+      fieldHtml += '<option value="">请选择</option>';
       f.options.forEach(function(opt){
         var v = String(opt);
         var selected = String(val) === v ? ' selected' : '';
-        html += '<option value="'+opt+'"'+selected+'>'+opt+'</option>';
+        fieldHtml += '<option value="'+opt+'"'+selected+'>'+opt+'</option>';
       });
-      html += '</select>';
+      fieldHtml += '</select>';
     } else if(f.type === 'textarea'){
-      html += '<textarea id="f_'+f.key+'" rows="3" placeholder="'+(f.placeholder||'')+'">'+val+'</textarea>';
+      fieldHtml += '<textarea id="f_'+f.key+'" rows="3" placeholder="'+(f.placeholder||'')+'">'+val+'</textarea>';
     } else {
-      html += '<input id="f_'+f.key+'" type="'+f.type+'" placeholder="'+(f.placeholder||'')+'" value="'+val+'">';
+      fieldHtml += '<input id="f_'+f.key+'" type="'+f.type+'" placeholder="'+(f.placeholder||'')+'" value="'+val+'">';
       if(f.type === 'text' && !item){
         var recents = getRecentTexts(sceneId, f.key);
         if(recents.length){
-          html += '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">';
+          fieldHtml += '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">';
           recents.forEach(function(r){
-            html += '<span onclick="applyQuickTag(\''+f.key+'\',\''+encodeURIComponent(r)+'\')" style="font-size:12px;padding:4px 10px;background:var(--c-accent);color:var(--c-primary);border-radius:12px;cursor:pointer">'+escapeHtml(r)+'</span>';
+            fieldHtml += '<span onclick="applyQuickTag(\''+f.key+'\',\''+encodeURIComponent(r)+'\')" style="font-size:12px;padding:4px 10px;background:var(--c-accent);color:var(--c-primary);border-radius:12px;cursor:pointer">'+escapeHtml(r)+'</span>';
           });
-          html += '</div>';
+          fieldHtml += '</div>';
         }
       }
     }
+    var isCore = coreKeys.indexOf(f.key) !== -1 || idx < 3;
+    if(isCore || !hasExtra){ html += fieldHtml; }
+    else { extraHtml += fieldHtml; }
   });
+  if(hasExtra && extraHtml){
+    html += '<div id="extraFields" style="display:none;padding-top:8px;border-top:1px dashed var(--c-border);margin-top:8px">' + extraHtml + '</div>';
+    html += '<div onclick="var e=document.getElementById(\'extraFields\');e.style.display=e.style.display===\'none\'?\'block\':\'none\';this.textContent=e.style.display===\'none\'?\'▽ 展开更多\' : \'△ 收起\'" style="text-align:center;font-size:13px;color:var(--c-primary);cursor:pointer;padding:8px;margin-top:4px">▽ 展开更多</div>';
+  }
   return html;
 }
 
@@ -1296,6 +1309,56 @@ function closeModal(){ document.getElementById('modal').classList.remove('act');
 // 认知引擎（Phase 1）：modal2 + 原则库 + 决策推演 + 反馈弹窗
 // ============================================================
 function closeModal2(){ document.getElementById('modal2').classList.remove('act'); }
+
+// 回收站
+async function openTrash(){
+  openModal2('♻️ 回收站', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/trash');
+    var list = await r.json();
+    if(!list.length){
+      openModal2('♻️ 回收站（空）', '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px">回收站为空<br>删除的记录会在这里保留30天</div>');
+      return;
+    }
+    var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">共 '+list.length+' 条 · 30天后自动清理</div>';
+    list.forEach(function(t){
+      var modName = {finance:'财务',sleep:'睡眠',exercise:'锻炼',emotion:'情绪',diet:'饮食',diary:'日记',learn:'学习',photo:'摄影',think:'思考',work:'工作',home:'居住',travel:'出行',body:'身体',relation:'关系',time:'时间',growth:'成长',spirit:'精神'}[t._module] || t._module;
+      var title = t.content || t.name || t.title || t.symptom || t.person || '记录';
+      var delDate = (t._deletedAt||'').split('T')[0];
+      html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #F59E0B">';
+      html += '<div style="font-size:13px;color:#1A1A2E">'+escapeHtml(String(title).substring(0,40))+'</div>';
+      html += '<div style="font-size:11px;color:#9CA3AF;margin-top:2px">'+modName+' · 删于'+delDate+'</div>';
+      html += '<div style="display:flex;gap:12px;margin-top:6px">';
+      html += '<span style="font-size:12px;color:#10B981;cursor:pointer" onclick="restoreTrash(\''+t.id+'\')">↩️ 恢复</span>';
+      html += '<span style="font-size:12px;color:#EF4444;cursor:pointer" onclick="deleteTrash(\''+t.id+'\')">彻底删除</span>';
+      html += '</div></div>';
+    });
+    html += '<button onclick="emptyTrash()" style="width:100%;margin-top:8px;padding:10px;border:1px solid #EF4444;border-radius:10px;background:transparent;color:#EF4444;font-size:13px;cursor:pointer">清空回收站</button>';
+    openModal2('♻️ 回收站（'+list.length+'）', html);
+  } catch(e) {
+    openModal2('♻️ 回收站', '<div style="color:#EF4444;padding:20px">加载失败</div>');
+  }
+}
+async function restoreTrash(id){
+  try {
+    await fetch('/api/trash/'+id+'/restore', { method:'POST' });
+    openTrash();
+  } catch(e) { alert('恢复失败'); }
+}
+async function deleteTrash(id){
+  if(!confirm('彻底删除？此操作不可撤销。')) return;
+  try {
+    await fetch('/api/trash/'+id, { method:'DELETE' });
+    openTrash();
+  } catch(e) { alert('删除失败'); }
+}
+async function emptyTrash(){
+  if(!confirm('清空回收站？所有记录将永久删除。')) return;
+  try {
+    await fetch('/api/trash', { method:'DELETE' });
+    openTrash();
+  } catch(e) { alert('操作失败'); }
+}
 function openModal2(title, bodyHtml, actionsHtml){
   document.getElementById('modal2Title').textContent = title;
   document.getElementById('modal2Body').innerHTML = bodyHtml;

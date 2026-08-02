@@ -111,7 +111,7 @@ if (fs.existsSync(path.join(__dirname, 'frontend'))) {
 }
 
 // ============ 修复：health 和 insights 必须在通用路由前 ============
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.4' }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.5' }));
 
 // ============ 今日之问 API ============
 const QUESTION_POOL = [
@@ -3334,10 +3334,53 @@ app.post('/api/:module/add', (req, res) => {
 app.delete('/api/:module/:id', (req, res) => {
   const d = readData(req.params.module);
   const targetId = String(req.params.id);
+  const deletedItem = d.find(i => String(i.id) === targetId);
+  // 回收站：移到 deleted 模块，30天后自动清理
+  if (deletedItem) {
+    const trash = readData('deleted');
+    trash.push(Object.assign({}, deletedItem, { _module: req.params.module, _deletedAt: new Date().toISOString() }));
+    writeData('deleted', trash);
+  }
   writeData(req.params.module, d.filter(i => String(i.id) !== targetId));
   res.json({ success: true, removed: d.length - readData(req.params.module).length });
 });
 
+// 回收站 API
+app.get('/api/trash', (req, res) => {
+  const trash = readData('deleted');
+  // 清理30天前的
+  const now = Date.now();
+  const valid = trash.filter(t => {
+    if (!t._deletedAt) return false;
+    return (now - new Date(t._deletedAt).getTime()) < 30 * 86400000;
+  });
+  if (valid.length !== trash.length) writeData('deleted', valid);
+  res.json(valid);
+});
+app.post('/api/trash/:id/restore', (req, res) => {
+  const trash = readData('deleted');
+  const item = trash.find(t => String(t.id) === String(req.params.id));
+  if (!item) return res.json({ success: false, message: '记录不存在' });
+  const mod = item._module;
+  const restored = Object.assign({}, item);
+  delete restored._module; delete restored._deletedAt;
+  const modData = readData(mod);
+  modData.push(restored);
+  writeData(mod, modData);
+  writeData('deleted', trash.filter(t => String(t.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+app.delete('/api/trash/:id', (req, res) => {
+  const trash = readData('deleted');
+  writeData('deleted', trash.filter(t => String(t.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+// 清空回收站
+app.delete('/api/trash', (req, res) => {
+  writeData('deleted', []);
+  res.json({ success: true });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🍆 茄子管家 v5.4 运行在 http://localhost:${PORT}`);
+  console.log(`🍆 茄子管家 v5.5 运行在 http://localhost:${PORT}`);
 });
