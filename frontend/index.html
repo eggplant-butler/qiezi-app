@@ -210,6 +210,19 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
   <div id="achievementList" style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;min-height:20px;">加载中...</div>
 </div>
 
+<!-- ====== 工作模式 ====== -->
+<div id="workArea" style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">💼 工作</span>
+    <span style="display:flex;gap:6px;align-items:center;">
+      <span id="workModeBadge" style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(139,92,246,0.15);color:#A78BFA;">日常</span>
+      <button onclick="switchWorkMode()" style="background:transparent;border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:2px 8px;color:#94A3B8;font-size:10px;cursor:pointer;">切换</button>
+    </span>
+  </div>
+  <div id="workStats" style="display:flex;gap:12px;font-size:11px;color:#94A3B8;margin-bottom:4px;"></div>
+  <div id="workContent" style="font-size:13px;color:#CBD5E1;min-height:20px;">加载中...</div>
+</div>
+
 <div id="homeCorrelations"></div>
 <div id="homeSuggestions"></div>
 </div>
@@ -303,6 +316,7 @@ async function initApp() {
   loadHousework();
   loadSocial();
   loadAchievements();
+  loadWork();
 }
 
 async function loadDailyQuestion() {
@@ -493,10 +507,47 @@ function renderDetail(id){
   var c=document.getElementById('detailContent');
   if(!data.length){ c.innerHTML='<div class="empty"><span class="ic">📭</span>还没有记录，点 + 添加</div>'; return; }
   c.innerHTML='<div>'+data.slice().reverse().map(function(item){
-    var l=item.content||item.name||'记录';
-    var s=item.date||'';
-    if(item.amount) l+=' ¥'+item.amount;
-    if(item.rating) s+=' · 评分'+item.rating;
+    var l='', s=item.date||'';
+    // 根据模块类型智能展示字段
+    if(id==='finance'){
+      l=(item.type||'')+' · '+(item.category||'')+' · '+(item.content||item.note||'');
+      if(item.amount) l+=' ¥'+item.amount;
+    } else if(id==='sleep'){
+      l=(item.hours||'?')+'小时 · '+(item.quality||'');
+      if(item.content||item.note) l+=' · '+(item.content||item.note);
+    } else if(id==='exercise'){
+      l=(item.type||'运动')+' · '+(item.duration||'?')+'分钟 · '+(item.intensity||'');
+      if(item.content) l+=' · '+item.content;
+    } else if(id==='emotion'){
+      l='情绪 '+(item.rating||'?')+'/10';
+      if(item.content) l+=' · '+item.content;
+    } else if(id==='diet'){
+      l=(item.meal||'')+' · '+(item.content||'');
+      if(item.calories) l+=' · '+item.calories+'卡';
+    } else if(id==='photo'){
+      l=item.title||'摄影作品';
+      if(item.quality) l+=' · ⭐'+item.quality;
+      if(item.content) l+=' · '+item.content;
+    } else if(id==='think'){
+      l=item.content||'思考';
+      if(item.rating) l+=' · 深度'+item.rating+'/5';
+    } else if(id==='diary'){
+      l=item.content||'日记';
+    } else if(id==='learn'){
+      l=(item.subject||'')+' · '+(item.content||'学习记录');
+      if(item.duration) l+=' · '+item.duration+'分钟';
+    } else if(id==='inventory'){
+      l=(item.name||'物品')+' × '+(item.quantity||1);
+      if(item.location) l+=' · '+item.location;
+    } else if(id==='space'){
+      l=(item.name||'空间')+' · '+(item.area||'');
+      if(item.content) l+=' · '+item.content;
+    } else {
+      l=item.content||item.name||item.title||'记录';
+      if(item.amount) l+=' ¥'+item.amount;
+      if(item.rating) l+=' · 评分'+item.rating;
+    }
+    if(item.note && id!=='finance') s+=' · '+(item.note||'');
     return '<div class="rec"><div><div class="tt">'+l+'</div><div class="sb">'+s+'</div></div><div class="ac"><button onclick="editRec(\''+id+'\',\''+item.id+'\')">✏️</button><button class="dl" onclick="delRec(\''+id+'\',\''+item.id+'\')">🗑️</button></div></div>';
   }).join('')+'</div>';
 }
@@ -570,6 +621,33 @@ var MODAL_FORMS = {
     title: '日记',
     fields: [
       {key:'content', label:'日记内容', type:'textarea', placeholder:'记录今天的经历、感受...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  learn: {
+    title: '学习记录',
+    fields: [
+      {key:'subject', label:'学科/主题', type:'text', placeholder:'如：英语、编程、设计'},
+      {key:'content', label:'学习内容', type:'textarea', placeholder:'学了什么...'},
+      {key:'duration', label:'时长(分钟)', type:'number', placeholder:'30'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  inventory: {
+    title: '物品记录',
+    fields: [
+      {key:'name', label:'物品名称', type:'text', placeholder:'如：笔记本电脑'},
+      {key:'quantity', label:'数量', type:'number', placeholder:'1'},
+      {key:'location', label:'存放位置', type:'text', placeholder:'如：书房'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  space: {
+    title: '空间记录',
+    fields: [
+      {key:'name', label:'空间名称', type:'text', placeholder:'如：客厅、卧室'},
+      {key:'area', label:'面积(㎡)', type:'number', placeholder:'可选'},
+      {key:'content', label:'描述', type:'textarea', placeholder:'空间用途、整理情况...'},
       {key:'date', label:'日期', type:'date'}
     ]
   }
@@ -692,9 +770,14 @@ function closeModal(){ document.getElementById('modal').classList.remove('act');
 
 function renderRecord(){
   var c=document.getElementById('recordList');
-  c.innerHTML=SCENES.map(function(s){
+  // 合并 SCENES 和 CORE_MODULES，去重
+  var allMods = [];
+  var seen = {};
+  SCENES.forEach(function(s){ if(!seen[s.id]){ allMods.push(s); seen[s.id]=1; } });
+  CORE_MODULES.forEach(function(m){ if(!seen[m.id]){ allMods.push({id:m.id, name:m.label, icon:m.icon, brief:''}); seen[m.id]=1; } });
+  c.innerHTML=allMods.map(function(s){
     var cnt=(dataCache[s.id]||[]).length;
-    return '<div class="space-item" onclick="openScene(\''+s.id+'\')"><div class="top"><span class="nm">'+s.icon+' '+s.name+'</span><span class="cnt">'+cnt+'条</span></div><div class="sub">'+s.brief+'</div></div>';
+    return '<div class="space-item" onclick="openScene(\''+s.id+'\')"><div class="top"><span class="nm">'+s.icon+' '+(s.name||s.label||s.id)+'</span><span class="cnt">'+cnt+'条</span></div><div class="sub">'+(s.brief||'点击查看详情')+'</div></div>';
   }).join('');
 }
 
@@ -1014,6 +1097,108 @@ function viewAchievements() {
       alert(msg);
     })
     .catch(function(e) { alert('加载失败'); });
+}
+
+// ============================================================
+// 工作模式 JS
+// ============================================================
+async function loadWork() {
+  try {
+    var modeRes = await fetch('/api/work-mode');
+    var statsRes = await fetch('/api/work-stats');
+    var skillsRes = await fetch('/api/skills');
+    var mode = await modeRes.json();
+    var stats = await statsRes.json();
+    var skills = await skillsRes.json();
+    var modeNames = { normal: '日常', interview: '🎯 面试', sales: '📈 销售', coach: '📚 辅导' };
+    document.getElementById('workModeBadge').textContent = modeNames[mode.mode] || '日常';
+    document.getElementById('workStats').innerHTML =
+      '<span>📋 面试 ' + (stats.interviews.total || 0) + '</span>' +
+      '<span>🎯 Offer ' + (stats.interviews.offers || 0) + '</span>' +
+      '<span>⭐ 技能 ' + (skills.count || 0) + '</span>';
+    var container = document.getElementById('workContent');
+    var html = '';
+    if (mode.mode === 'interview') {
+      var interviews = await fetch('/api/interviews').then(function(r) { return r.json(); });
+      var pending = interviews.filter(function(i) { return i.status === '待面试'; });
+      var recent = interviews.slice(0, 3);
+      if (pending.length > 0) {
+        html += '<div style="color:#FBBF24;font-size:12px;">📌 ' + pending.length + ' 个待面试</div>';
+      }
+      if (recent.length > 0) {
+        html += recent.map(function(i) {
+          return '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;">' +
+            '<span style="color:#CBD5E1;">' + i.company + ' · ' + i.position + '</span>' +
+            '<span style="color:#64748B;">' + i.status + '</span>' +
+          '</div>';
+        }).join('');
+      } else {
+        html += '<div style="color:#64748B;font-size:12px;">暂无面试记录，点击下方添加</div>';
+      }
+      html += '<button onclick="openAddInterview()" style="margin-top:4px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;color:#64748B;font-size:11px;cursor:pointer;width:100%;">+ 添加面试</button>';
+    } else {
+      // 日常模式显示技能
+      var topSkills = skills.skills ? skills.skills.slice(0, 3) : [];
+      if (topSkills.length > 0) {
+        html += topSkills.map(function(s) {
+          return '<span style="display:inline-block;background:rgba(167,139,250,0.08);border-radius:8px;padding:2px 10px;font-size:11px;color:#A78BFA;margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
+        }).join('');
+      } else {
+        html += '<span style="color:#64748B;font-size:12px;">还没有技能评分，点击下方添加</span>';
+      }
+      html += '<button onclick="openAddSkill()" style="margin-top:4px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;color:#64748B;font-size:11px;cursor:pointer;width:100%;">+ 添加技能</button>';
+    }
+    container.innerHTML = html;
+  } catch(e) { document.getElementById('workContent').textContent = '加载失败'; }
+}
+
+function switchWorkMode() {
+  var modes = ['normal', 'interview', 'sales', 'coach'];
+  var labels = ['日常', '面试模式', '销售模式', '辅导模式'];
+  var choice = prompt('选择工作模式：\n1. 日常\n2. 面试模式\n3. 销售模式\n4. 辅导模式', '1');
+  if (!choice) return;
+  var idx = parseInt(choice) - 1;
+  if (idx < 0 || idx > 3) return;
+  fetch('/api/work-mode', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: modes[idx] })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { if (data.success) { alert(data.message); loadWork(); } })
+  .catch(function(e) { alert('网络错误'); });
+}
+
+function openAddInterview() {
+  var company = prompt('🏢 公司名称：');
+  if (!company) return;
+  var position = prompt('📌 岗位：');
+  if (!position) return;
+  var salary = prompt('💰 薪资范围（可选）：') || '';
+  var date = prompt('📅 面试日期（YYYY-MM-DD）：') || new Date().toISOString().split('T')[0];
+  fetch('/api/interview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ company: company, position: position, date: date, salary: salary, status: '待面试' })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { if (data.success) { alert('✅ 面试已添加'); loadWork(); } })
+  .catch(function(e) { alert('网络错误'); });
+}
+
+function openAddSkill() {
+  var name = prompt('⭐ 技能名称：');
+  if (!name) return;
+  var score = prompt('📊 评分（1-10）：');
+  if (!score || isNaN(score) || score < 1 || score > 10) { alert('请输入1-10的数字'); return; }
+  fetch('/api/skill', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, score: parseInt(score) })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { if (data.success) { alert('✅ 技能已添加'); loadWork(); } })
+  .catch(function(e) { alert('网络错误'); });
 }
 </script>
 </body>

@@ -99,26 +99,6 @@ app.get('/api/insights', (req, res) => {
   res.json(generateInsights(all));
 });
 
-// ============ 通用 CRUD API ============
-app.get('/api/:module', (req, res) => {
-  res.json(readData(req.params.module));
-});
-app.post('/api/:module', (req, res) => {
-  writeData(req.params.module, req.body);
-  res.json({ success: true });
-});
-app.post('/api/:module/add', (req, res) => {
-  const d = readData(req.params.module);
-  d.push(req.body);
-  writeData(req.params.module, d);
-  res.json({ success: true, id: req.body.id });
-});
-app.delete('/api/:module/:id', (req, res) => {
-  const d = readData(req.params.module);
-  writeData(req.params.module, d.filter(i => i.id !== req.params.id));
-  res.json({ success: true });
-});
-
 // ============ 完整洞察引擎 ============
 function generateInsights(data) {
   const now = new Date();
@@ -682,6 +662,138 @@ app.post('/api/achievements/check', (req, res) => {
   });
   if (newUnlocked > 0) writeData('achievements', achievements);
   res.json({ newUnlocked, totalUnlocked: achievements.filter(a => a.unlocked).length, achievements });
+});
+
+// ============================================================
+// 工作模式 API
+// ============================================================
+app.get('/api/work-mode', (req, res) => {
+  const mode = readData('work_mode')[0] || { mode: 'normal', updatedAt: null };
+  res.json(mode);
+});
+
+app.post('/api/work-mode', (req, res) => {
+  const { mode } = req.body;
+  if (!['normal', 'interview', 'sales', 'coach'].includes(mode)) {
+    return res.json({ success: false, message: '无效模式' });
+  }
+  writeData('work_mode', [{ mode, updatedAt: new Date().toISOString() }]);
+  res.json({ success: true, message: `✅ 已切换至「${mode}」模式` });
+});
+
+// 面试记录
+app.post('/api/interview', (req, res) => {
+  const { company, position, date, status, salary, note } = req.body;
+  if (!company || !position) return res.json({ success: false, message: '请填写公司和岗位' });
+  const interviews = readData('interviews');
+  const record = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    company,
+    position,
+    date: date || new Date().toISOString().split('T')[0],
+    status: status || '待面试',
+    salary: salary || '',
+    note: note || '',
+    createdAt: new Date().toISOString()
+  };
+  interviews.push(record);
+  writeData('interviews', interviews);
+  res.json({ success: true, record });
+});
+
+app.get('/api/interviews', (req, res) => {
+  const interviews = readData('interviews');
+  const statusOrder = { '待面试': 0, '已面试': 1, '已Offer': 2, '已拒绝': 3 };
+  res.json(interviews.sort((a,b) => (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0)));
+});
+
+app.put('/api/interview/:id', (req, res) => {
+  const { status, note } = req.body;
+  const interviews = readData('interviews');
+  const target = interviews.find(i => i.id === req.params.id);
+  if (!target) return res.json({ success: false, message: '未找到记录' });
+  if (status) target.status = status;
+  if (note) target.note = note;
+  target.updatedAt = new Date().toISOString();
+  writeData('interviews', interviews);
+  res.json({ success: true, message: '✅ 已更新' });
+});
+
+app.delete('/api/interview/:id', (req, res) => {
+  const interviews = readData('interviews');
+  writeData('interviews', interviews.filter(i => i.id !== req.params.id));
+  res.json({ success: true });
+});
+
+// 技能评分
+app.post('/api/skill', (req, res) => {
+  const { name, score } = req.body;
+  if (!name || score === undefined) return res.json({ success: false, message: '请填写技能名称和评分' });
+  const skills = readData('skills');
+  const skill = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    name,
+    score: Math.min(10, Math.max(1, parseInt(score))),
+    date: new Date().toISOString().split('T')[0],
+    createdAt: new Date().toISOString()
+  };
+  skills.push(skill);
+  writeData('skills', skills);
+  res.json({ success: true, skill });
+});
+
+app.get('/api/skills', (req, res) => {
+  const skills = readData('skills');
+  // 按技能名称分组，取最新评分
+  const grouped = {};
+  skills.forEach(s => {
+    if (!grouped[s.name] || s.date > grouped[s.name].date) {
+      grouped[s.name] = s;
+    }
+  });
+  const latest = Object.values(grouped);
+  // 计算平均分
+  const avg = latest.length > 0 ? (latest.reduce((a,b) => a + b.score, 0) / latest.length).toFixed(1) : 0;
+  res.json({ skills: latest, all: skills, average: avg, count: latest.length });
+});
+
+// 工作统计（KPI 进度）
+app.get('/api/work-stats', (req, res) => {
+  const interviews = readData('interviews');
+  const skills = readData('skills');
+  const offers = interviews.filter(i => i.status === '已Offer').length;
+  const rejected = interviews.filter(i => i.status === '已拒绝').length;
+  const pending = interviews.filter(i => i.status === '待面试').length;
+  const done = interviews.filter(i => i.status === '已面试').length;
+  const total = interviews.length;
+  const avgSkill = skills.length > 0 ? (skills.reduce((a,b) => a + b.score, 0) / skills.length).toFixed(1) : 0;
+  res.json({
+    interviews: { total, pending, done, offers, rejected },
+    skills: { total: skills.length, average: avgSkill },
+    kpi: total > 0 ? Math.round((offers / total) * 100) : 0
+  });
+});
+
+// ============================================================
+// 通用 CRUD API（必须放在所有具体路由之后！）
+// ============================================================
+app.get('/api/:module', (req, res) => {
+  res.json(readData(req.params.module));
+});
+app.post('/api/:module', (req, res) => {
+  writeData(req.params.module, req.body);
+  res.json({ success: true });
+});
+app.post('/api/:module/add', (req, res) => {
+  const d = readData(req.params.module);
+  d.push(req.body);
+  writeData(req.params.module, d);
+  res.json({ success: true, id: req.body.id });
+});
+app.delete('/api/:module/:id', (req, res) => {
+  const d = readData(req.params.module);
+  writeData(req.params.module, d.filter(i => i.id !== req.params.id));
+  res.json({ success: true });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
