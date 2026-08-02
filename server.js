@@ -775,6 +775,1499 @@ app.get('/api/work-stats', (req, res) => {
 });
 
 // ============================================================
+// 认知引擎 ENG（Phase 1：鬼谷子视角 + 不以物喜不以己悲）
+// ============================================================
+const ENG = {
+  // 反思提问：基于模块 + 本次数据 + 历史，生成直击本质的问题
+  reflect(mid, data, hist) {
+    const recent = hist.filter(x => x.mid === mid).slice(0, 7);
+    const fns = {
+      sleep: () => {
+        const d = parseFloat(data.hours || data.duration || 0);
+        const avg = recent.length ? recent.reduce((s,x) => s + parseFloat(x.data?.hours || x.data?.duration || 0), 0) / recent.length : d;
+        if (d < 6) return `睡眠${d}h，近7天均${avg.toFixed(1)}h。\n被什么拖着没睡——事、人、还是情绪？\n权衡：再撑3天，你将损失什么（认知/情绪/判断）？停下，你又怕失去什么？`;
+        if (d >= 8) return `睡眠${d}h。\n这是"养精蓄锐"还是"逃避现实"？\n如实看自己——充足睡眠后你做了什么，决定了它是利器还是麻醉。`;
+        return `睡眠${d}h，近7天均${avg.toFixed(1)}h。\n在变好还是变差？\n背后那件你明知该改却没改的事，是什么？`;
+      },
+      emotion: () => {
+        const l = parseInt(data.rating || data.level || 3);
+        const avg = recent.length ? recent.reduce((s,x) => s + parseInt(x.data?.rating || x.data?.level || 3), 0) / recent.length : l;
+        if (l <= 2) return `情绪${l}/5，近5次均${avg.toFixed(1)}。\n是事件触发还是积压爆发？\n别人看到的是真相，还是你想让他们看到的？\n若3天后还这样，你打算主动做什么？`;
+        if (l >= 4) return `情绪${l}/5。\n什么让你好？是外在成就（易失）还是内在安定（不易得）？\n前者要警觉，后者要复用。`;
+        return `情绪${l}/5，均${avg.toFixed(1)}。\n是"不以物喜不以己悲"的中正，还是麻木？\n两者看起来一样，内里完全不同。`;
+      },
+      exercise: () => {
+        const d = parseFloat(data.duration || 0);
+        if (d >= 30) return `运动${d}min。\n你在追求什么？逃避什么？\n运动后那一刻，你脑子最清楚的那件事是什么？`;
+        if (d > 0) return `运动${d}min。\n动了，但够吗？\n还是用"动一下"安抚了"该认真练"的焦虑？`;
+        return `没运动。\n是身体不需要，还是你不想面对自己？\n连身体都照顾不好时，你的判断力能可信吗？`;
+      },
+      finance: () => {
+        const amt = parseFloat(data.amount || 0);
+        const typ = data.type;
+        if (typ === 'income') return `收入${amt}元。\n这是你能力的回报，还是运气的赠予？\n前者可复制，后者不可恃。`;
+        if (amt >= 500) return `支出${amt}元。\n是"需要"还是"想要"？\n买的那一刻开心，3天后还开心吗？\n如果记账后你心疼——心疼的不是钱，是失控。`;
+        if (amt > 0) return `支出${amt}元。小事。\n但小事的累积就是大事。\n一个月下来，这种"无感消费"占了多少？`;
+        return `记账了。\n这次记账是仪式感，还是真的看见了？`;
+      },
+      diet: () => {
+        const c = data.content || '';
+        if (c.includes('外卖') || c.includes('快餐')) return `外卖：${c}。\n是没时间还是没心力？\n前者是忙，后者是丧——两者解法完全不同。`;
+        if (c.includes('蔬菜') || c.includes('沙拉')) return `清淡饮食。\n在养身还是养焦虑？\n身体舒服时，脑子才肯说实话。`;
+        return `吃了：${c}。\n这是喂饱饥饿，还是喂饱情绪？\n区分这俩，是成年人对自己最重要的诚实。`;
+      },
+      diary: () => {
+        const c = data.content || '';
+        return `你写下："${c.slice(0,40)}${c.length>40?'...':''}"\n一年后这件事还重要吗？\n如果是，为什么现在你只用了日记的篇幅？\n如果不是，你为什么此刻为它消耗心力？`;
+      },
+      think: () => {
+        const c = data.content || '';
+        return `你在想："${c.slice(0,40)}${c.length>40?'...':''}"\n权衡三件事：\n1. 这事一年后还重要吗？\n2. 你能控制的部分占多少？\n3. 不决策的代价，比错决策的代价低还是高？`;
+      },
+      photo: () => {
+        const q = parseFloat(data.quality || 0);
+        if (q >= 4) return `质量${q}/5。\n在表达什么？\n技术跟上了，但你有"非拍不可"的理由吗？\n摄影到最后拼的不是光圈，是眼睛。`;
+        if (q > 0) return `质量${q}/5。\n是审美问题还是练习问题？\n前者要看好照片，后者要按快门——你属于哪种？`;
+        return `拍了。复盘了吗？\n一张能让你说清楚"为什么按"的照片，胜过100张"觉得好看"的。`;
+      },
+      learn: () => {
+        const c = data.content || '';
+        return `学了："${c.slice(0,30)}${c.length>30?'...':''}"\n7天后你能用它做什么？\n如果7天后用不上，它对你的"成长"是真价值，还是焦虑的安慰剂？`;
+      },
+      body: () => `记录身体：${data.content || ''}。\n这个信号在告诉你什么？\n忽视它3个月，代价是什么？重视它1周，回报是什么？`,
+      relation: () => `记录关系：${data.content || data.name || ''}。\n这段关系在滋养你，还是在消耗你？\n如果一年后它还是这样，你愿意吗？`
+    };
+    const fn = fns[mid];
+    if (fn) return fn();
+    if (recent.length >= 3) return `你在"${mid}"已有${recent.length}条记录。\n看到什么模式？\n这个模式在帮你，还是在限制你？`;
+    return `为什么开始关注这个？\n想改变什么？\n真正想改变的那件事，藏在你不想说的那部分里。`;
+  },
+
+  // 关联分析：跨模块找规律
+  correlate(hist) {
+    const out = [];
+    const sl = hist.filter(x => x.mid === 'sleep').slice(0, 14);
+    const mo = hist.filter(x => x.mid === 'emotion').slice(0, 14);
+
+    // 1. 睡眠<6h → 次日情绪
+    if (sl.length >= 2 && mo.length >= 2) {
+      const badDates = new Set(sl.filter(x => parseFloat(x.data?.hours || x.data?.duration || 99) < 6).map(x => (x.ts || '').split('T')[0]));
+      const nextMoods = mo.filter(x => {
+        const d = (x.ts || '').split('T')[0];
+        const prev = new Date(Date.parse(d) - 864e5).toISOString().split('T')[0];
+        return badDates.has(prev);
+      });
+      if (nextMoods.length >= 2) {
+        const avg = nextMoods.reduce((s,x) => s + parseInt(x.data?.rating || x.data?.level || 3), 0) / nextMoods.length;
+        if (avg < 3.5) out.push({ t:'sleep_mood', s:'high', m:`睡眠<6h的次日，情绪均${avg.toFixed(1)}/5。睡眠不是问题，是地基——地基塌了，上层建筑都是临时的。` });
+      }
+    }
+
+    // 2. 锻炼日 → 当日情绪
+    const ex = hist.filter(x => x.mid === 'exercise').slice(0, 14);
+    if (ex.length >= 2 && mo.length >= 4) {
+      const exDates = new Set(ex.map(x => (x.ts || '').split('T')[0]));
+      const exMoods = mo.filter(x => exDates.has((x.ts || '').split('T')[0]));
+      const noExMoods = mo.filter(x => !exDates.has((x.ts || '').split('T')[0]));
+      if (exMoods.length >= 2 && noExMoods.length >= 2) {
+        const a1 = exMoods.reduce((s,x) => s + parseInt(x.data?.rating || 3), 0) / exMoods.length;
+        const a2 = noExMoods.reduce((s,x) => s + parseInt(x.data?.rating || 3), 0) / noExMoods.length;
+        if (a1 - a2 > 0.5) out.push({ t:'ex_mood', s:'med', m:`运动日情绪${a1.toFixed(1)}，非运动日${a2.toFixed(1)}。运动是你的解药——但它不能"治愈"，只能"维持"。` });
+      }
+    }
+
+    // 3. 连续情绪低
+    const r5 = mo.slice(0, 5);
+    if (r5.length >= 3 && r5.every(x => parseInt(x.data?.rating || x.data?.level || 3) <= 2)) {
+      out.push({ t:'mood_down', s:'crit', m:`连续${r5.length}次情绪≤2。这不是心情，是状态。\n等"自己想通"会等太久——主动做一件最小的事。` });
+    }
+
+    // 4. 近3笔高消费
+    const fin = hist.filter(x => x.mid === 'finance').slice(0, 3);
+    if (fin.length >= 3) {
+      const spend = fin.filter(x => x.data?.type === 'expense').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+      if (spend >= 1000) out.push({ t:'high_spend', s:'med', m:`近3笔支出合计${spend.toFixed(0)}元。\n这是计划内，还是情绪驱动？\n后者不是钱的问题，是填补的欲望。` });
+    }
+
+    return out;
+  },
+
+  // 风险评估：长期模式识别
+  risks(hist) {
+    const out = [];
+    const sl = hist.filter(x => x.mid === 'sleep').slice(0, 7);
+    if (sl.length >= 3) {
+      const avg = sl.reduce((s,x) => s + parseFloat(x.data?.hours || x.data?.duration || 0), 0) / sl.length;
+      if (avg < 6 && avg > 0) out.push({ l:'high', c:'health', t:`近7天均睡眠${avg.toFixed(1)}h。\n长期<6h损害认知、情绪、判断——你以为在熬夜赢时间，其实在透支决策力。` });
+    }
+    const mo = hist.filter(x => x.mid === 'emotion').slice(0, 14);
+    if (mo.length >= 5) {
+      const avg = mo.reduce((s,x) => s + parseInt(x.data?.rating || x.data?.level || 3), 0) / mo.length;
+      if (avg < 2.5) out.push({ l:'high', c:'mood', t:`近14天情绪均${avg.toFixed(1)}/5。\n持续低不是情绪问题，是生活结构问题——该调整的不是心情，是节奏。` });
+    }
+    const fin = hist.filter(x => x.mid === 'finance');
+    if (fin.length >= 5) {
+      const last30 = fin.slice(0, 30);
+      const exp = last30.filter(x => x.data?.type === 'expense').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+      const inc = last30.filter(x => x.data?.type === 'income').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+      if (exp > inc && inc > 0) out.push({ l:'med', c:'finance', t:`近30天支出${exp.toFixed(0)}元 > 收入${inc.toFixed(0)}元。\n短期可忍，长期是慢性失血。` });
+    }
+    const ex = hist.filter(x => x.mid === 'exercise').slice(0, 14);
+    if (ex.length === 0 && hist.length >= 10) out.push({ l:'low', c:'health', t:'14天内无运动记录。\n身体是承载一切的容器——容器漏了，里面的东西再珍贵也留不住。' });
+    return out;
+  },
+
+  // 每日总结
+  daily(hist) {
+    const t = new Date().toISOString().split('T')[0];
+    const tr = hist.filter(x => (x.ts || '').split('T')[0] === t);
+    if (!tr.length) return null;
+    const mods = new Set(tr.map(x => x.mid));
+    let s = `今日${tr.length}条，覆盖${mods.size}个维度。`;
+    const m = tr.find(x => x.mid === 'emotion');
+    if (m) s += ` 情绪${m.data?.rating || m.data?.level || '?'}/5。`;
+    const sl = tr.find(x => x.mid === 'sleep');
+    if (sl) s += ` 睡眠${sl.data?.hours || sl.data?.duration || '?'}h。`;
+    const ex = tr.find(x => x.mid === 'exercise');
+    if (ex) s += ` 运动${ex.data?.duration || '?'}min。`;
+    return s;
+  },
+
+  // 构造统一历史格式
+  buildHistory() {
+    const mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit'];
+    const hist = [];
+    mods.forEach(m => {
+      const records = readData(m);
+      if (!Array.isArray(records)) return;
+      records.forEach(r => {
+        if (!r) return;
+        hist.push({
+          mid: m,
+          ts: r.created || r.date || r.createdAt || new Date().toISOString(),
+          data: r
+        });
+      });
+    });
+    hist.sort((a, b) => (a.ts < b.ts ? 1 : -1));
+    return hist;
+  },
+
+  // ===== Phase 2 深度反思方法 =====
+
+  // 根因分析：判断5why是否挖到本质，还是停留在表层
+  rootCause(item) {
+    const whys = item.whys || [];
+    if (whys.length === 0) return '继续追问——根因往往藏在你不想说的那一层。';
+    const last = whys[whys.length - 1];
+    const shallow = ['因为','所以','我不知道','别人','没办法'];
+    const deep = ['我','我的','我害怕','我想要','我不敢','我习惯','我选择'];
+    let depthHit = deep.some(k => last.includes(k));
+    let shallowHit = shallow.some(k => last.includes(k));
+    let lines = [];
+    if (whys.length < 3) {
+      lines.push(`才${whys.length}层。表层原因往往是"事"，深层原因是"我"。\n继续问——到第3层，你通常会开始不舒服。`);
+    } else if (depthHit) {
+      lines.push(`第${whys.length}层你回到了"我"——这是根因的特征。\n但你确定这是根，还是只是"听起来深刻"？\n验证方法：如果消除它，触发事件还会发生吗？`);
+    } else if (shallowHit) {
+      lines.push(`第${whys.length}层仍在解释"为什么发生"，没回到"我做了什么让它发生"。\n5why 的终点不是客观原因，是你能控制的那个点。`);
+    } else {
+      lines.push(`第${whys.length}层。\n问自己：这个原因，是"环境/他人/运气"给的，还是"我的选择"给的？\n前者是借口，后者是根。`);
+    }
+    // 重复模式检测：历史上相似trigger
+    const all = readData('root_cause');
+    if (all.length >= 2) {
+      const triggerWords = item.trigger.split('').filter(c => c.trim() && !['，','。','的','了','是','我','一','有','这','那'].includes(c));
+      const similar = all.filter(r => r.id !== item.id && triggerWords.slice(0,3).some(w => r.trigger.includes(w)));
+      if (similar.length >= 1) {
+        lines.push(`\n⚠️ 这不是第一次——你已记录过 ${similar.length} 次类似触发。\n根因如果相同，说明你"知道"但没"改"——知道不是改变，行动才是。`);
+      }
+    }
+    if (!item.root || !item.root.trim()) {
+      lines.push(`\n提示：试着用一句话写"根因"。\n好的根因 = 一个你能主动改变的行为/信念，而不是一个你无法控制的事实。`);
+    }
+    return lines.join('\n');
+  },
+
+  // 人际博弈：鬼谷子视角的利益/成本复盘
+  interpersonal(item) {
+    const lines = [];
+    const net = item.net || 0;
+    if (item.myCost > 0 && item.myGain === 0) {
+      lines.push(`你付出 ${item.myCost}，收益 0。\n这是一次"赔本博弈"。\n问：你换到了什么看不见的东西——人情、安全感、避免冲突？\n如果是这些，那不是亏，是"投资关系"——但要确认对方是否知道你付出了。`);
+    } else if (net > 0) {
+      lines.push(`净收益 ${net}。\n赢了，但要警觉：\n1. 这次赢是可持续的，还是一次性的？\n2. 对方输了吗？如果输，他会记住——博弈是连续的，不是一次性的。`);
+    } else if (net < 0) {
+      lines.push(`净亏损 ${Math.abs(net)}。\n亏在明处的，往往是"低成本博弈"；亏在暗处的（情绪、时间、尊严），才是"高成本博弈"。\n问：你真正亏的是哪一种？`);
+    } else {
+      lines.push(`看似平衡。\n但人际博弈的真正成本不是钱，是"心力"。\n这次之后，你对这个人/这类事是更愿意了，还是更累了？`);
+    }
+    if (item.theirGoal && !item.myGoal) {
+      lines.push(`\n你只写了对方的目标，没写自己的——这是"被动应战"。\n被动的人永远不会赢，因为你不知道自己要什么，赢也只是对方失误。`);
+    } else if (item.myGoal && !item.theirGoal) {
+      lines.push(`\n你只写了"我要什么"，没写"他要什么"——这是"自我中心博弈"。\n鬼谷子：不知彼而知己，一胜一负。要赢，先看对方图什么。`);
+    } else if (item.myGoal && item.theirGoal) {
+      lines.push(`\n你图"${item.myGoal}"，他图"${item.theirGoal}"。\n问：这两件事，是零和的，还是可以双赢？\n大多数人际冲突不是利益冲突，是"以为冲突"。`);
+    }
+    if (!item.lesson || !item.lesson.trim()) {
+      lines.push(`\n提示：写一句"教训/收获"。\n不写的博弈，等于没发生过——你会重复同样的错误，只是换了个人。`);
+    }
+    return lines.join('\n');
+  },
+
+  // 定力训练：心境基线 + 训练有效性
+  mindfulness(item, list) {
+    const lines = [];
+    if (item.delta > 0) {
+      lines.push(`心境 ${item.beforeLevel}→${item.afterLevel}，提升 ${item.delta}。\n但问：提升来自"方法"，还是来自"事件过去"？\n前者可复用，后者只是时间。`);
+    } else if (item.delta < 0) {
+      lines.push(`心境 ${item.beforeLevel}→${item.afterLevel}，下降 ${Math.abs(item.delta)}。\n这次"训练"反而让你更糟——可能在逃避，而不是面对。\n真正的定力不是压制情绪，是看见它、不认同它。`);
+    } else {
+      lines.push(`心境 ${item.beforeLevel}→${item.afterLevel}，没变。\n没变有两种：一是真的稳，二是"假装稳"。\n区分：身体是否还紧绷？脑子是否还在反复想？`);
+    }
+    // 基线对比
+    const recent = (list || []).slice(0, 7);
+    if (recent.length >= 3) {
+      const avgBefore = recent.reduce((s,x) => s + (x.beforeLevel||3), 0) / recent.length;
+      const avgDelta = recent.reduce((s,x) => s + (x.delta||0), 0) / recent.length;
+      if (avgBefore <= 2.5) lines.push(`\n近${recent.length}次触发前心境均${avgBefore.toFixed(1)}/5——你的基线偏低。\n基线低的人，遇到小事就崩——这不是"压力大"，是"地基薄"。先养基线，再谈定力。`);
+      if (avgDelta <= 0.3) lines.push(`\n近${recent.length}次平均提升仅${avgDelta.toFixed(1)}——方法没用，或用错了。\n换方法：深呼吸无效时，试"身体扫描"；身体扫描无效时，试"离开现场10分钟"。`);
+      else if (avgDelta >= 1.5) lines.push(`\n近${recent.length}次平均提升${avgDelta.toFixed(1)}——方法有效。\n但要记住：定力训练是"应急"不是"根治"。频繁触发说明源头没解决。`);
+    }
+    return lines.join('\n');
+  },
+
+  // 心境基线：综合情绪+定力训练数据
+  mindfulnessBaseline() {
+    const emo = readData('emotion').filter(e => e.rating).slice(-30);
+    const mind = readData('mindfulness').slice(0, 30);
+    let baseline = null, trend = null;
+    if (emo.length >= 3) {
+      baseline = emo.reduce((s,x) => s + parseFloat(x.rating), 0) / emo.length;
+      const half = Math.floor(emo.length / 2);
+      const early = emo.slice(0, half), late = emo.slice(-half);
+      const eAvg = early.reduce((s,x) => s + parseFloat(x.rating), 0) / early.length;
+      const lAvg = late.reduce((s,x) => s + parseFloat(x.rating), 0) / late.length;
+      trend = lAvg - eAvg;
+    }
+    let avgDelta = null;
+    if (mind.length >= 1) {
+      avgDelta = mind.reduce((s,x) => s + (x.delta||0), 0) / mind.length;
+    }
+    let interpretation = '';
+    if (baseline === null) interpretation = '数据不足。先记录情绪7天以上，系统会给你建立心境基线。';
+    else if (baseline < 2.5) interpretation = `基线${baseline.toFixed(1)}/5，偏低。地基不稳，定力训练效果有限——先补睡眠、营养、运动，再谈心境。`;
+    else if (baseline < 3.5) interpretation = `基线${baseline.toFixed(1)}/5，中性。你在"中正"和"麻木"之间——觉察一下，你是真的平静，还是习惯性压抑？`;
+    else interpretation = `基线${baseline.toFixed(1)}/5，稳健。警惕：稳定的反面可能是"不痛不痒"——保持觉察，别让稳定变成停滞。`;
+    if (trend !== null) {
+      interpretation += trend > 0.3 ? `\n趋势：↑ 上升${trend.toFixed(1)}。什么在变好？复制它。` :
+                        trend < -0.3 ? `\n趋势：↓ 下降${Math.abs(trend).toFixed(1)}。什么在变差？别等到崩了才动。` :
+                        `\n趋势：→ 持平。持平有两种，分清是"稳"还是"卡"。`;
+    }
+    return { baseline, trend, avgDelta, sampleSize: emo.length, interpretation };
+  },
+
+  // 能量审计：单条反馈
+  energy(item, list) {
+    const lines = [];
+    if (item.type === 'drain') {
+      lines.push(`消耗 ${item.amount}/10：${item.source}。\n问：这是"必要消耗"还是"无效消耗"？\n必要消耗（如工作）要管理，无效消耗（如刷手机）要切割。`);
+      // 重复消耗源
+      const same = (list||[]).filter(x => x.type==='drain' && x.source === item.source);
+      if (same.length >= 3) {
+        const totalDrain = same.reduce((s,x) => s+x.amount, 0);
+        lines.push(`\n⚠️ "${item.source}" 已累计消耗 ${totalDrain}/10 × ${same.length}次。\n这是你的能量黑洞——再不管，它会吸干你。`);
+      }
+    } else {
+      lines.push(`充能 ${item.amount}/10：${item.source}。\n问：这是"真充能"还是"假充能"？\n真充能让你事后更有力（运动、独处、深度对话）；假充能让你当下爽、事后空（刷视频、吃糖、购物）。`);
+      const same = (list||[]).filter(x => x.type==='gain' && x.source === item.source);
+      if (same.length >= 3) {
+        const totalGain = same.reduce((s,x) => s+x.amount, 0);
+        lines.push(`\n✨ "${item.source}" 已累计充能 ${totalGain}/10 × ${same.length}次。\n这是你的能量源泉——保护它，定期回。`);
+      }
+    }
+    return lines.join('\n');
+  },
+
+  // 能量审计汇总
+  energyAudit() {
+    const now = new Date();
+    const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+    const ms = weekAgo.toISOString().split('T')[0];
+    const all = readData('energy');
+    const recent = all.filter(e => e.date >= ms);
+    const drains = recent.filter(e => e.type === 'drain');
+    const gains = recent.filter(e => e.type === 'gain');
+    const totalDrain = drains.reduce((s,x) => s+x.amount, 0);
+    const totalGain = gains.reduce((s,x) => s+x.amount, 0);
+    const net = totalGain - totalDrain;
+    // Top sources
+    const bySrc = {};
+    recent.forEach(e => {
+      if (!bySrc[e.source]) bySrc[e.source] = { drain: 0, gain: 0, count: 0 };
+      bySrc[e.source][e.type] += e.amount;
+      bySrc[e.source].count++;
+    });
+    const topDrains = Object.entries(bySrc).filter(([_,v]) => v.drain > 0).sort((a,b) => b[1].drain - a[1].drain).slice(0, 3).map(([k,v]) => ({ source: k, amount: v.drain, count: v.count }));
+    const topGains = Object.entries(bySrc).filter(([_,v]) => v.gain > 0).sort((a,b) => b[1].gain - a[1].gain).slice(0, 3).map(([k,v]) => ({ source: k, amount: v.gain, count: v.count }));
+    let interpretation = '';
+    if (recent.length === 0) interpretation = '本周无能量记录。开始记录你的消耗与充能——看不见的能量，管不住。';
+    else if (net < -10) interpretation = `本周净亏损 ${Math.abs(net)}。你在透支——再撑下去，身体或情绪会替你按下暂停键。`;
+    else if (net > 10) interpretation = `本周净充能 ${net}。状态好，但要警觉：充能多的同时，是否在回避该面对的消耗（如困难对话、重要决策）？`;
+    else interpretation = `本周基本平衡（净 ${net}）。\n平衡≠健康——要看消耗的是否值得，充能的是否真实。`;
+    return { totalDrain, totalGain, net, drainCount: drains.length, gainCount: gains.length, topDrains, topGains, interpretation, sampleSize: recent.length };
+  },
+
+  // 自动复盘：周/月
+  autoReview(period) {
+    const now = new Date();
+    const days = period === 'month' ? 30 : 7;
+    const start = new Date(now); start.setDate(now.getDate() - days);
+    const startStr = start.toISOString().split('T')[0];
+    const today = now.toISOString().split('T')[0];
+    const hist = this.buildHistory();
+    const range = hist.filter(x => {
+      const d = (x.ts || '').split('T')[0];
+      return d >= startStr && d <= today;
+    });
+    const modules = {};
+    range.forEach(r => {
+      modules[r.mid] = (modules[r.mid] || 0) + 1;
+    });
+    const sortedMods = Object.entries(modules).sort((a,b) => b[1] - a[1]);
+
+    // 数据汇总
+    const emo = range.filter(x => x.mid === 'emotion').map(x => parseFloat(x.data?.rating || x.data?.level || 0)).filter(v => v > 0);
+    const slp = range.filter(x => x.mid === 'sleep').map(x => parseFloat(x.data?.hours || x.data?.duration || 0)).filter(v => v > 0);
+    const fin = range.filter(x => x.mid === 'finance');
+    const exp = fin.filter(x => x.data?.type === 'expense' || x.data?.type === '支出').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+    const inc = fin.filter(x => x.data?.type === 'income' || x.data?.type === '收入').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+
+    const energy = readData('energy').filter(e => e.date >= startStr);
+    const eDrain = energy.filter(e => e.type === 'drain').reduce((s,x) => s+x.amount, 0);
+    const eGain = energy.filter(e => e.type === 'gain').reduce((s,x) => s+x.amount, 0);
+
+    // 鬼谷子式总结
+    let summary = [];
+    const label = period === 'month' ? '本月' : '本周';
+    if (range.length === 0) {
+      summary.push(`过去${days}天没有记录。\n没有记录，就没有复盘——你以为的"我记得"，一周后只剩20%。`);
+    } else {
+      summary.push(`过去${days}天共 ${range.length} 条记录，覆盖 ${Object.keys(modules).length} 个维度。`);
+      if (emo.length > 0) {
+        const avg = emo.reduce((a,b)=>a+b,0)/emo.length;
+        summary.push(`情绪均 ${avg.toFixed(1)}/5。${avg < 2.5 ? '偏低——不是事件问题，是结构问题。' : avg > 3.8 ? '偏高——警惕：是真好，还是记录时美化了自己？' : '中正。'}`);
+      }
+      if (slp.length > 0) {
+        const avg = slp.reduce((a,b)=>a+b,0)/slp.length;
+        summary.push(`睡眠均 ${avg.toFixed(1)}h。${avg < 6 ? '透支中——所有"效率"都建立在透支地基上。' : avg > 8 ? '充足——但充足不等于"用在刀刃上"。' : '正常。'}`);
+      }
+      if (fin.length > 0) {
+        const diff = inc - exp;
+        summary.push(`收支：收入 ${inc.toFixed(0)}，支出 ${exp.toFixed(0)}，${diff >= 0 ? '净 +' + diff.toFixed(0) : '净 ' + diff.toFixed(0)}。`);
+        if (diff < 0) summary.push(`入不敷出。短期可忍，长期是慢性失血——根源往往不是"赚得少"，是"花得无感"。`);
+      }
+      if (energy.length > 0) {
+        summary.push(`能量：消耗 ${eDrain}，充能 ${eGain}，净 ${eGain - eDrain}。${eGain - eDrain < 0 ? '透支——你靠"扛"，但扛是有期限的。' : '盈余——但要确认充能是"真"的。'}`);
+      }
+      // 最关注 vs 最忽略
+      if (sortedMods.length > 0) {
+        summary.push(`你最关注：${sortedMods.slice(0,2).map(m => m[0] + '(' + m[1] + ')').join('、')}。`);
+        const allMods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','work','home','travel','body','relation','growth','spirit'];
+        const ignored = allMods.filter(m => !modules[m]);
+        if (ignored.length > 3) summary.push(`你忽略的：${ignored.slice(0,5).join('、')}。\n忽略的不是"不重要"，是"不想面对"——被忽略的地方，往往藏着真正的问题。`);
+      }
+    }
+
+    // 自动提炼建议
+    const suggestions = [];
+    if (emo.length >= 3) {
+      const lowDays = emo.filter(v => v <= 2).length;
+      if (lowDays >= 2) suggestions.push(`情绪低落 ${lowDays} 天——不是情绪问题，是生活结构问题。该调整的不是心情，是节奏。`);
+    }
+    if (slp.length >= 3) {
+      const badDays = slp.filter(v => v < 6).length;
+      if (badDays >= 2) suggestions.push(`睡眠不足 ${badDays} 天——睡眠是地基，地基塌了上层都是临时的。`);
+    }
+    if (eDrain > eGain + 5) suggestions.push(`能量透支——本周消耗远超充能。本周必须安排一次"真充能"（运动/独处/深度对话）。`);
+
+    return {
+      period, range: `${startStr} ~ ${today}`,
+      totalRecords: range.length,
+      moduleBreakdown: sortedMods.map(([k,v]) => ({ module: k, count: v })),
+      stats: {
+        moodAvg: emo.length ? (emo.reduce((a,b)=>a+b,0)/emo.length).toFixed(2) : null,
+        sleepAvg: slp.length ? (slp.reduce((a,b)=>a+b,0)/slp.length).toFixed(2) : null,
+        income: inc, expense: exp, net: inc - exp,
+        energyDrain: eDrain, energyGain: eGain, energyNet: eGain - eDrain
+      },
+      summary: summary.join('\n'),
+      suggestions,
+      generatedAt: new Date().toISOString()
+    };
+  },
+
+  // ===== Phase 3 成长轴方法 =====
+
+  // 信念：判断是"信念"还是"执念"
+  belief(item) {
+    const b = item.belief || '';
+    const lines = [];
+    // 识别绝对化词汇
+    const absolutes = ['必须','一定','绝不','永远','从来','所有人','没有人','绝对'];
+    const hasAbs = absolutes.some(k => b.includes(k));
+    if (hasAbs) {
+      lines.push(`⚠️ 这句话有绝对化表达。\n绝对化的"信念"往往是"执念"——真信念能容纳例外，执念不能。\n试着把"必须"改成"通常"，看信念是否还成立。`);
+    }
+    // 识别来源
+    if (!item.source || !item.source.trim()) {
+      lines.push(`\n你没写来源。\n信念的来源决定它的硬度：\n- 自己验证的 → 硬，可恃\n- 别人告诉的 → 软，要验\n- 创伤形成的 → 警觉，可能以偏概全`);
+    } else if (item.source.includes('痛') || item.source.includes('伤') || item.source.includes('失败')) {
+      lines.push(`\n来源是"痛"。痛形成的信念最坚硬，但也最容易偏——它是对一次事件的过度总结。\n问：这件事真的"每次"都这样吗？还是你只记住了痛的那次？`);
+    }
+    // 信心校准
+    if (item.confidence >= 5) {
+      lines.push(`\n信心5/5。\n高信心是好事，但也要警觉：你是因为"验证过"才确信，还是因为"想确信"才确信？\n前者是真知，后者是自我安慰。`);
+    } else if (item.confidence <= 2) {
+      lines.push(`\n信心${item.confidence}/5。\n信心低却还相信，说明这是"想信"而非"已验证"。\n想信的东西，往往是你需要的，不一定是真的。`);
+    }
+    if (lines.length === 0) lines.push(`信念已记录。\n真正的考验不是"你信不信"，是"现实打不打脸"——定期回来检验它。`);
+    return lines.join('\n');
+  },
+
+  // 信念检验结果
+  beliefTest(item) {
+    const lines = [];
+    if (item.lastTestResult === 'held') {
+      lines.push(`信念通过了检验（held ${item.heldUp}次 / broken ${item.broken}次）。\n但警觉：通过检验的信念会变"硬"——硬了就不愿再质疑。\n真信念越验证越谦卑，不是越傲慢。`);
+    } else if (item.lastTestResult === 'broken') {
+      lines.push(`信念被打破了（broken ${item.broken}次 / held ${item.heldUp}次）。\n这是好事——破一个错信念，比保一个错信念强一百倍。\n问：是信念错了，还是情境特殊？前者要改信念，后者要加限定。`);
+    } else {
+      lines.push(`结果不确定。\n不确定比"确定错"更难处理——你可能还在为信念找借口。\n问：如果再来一次，你愿意赌它成立吗？不愿意，就是破了。`);
+    }
+    if (item.broken >= 2 && item.heldUp === 0) {
+      lines.push(`\n🚨 已被打破 ${item.broken} 次，从未成立。\n这不是信念，是执念——继续抱着它，等于用一个错地图导航。该换了。`);
+    }
+    return lines.join('\n');
+  },
+
+  // 品格雷达：单次评分反思 + 演化对比
+  character(item, list) {
+    const lines = [];
+    const dims = ['honesty','courage','resilience','restraint','responsibility','altruism'];
+    const labels = { honesty:'诚实', courage:'勇气', resilience:'韧性', restraint:'克制', responsibility:'担当', altruism:'利他' };
+    const low = dims.filter(d => item[d] <= 3);
+    const high = dims.filter(d => item[d] >= 8);
+    if (low.length > 0) lines.push(`偏低：${low.map(d => labels[d]+'('+item[d]+')').join('、')}。\n问：这是真实的自己，还是你想成为的自己？前者要接纳，后者要练。`);
+    if (high.length > 0) lines.push(`偏高：${high.map(d => labels[d]+'('+item[d]+')').join('、')}。\n警惕：自评偏高往往是"美化自己"——让别人评你，差距才真实。`);
+    // 演化对比
+    if (list.length >= 2) {
+      const prev = list[1]; // 倒数第二条
+      const changes = dims.map(d => ({ dim: d, delta: item[d] - (prev[d] || 5) })).filter(c => Math.abs(c.delta) >= 2);
+      if (changes.length > 0) {
+        lines.push(`\n较上次变化：`);
+        changes.forEach(c => {
+          lines.push(`  ${labels[c.dim]} ${c.delta > 0 ? '+'+c.delta : c.delta} — ${c.delta > 0 ? '什么让你变强了？复制它。' : '什么让你变弱了？别让它继续。'}`);
+        });
+      }
+    }
+    // 诚实的元反思
+    if (item.honesty >= 8 && list.length >= 1) {
+      lines.push(`\n元问题：你给"诚实"打了${item.honesty}分——这个高分本身，诚实吗？\n真正诚实的人，往往对自己的诚实存疑。`);
+    }
+    return lines.join('\n');
+  },
+
+  // 品格雷达汇总
+  characterRadar() {
+    const list = readData('character');
+    if (list.length === 0) return { current: null, previous: null, evolution: [], interpretation: '还没有品格自评。诚实是所有品格的基石——先诚实，再谈其他。' };
+    const dims = ['honesty','courage','resilience','restraint','responsibility','altruism'];
+    const labels = { honesty:'诚实', courage:'勇气', resilience:'韧性', restraint:'克制', responsibility:'担当', altruism:'利他' };
+    const current = list[0];
+    const previous = list.length >= 2 ? list[1] : null;
+    const evolution = dims.map(d => ({
+      dim: d, label: labels[d],
+      current: current[d],
+      previous: previous ? previous[d] : null,
+      delta: previous ? (current[d] - previous[d]) : null
+    }));
+    const avg = dims.reduce((s,d) => s + current[d], 0) / dims.length;
+    let interpretation = `当前综合 ${avg.toFixed(1)}/10。`;
+    if (avg < 4) interpretation += '\n偏低。品格不是"想有就有"，是"做了才有"——选一个维度，本周做3件相关的小事。';
+    else if (avg > 7.5) interpretation += '\n偏高。要警觉自评膨胀——让别人评你一次，差距就是你的盲区。';
+    else interpretation += '\n中等。中等不是坏事，是"还在路上"——选一个最想提升的，专项训练。';
+    return { current, previous, evolution, average: avg, interpretation };
+  },
+
+  // 自我画像：基于所有数据生成"你是谁"
+  selfPortrait() {
+    const hist = this.buildHistory();
+    const emo = readData('emotion').filter(e => e.rating).slice(-30);
+    const slp = readData('sleep').slice(-30);
+    const fin = readData('finance').slice(-30);
+    const ex = readData('exercise').slice(-30);
+    const mind = readData('mindfulness').slice(-30);
+    const energy = readData('energy').slice(-30);
+    const principles = readData('principles');
+    const beliefs = readData('beliefs');
+
+    // 维度判断
+    const tags = [];
+    if (emo.length >= 3) {
+      const avg = emo.reduce((s,x) => s + parseFloat(x.rating), 0) / emo.length;
+      if (avg >= 4) tags.push({ dim:'情绪', value:'稳定向上', desc:`近${emo.length}次均${avg.toFixed(1)}/5` });
+      else if (avg <= 2.5) tags.push({ dim:'情绪', value:'承压中', desc:`近${emo.length}次均${avg.toFixed(1)}/5，需要关注` });
+      else tags.push({ dim:'情绪', value:'中正', desc:`均${avg.toFixed(1)}/5` });
+    }
+    if (slp.length >= 3) {
+      const avg = slp.reduce((s,x) => s + parseFloat(x.data?.hours || x.hours || 0), 0) / slp.length;
+      tags.push({ dim:'睡眠', value: avg >= 7 ? '规律' : avg >= 6 ? '边缘' : '透支', desc:`均${avg.toFixed(1)}h` });
+    }
+    if (ex.length >= 3) tags.push({ dim:'运动', value:'活跃', desc:`近30天${ex.length}次` });
+    else if (hist.length >= 20) tags.push({ dim:'运动', value:'停滞', desc:'运动记录不足——身体在被忽略' });
+
+    if (fin.length >= 5) {
+      const exp = fin.filter(x => x.type === 'expense' || x.type === '支出').reduce((s,x) => s + parseFloat(x.amount || 0), 0);
+      const inc = fin.filter(x => x.type === 'income' || x.type === '收入').reduce((s,x) => s + parseFloat(x.amount || 0), 0);
+      if (inc > exp) tags.push({ dim:'财务', value:'积累', desc:`净+${(inc-exp).toFixed(0)}` });
+      else if (exp > inc) tags.push({ dim:'财务', value:'流出', desc:`净-${(exp-inc).toFixed(0)}` });
+    }
+
+    if (energy.length >= 3) {
+      const drain = energy.filter(e => e.type === 'drain').reduce((s,x) => s+x.amount, 0);
+      const gain = energy.filter(e => e.type === 'gain').reduce((s,x) => s+x.amount, 0);
+      tags.push({ dim:'能量', value: gain > drain ? '充盈' : '透支', desc:`消耗${drain}/充能${gain}` });
+    }
+
+    if (mind.length >= 3) tags.push({ dim:'定力', value:'训练中', desc:`${mind.length}次记录` });
+    if (principles.length >= 3) tags.push({ dim:'原则', value:'沉淀中', desc:`${principles.length}条` });
+    if (beliefs.length >= 1) tags.push({ dim:'信念', value:'自觉', desc:`${beliefs.length}条待检验` });
+
+    // 你是谁的一句话
+    let oneLine = '';
+    const focusMap = {};
+    hist.slice(0, 50).forEach(h => { focusMap[h.mid] = (focusMap[h.mid]||0) + 1; });
+    const topFocus = Object.entries(focusMap).sort((a,b) => b[1]-a[1])[0];
+    if (topFocus) {
+      const focusLabels = { finance:'钱', sleep:'睡眠', emotion:'情绪', exercise:'身体', think:'思考', diary:'自省', work:'工作', relation:'关系' };
+      oneLine = `一个最近在关注「${focusLabels[topFocus[0]] || topFocus[0]}」的人`;
+    }
+
+    // 鬼谷子式总结
+    let narrative = '';
+    if (tags.length === 0) {
+      narrative = '数据太少，画像模糊。继续记录，系统会越来越懂你——画像不是你"想成为谁"，是你"实际是谁"。';
+    } else {
+      narrative = '基于你的记录，你当前是：\n' + tags.map(t => `• ${t.dim}：${t.value}（${t.desc}）`).join('\n');
+      narrative += '\n\n这不是评价，是镜像——镜子里的人，是你想成为的那个吗？';
+    }
+
+    return { tags, oneLine, narrative, generatedAt: new Date().toISOString(), sampleSize: hist.length };
+  },
+
+  // 反熵增监控：检测生活是否在无序化
+  entropyMonitor() {
+    const now = new Date();
+    const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+    const twoWeekAgo = new Date(now); twoWeekAgo.setDate(now.getDate() - 14);
+    const ms = weekAgo.toISOString().split('T')[0];
+    const pms = twoWeekAgo.toISOString().split('T')[0];
+
+    const signals = [];
+    // 1. 记录频率下降
+    const hist = this.buildHistory();
+    const thisWeek = hist.filter(x => (x.ts||'').split('T')[0] >= ms).length;
+    const lastWeek = hist.filter(x => { const d = (x.ts||'').split('T')[0]; return d >= pms && d < ms; }).length;
+    if (lastWeek >= 5 && thisWeek < lastWeek * 0.5) {
+      signals.push({ dim:'记录习惯', severity:'high', signal:`记录频率从上周${lastWeek}条降至本周${thisWeek}条`, suggestion:'记录是觉察的开始——频率下降往往是生活失控的早期信号' });
+    }
+    // 2. 情绪下滑
+    const emo = readData('emotion');
+    const recentEmo = emo.filter(e => e.date >= ms);
+    const prevEmo = emo.filter(e => { const d = e.date; return d >= pms && d < ms; });
+    if (recentEmo.length >= 2 && prevEmo.length >= 2) {
+      const r = recentEmo.reduce((s,x) => s + parseFloat(x.rating), 0) / recentEmo.length;
+      const p = prevEmo.reduce((s,x) => s + parseFloat(x.rating), 0) / prevEmo.length;
+      if (r - p < -0.5) signals.push({ dim:'情绪', severity:'high', signal:`情绪均分从${p.toFixed(1)}降至${r.toFixed(1)}`, suggestion:'情绪持续下滑不是事件问题，是结构问题' });
+    }
+    // 3. 睡眠恶化
+    const slp = readData('sleep');
+    const recentSlp = slp.filter(s => (s.date || (s.data?.date) || '') >= ms);
+    const prevSlp = slp.filter(s => { const d = s.date || s.data?.date || ''; return d >= pms && d < ms; });
+    if (recentSlp.length >= 2 && prevSlp.length >= 2) {
+      const r = recentSlp.reduce((s,x) => s + parseFloat(x.hours || x.data?.hours || 0), 0) / recentSlp.length;
+      const p = prevSlp.reduce((s,x) => s + parseFloat(x.hours || x.data?.hours || 0), 0) / prevSlp.length;
+      if (r - p < -0.8) signals.push({ dim:'睡眠', severity:'med', signal:`睡眠均时从${p.toFixed(1)}h降至${r.toFixed(1)}h`, suggestion:'睡眠是地基——地基塌了上层都晃' });
+    }
+    // 4. 运动停滞
+    const ex = readData('exercise');
+    const recentEx = ex.filter(e => (e.date || '') >= ms).length;
+    if (recentEx === 0 && hist.length >= 10) {
+      signals.push({ dim:'运动', severity:'med', signal:'本周无运动记录', suggestion:'身体停滞，精力必降——动起来，哪怕10分钟' });
+    }
+    // 5. 财务流失
+    const fin = readData('finance');
+    const recentFin = fin.filter(f => (f.date || '') >= ms);
+    const exp = recentFin.filter(f => f.type === 'expense' || f.type === '支出').reduce((s,x) => s + parseFloat(x.amount || 0), 0);
+    if (exp > 0) {
+      const prevFin = fin.filter(f => { const d = f.date || ''; return d >= pms && d < ms; });
+      const prevExp = prevFin.filter(f => f.type === 'expense' || f.type === '支出').reduce((s,x) => s + parseFloat(x.amount || 0), 0);
+      if (prevExp > 0 && exp > prevExp * 1.5) {
+        signals.push({ dim:'财务', severity:'med', signal:`本周支出${exp.toFixed(0)}，比上周${prevExp.toFixed(0)}增加${((exp/prevExp-1)*100).toFixed(0)}%`, suggestion:'支出突增往往是情绪补偿——查根因，不止血' });
+      }
+    }
+    // 6. 未解决的熵增日志
+    const entropyLogs = readData('entropy_logs').filter(e => !e.resolved);
+    entropyLogs.forEach(e => signals.push({ dim:e.dimension, severity:e.severity, signal:e.signal, suggestion:e.note || '需要处理', logId: e.id }));
+
+    const entropyScore = signals.length === 0 ? 0 : signals.reduce((s,x) => s + (x.severity === 'high' ? 3 : x.severity === 'med' ? 2 : 1), 0);
+    let interpretation = '';
+    if (entropyScore === 0) interpretation = '熵增低，生活有序。但有序不等于成长——别让"有序"变成"停滞"。';
+    else if (entropyScore <= 4) interpretation = `熵增轻度（${entropyScore}）。在可控范围——但要主动干预，别让它累积成崩塌。`;
+    else if (entropyScore <= 8) interpretation = `熵增中度（${entropyScore}）。多个维度在恶化——这不是运气差，是系统出了问题。`;
+    else interpretation = `🚨 熵增高度（${entropyScore}）。生活正在快速无序化——必须立即行动，从最容易的那个维度开始恢复。`;
+
+    return { signals, entropyScore, interpretation, weekRecords: thisWeek, lastWeekRecords: lastWeek };
+  },
+
+  // 反脆弱评估：面对黑天鹅的承受力
+  antifragile(item) {
+    if (!item) return null;
+    const lines = [];
+    const dims = { financial:'财务缓冲', skill:'技能冗余', social:'关系网络', health:'身体储备', mental:'心智韧性' };
+    const total = item.financial + item.skill + item.social + item.health + item.mental;
+    const avg = total / 5;
+    // 最短板
+    const entries = Object.entries(dims);
+    const weakest = entries.reduce((min, [k,v]) => item[k] < item[min[0]] ? [k,v] : min, entries[0]);
+    lines.push(`综合 ${avg.toFixed(1)}/10，最短板：${weakest[1]}(${item[weakest[0]]}/10)。\n反脆弱的强度 = 最短板的强度——桶能装多少水，由最短的那块板决定。`);
+    // 木桶效应
+    if (item[weakest[0]] <= 3) {
+      lines.push(`\n🚨 ${weakest[1]}只有${item[weakest[0]]}/10——这是你的致命短板。\n黑天鹅来时，不会从你最硬的地方打你，会从最软的地方。\n本周必须补这块。`);
+    }
+    // 平衡度
+    const values = ['financial','skill','social','health','mental'].map(k => item[k]);
+    const max = Math.max(...values), min = Math.min(...values);
+    if (max - min >= 5) {
+      lines.push(`\n失衡严重：最高${max}，最低${min}。\n反脆弱不是某一项特别强，是各项均衡——失衡的人，一次打击就崩。`);
+    }
+    // 各维度提醒
+    if (item.financial <= 4) lines.push(`\n💰 财务缓冲低——存6个月生活费前，你不算自由。`);
+    if (item.skill <= 4) lines.push(`\n🎯 技能冗余低——只会一件事的人，是单点故障。多学一门，就多一条命。`);
+    if (item.social <= 4) lines.push(`\n👥 关系网络低——独狼抗风险能力最差。 deepen 3段关系，比认识100人有用。`);
+    if (item.health <= 4) lines.push(`\n💪 身体储备低——所有财富都需要身体承载。健康归零，一切归零。`);
+    if (item.mental <= 4) lines.push(`\n🧠 心智韧性低——遭遇挫折时的反弹力，是最后的保险。练定力，就是在存这份保险。`);
+    return lines.join('\n');
+  },
+
+  // ===== Phase 4 船长工具方法 =====
+
+  // 北极星：校准目标对齐
+  northStar(item) {
+    const lines = [];
+    if (!item.ultimate || !item.ultimate.trim()) {
+      lines.push('没写终局目标。\n没有终局，所有努力都是漂移——你以为在前进，其实只是移动。\n问自己：如果只能活成一种样子，那是什么？');
+    } else {
+      // 校准对齐
+      if (item.today && !item.thisWeek) lines.push('你写了"今天"却没写"本周"——日行动没有周计划承接，等于随机。');
+      if (item.thisWeek && !item.thisQuarter) lines.push('有周计划没季度计划——短期行动没有中期方向，容易陷入"忙碌但无效"。');
+      if (item.thisQuarter && !item.oneYear) lines.push('有季度没年度——中期目标缺少年度锚点，方向会漂移。');
+      if (item.oneYear && !item.fiveYear) lines.push('有年度没5年——年度目标没有长期愿景，会被短期诱惑带偏。');
+      if (item.fiveYear && !item.ultimate) lines.push('有5年没终局——5年是为终局服务的，没有终局的5年只是"再活5年"。');
+      if (item.today && item.ultimate) {
+        lines.push(`\n对齐检查：\n今天：${item.today}\n终局：${item.ultimate}\n问：今天的这个行动，能让终局近1%吗？\n不能的话，你今天在为谁活？`);
+      }
+    }
+    if (lines.length === 0) lines.push('坐标系已建立。\n但坐标不是写一次就完了——每周回看"今天"是否对齐"本周"，每月回看是否对齐"季度"。漂移是常态，校准是功夫。');
+    return lines.join('\n');
+  },
+
+  // 危机预案：检验预案的完备性
+  crisisPlan(item) {
+    const lines = [];
+    if (item.probability === 'high' && item.impact === 'critical') {
+      lines.push(`🚨 高概率 + 致命影响。\n这不是"可能"，是"迟早"——预案必须可执行，不能停留在口号。\n问：48小时内你能真的启动吗？`);
+    }
+    if (!item.immediateAction) lines.push(`\n没写"立即行动"——危机头24小时决定70%的结局。\n写下3件头24小时必须做的事，越具体越好。`);
+    if (!item.threeDayPlan) lines.push(`\n没写"3天计划"——危机不是1天的事，是1周到1个月。\n3天内的目标：止血、稳住、开始恢复。`);
+    if (!item.recoveryPlan) lines.push(`\n没写"恢复计划"——挺过危机不等于走出来，恢复期往往更长更难。`);
+    if (item.immediateAction && item.threeDayPlan && item.recoveryPlan) {
+      lines.push(`\n预案完整。但完整≠可执行——\n问：这些计划里有"谁帮你"吗？独自预案往往失败，因为人在危机中会冻结。\n指定一个联系人，危机时通知他。`);
+    }
+    if (!item.precondition) lines.push(`\n提示：写"前置信号"——危机很少突然来，总有征兆。\n识别征兆，能在危机爆发前就启动预案。`);
+    return lines.join('\n');
+  },
+
+  // 临终测试：反向校准当下
+  deathTest(item) {
+    const lines = [];
+    if (item.regrets) lines.push(`你写下的遗憾：${item.regrets}\n问：这件事，你现在能改吗？\n能改却没改 = 你正在亲手制造未来的遗憾。\n不能改 = 放下它，别再消耗。`);
+    if (item.undone) lines.push(`\n想做却没做：${item.undone}\n"没做"比"做错"更可怕——做错可以改，没做只能假设。\n问：你是在等"准备好"吗？准备好是谎言，开始才是真的。`);
+    if (item.proudOf) lines.push(`\n让你骄傲的：${item.proudOf}\n这是你的北极星——多做这件事，少做那些"看起来重要"的事。`);
+    if (item.wouldChange) lines.push(`\n你想改变的：${item.wouldChange}\n问：你今天做了什么，正在让这个改变发生？\n没做的话，临终时的遗憾，就是现在的你写的。`);
+    if (item.focus) lines.push(`\n你的聚焦：${item.focus}\n好。但聚焦不是想一次就够——把它写在显眼处，每周问自己"这周我靠近它了吗"。`);
+    if (!item.regrets && !item.undone && !item.wouldChange) {
+      lines.push('你什么都没写。\n这不是"没问题"，是"没敢问"——临终测试的价值，就在于敢问那些平时回避的问题。');
+    }
+    return lines.join('\n');
+  },
+
+  // 年度叙事：把数据写成故事
+  narrative(year) {
+    const yearStart = `${year}-01-01`, yearEnd = `${year}-12-31`;
+    const hist = this.buildHistory().filter(x => {
+      const d = (x.ts || '').split('T')[0];
+      return d >= yearStart && d <= yearEnd;
+    });
+    const modules = {};
+    hist.forEach(h => { modules[h.mid] = (modules[h.mid] || 0) + 1; });
+    const sortedMods = Object.entries(modules).sort((a,b) => b[1] - a[1]);
+
+    const emo = hist.filter(x => x.mid === 'emotion').map(x => parseFloat(x.data?.rating || 0)).filter(v => v > 0);
+    const slp = hist.filter(x => x.mid === 'sleep').map(x => parseFloat(x.data?.hours || x.data?.duration || 0)).filter(v => v > 0);
+    const fin = hist.filter(x => x.mid === 'finance');
+    const exp = fin.filter(x => x.data?.type === 'expense' || x.data?.type === '支出').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+    const inc = fin.filter(x => x.data?.type === 'income' || x.data?.type === '收入').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+    const energy = readData('energy').filter(e => e.date >= yearStart && e.date <= yearEnd);
+    const eDrain = energy.filter(e => e.type === 'drain').reduce((s,x) => s+x.amount, 0);
+    const eGain = energy.filter(e => e.type === 'gain').reduce((s,x) => s+x.amount, 0);
+    const principles = readData('principles').filter(p => (p.createdAt || '') >= yearStart);
+    const beliefs = readData('beliefs').filter(b => (b.createdAt || '') >= yearStart);
+
+    // 写成故事
+    let story = `${year}年，你记录了 ${hist.length} 次，覆盖 ${Object.keys(modules).length} 个维度。\n\n`;
+    if (sortedMods.length > 0) {
+      story += `这一年，你最多的注意力给了：${sortedMods.slice(0,3).map(m => `${m[0]}(${m[1]}次)`).join('、')}。\n`;
+      story += `最少关注的是：${sortedMods.slice(-2).map(m => `${m[0]}(${m[1]}次)`).join('、')}。\n\n`;
+    }
+    if (emo.length > 0) {
+      const avg = emo.reduce((a,b)=>a+b,0) / emo.length;
+      const high = emo.filter(v => v >= 4).length;
+      const low = emo.filter(v => v <= 2).length;
+      story += `情绪：全年均 ${avg.toFixed(1)}/5。${high} 次高涨，${low} 次低谷。\n`;
+      story += avg > 3.5 ? `你今年总体是"向上的"——但向上的同时，有没有回避该面对的低谷？\n\n` : avg < 2.5 ? `这一年你过得辛苦——但辛苦往往是转弯的地方。\n\n` : `这一年情绪平稳——平稳是福，也是警讯：是否"平稳"代替了"成长"？\n\n`;
+    }
+    if (slp.length > 0) {
+      const avg = slp.reduce((a,b)=>a+b,0) / slp.length;
+      story += `睡眠：全年均 ${avg.toFixed(1)} 小时。\n`;
+      story += avg >= 7 ? `你照顾好了身体这个容器。\n\n` : `你在透支——所有"效率"都建立在这个透支上。\n\n`;
+    }
+    if (fin.length > 0) {
+      story += `财务：收入 ${inc.toFixed(0)}，支出 ${exp.toFixed(0)}，${inc >= exp ? '净+'+(inc-exp).toFixed(0) : '净'+(inc-exp).toFixed(0)}。\n`;
+      story += inc >= exp ? `你在积累——但积累是为了什么？\n\n` : `你在流失——根源往往不是赚得少，是花得无感。\n\n`;
+    }
+    if (energy.length > 0) {
+      story += `能量：消耗 ${eDrain}，充能 ${eGain}。\n`;
+      story += eGain > eDrain ? `你是充盈的——记得保护你的能量源泉。\n\n` : `你是透支的——你的能量黑洞在哪里？\n\n`;
+    }
+    if (principles.length > 0) story += `你提炼了 ${principles.length} 条原则——这是你今年真正的财富。\n`;
+    if (beliefs.length > 0) {
+      const tested = beliefs.filter(b => b.tested > 0).length;
+      const broken = beliefs.filter(b => b.broken > 0).length;
+      story += `你记录了 ${beliefs.length} 条信念，检验了 ${tested} 条，打破 ${broken} 条。${broken > 0 ? '破一个错信念，比保一个错信念强百倍。\n' : '但没检验过的信念，只是想法。\n'}`;
+    }
+
+    // 鬼谷子式年度总结
+    let conclusion = '';
+    if (hist.length === 0) conclusion = `${year}年，你没有留下记录。\n没有记录的一年，等于没活过——记忆会骗你，数据不会。\n明年，留下点什么。`;
+    else if (hist.length < 30) conclusion = `${year}年，你记录得太少。\n记录稀疏的人，活得也稀疏——不是生活没发生，是你没看。`;
+    else conclusion = `${year}年，你认真地活过、记录过。\n但记录不是终点——这些数据要变成明年的判断力、原则、底线。\n否则，记录只是另一种形式的"假装在努力"。`;
+
+    return { year, totalRecords: hist.length, story, conclusion, stats: { moodAvg: emo.length ? (emo.reduce((a,b)=>a+b,0)/emo.length).toFixed(2) : null, sleepAvg: slp.length ? (slp.reduce((a,b)=>a+b,0)/slp.length).toFixed(2) : null, income: inc, expense: exp, energyDrain: eDrain, energyGain: eGain, principles: principles.length, beliefs: beliefs.length } };
+  },
+
+  // 船长宣言
+  manifesto(item) {
+    const lines = [];
+    if (!item.body || item.body.trim().length < 20) {
+      lines.push('宣言太短。\n宣言不是口号，是你对自己的契约——短到一句话的宣言，往往撑不过第一次危机。\n写下你愿意为什么付出代价，那才是真宣言。');
+    } else {
+      // 检查是否过于正面
+      const positives = ['相信','坚持','永远','美好','光明','成功'];
+      const hasPos = positives.some(k => item.body.includes(k));
+      if (hasPos && !item.body.includes('代价') && !item.body.includes('放弃') && !item.body.includes('不')) {
+        lines.push('宣言只有"正面"。\n真实的宣言必须包含"代价"——你愿意为什么放弃其他？\n不付代价的宣言，是许愿，不是契约。');
+      }
+      lines.push('\n宣言已签订。\n但记住：宣言的价值不在"签"，在"履行"——\n每月回看一次：我这个月做的事，对得起这份宣言吗？\n答不上来，要么改行为，要么改宣言——别让宣言变成墙上的装饰。');
+    }
+    return lines.join('\n');
+  }
+};
+
+// ============================================================
+// 原则库 API
+// ============================================================
+app.get('/api/principles', (req, res) => {
+  res.json(readData('principles'));
+});
+app.post('/api/principles', (req, res) => {
+  const { text, source } = req.body;
+  if (!text || !text.trim()) return res.json({ success: false, message: '原则不能为空' });
+  const list = readData('principles');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    text: text.trim(),
+    source: source || 'manual',
+    createdAt: new Date().toISOString()
+  };
+  list.push(item);
+  writeData('principles', list);
+  res.json({ success: true, item });
+});
+app.delete('/api/principles/:id', (req, res) => {
+  const list = readData('principles');
+  const targetId = String(req.params.id);
+  writeData('principles', list.filter(p => String(p.id) !== targetId));
+  res.json({ success: true });
+});
+
+// ============================================================
+// 决策推演台 API
+// ============================================================
+app.get('/api/decisions', (req, res) => {
+  res.json(readData('decisions'));
+});
+app.post('/api/decisions', (req, res) => {
+  const { title, reasoning, expected, deadline } = req.body;
+  if (!title || !title.trim()) return res.json({ success: false, message: '决策标题不能为空' });
+  const list = readData('decisions');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    title: title.trim(),
+    reasoning: reasoning || '',
+    expected: expected || '',
+    deadline: deadline || null,
+    reviewed: false,
+    outcome: null,
+    correct: null,
+    reviewedAt: null,
+    createdAt: new Date().toISOString()
+  };
+  list.push(item);
+  writeData('decisions', list);
+  res.json({ success: true, item });
+});
+app.post('/api/decisions/:id/review', (req, res) => {
+  const { outcome, correct } = req.body;
+  const list = readData('decisions');
+  const targetId = String(req.params.id);
+  const item = list.find(d => String(d.id) === targetId);
+  if (!item) return res.json({ success: false, message: '决策不存在' });
+  item.reviewed = true;
+  item.outcome = outcome || '';
+  item.correct = correct;
+  item.reviewedAt = new Date().toISOString();
+  writeData('decisions', list);
+  res.json({ success: true, item });
+});
+
+// ============================================================
+// Phase 2：深度闭环
+// 1) 根因分析 5why
+// 2) 人际博弈日志
+// 3) 定力训练 + 心境基线
+// 4) 能量审计
+// 5) 周/月自动复盘
+// ============================================================
+
+// ---------- 1. 根因分析 5why ----------
+app.get('/api/root-cause', (req, res) => {
+  res.json(readData('root_cause').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.post('/api/root-cause', (req, res) => {
+  const { trigger, whys, surface, root } = req.body;
+  if (!trigger || !whys || !Array.isArray(whys) || whys.length === 0) {
+    return res.json({ success: false, message: '请填写触发事件和至少一层追问' });
+  }
+  const list = readData('root_cause');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    trigger: trigger.trim(),
+    whys: whys.slice(0, 7).map(w => (w || '').trim()).filter(Boolean),
+    surface: (surface || '').trim(),
+    root: (root || '').trim(),
+    resolved: false,
+    resolvedAction: '',
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  list.push(item);
+  writeData('root_cause', list);
+  const reflection = ENG.rootCause(item);
+  res.json({ success: true, item, reflection });
+});
+
+app.post('/api/root-cause/:id/resolve', (req, res) => {
+  const list = readData('root_cause');
+  const targetId = String(req.params.id);
+  const item = list.find(r => String(r.id) === targetId);
+  if (!item) return res.json({ success: false, message: '根因记录不存在' });
+  item.resolved = true;
+  item.resolvedAction = (req.body.action || '').trim();
+  item.resolvedAt = new Date().toISOString();
+  writeData('root_cause', list);
+  res.json({ success: true, item });
+});
+
+app.delete('/api/root-cause/:id', (req, res) => {
+  const list = readData('root_cause');
+  writeData('root_cause', list.filter(r => String(r.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ---------- 2. 人际博弈日志 ----------
+app.get('/api/interpersonal', (req, res) => {
+  res.json(readData('interpersonal').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.post('/api/interpersonal', (req, res) => {
+  const { person, role, event, myGoal, theirGoal, myMove, theirMove, myCost, myGain, lesson } = req.body;
+  if (!person || !event) return res.json({ success: false, message: '请填写对象和事件' });
+  const list = readData('interpersonal');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    person: person.trim(),
+    role: (role || '').trim(),
+    event: event.trim(),
+    myGoal: (myGoal || '').trim(),
+    theirGoal: (theirGoal || '').trim(),
+    myMove: (myMove || '').trim(),
+    theirMove: (theirMove || '').trim(),
+    myCost: parseFloat(myCost) || 0,
+    myGain: parseFloat(myGain) || 0,
+    lesson: (lesson || '').trim(),
+    net: (parseFloat(myGain) || 0) - (parseFloat(myCost) || 0),
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  list.push(item);
+  writeData('interpersonal', list);
+  const reflection = ENG.interpersonal(item);
+  res.json({ success: true, item, reflection });
+});
+
+app.delete('/api/interpersonal/:id', (req, res) => {
+  const list = readData('interpersonal');
+  writeData('interpersonal', list.filter(i => String(i.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ---------- 3. 定力训练 + 心境基线 ----------
+app.get('/api/mindfulness', (req, res) => {
+  res.json(readData('mindfulness').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.post('/api/mindfulness', (req, res) => {
+  const { type, trigger, beforeLevel, afterLevel, durationSec, method, note } = req.body;
+  if (!type) return res.json({ success: false, message: '请选择训练类型' });
+  const list = readData('mindfulness');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    type,
+    trigger: (trigger || '').trim(),
+    beforeLevel: Math.min(5, Math.max(1, parseInt(beforeLevel) || 3)),
+    afterLevel: Math.min(5, Math.max(1, parseInt(afterLevel) || 3)),
+    delta: (parseInt(afterLevel) || 3) - (parseInt(beforeLevel) || 3),
+    durationSec: parseInt(durationSec) || 0,
+    method: (method || '').trim(),
+    note: (note || '').trim(),
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  list.push(item);
+  writeData('mindfulness', list);
+  const reflection = ENG.mindfulness(item, list);
+  res.json({ success: true, item, reflection });
+});
+
+app.delete('/api/mindfulness/:id', (req, res) => {
+  const list = readData('mindfulness');
+  writeData('mindfulness', list.filter(m => String(m.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+app.get('/api/mindfulness/baseline', (req, res) => {
+  res.json(ENG.mindfulnessBaseline());
+});
+
+// ---------- 4. 能量审计 ----------
+app.get('/api/energy', (req, res) => {
+  res.json(readData('energy').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.post('/api/energy', (req, res) => {
+  const { type, source, amount, durationMin, note } = req.body;
+  if (!type || !source) return res.json({ success: false, message: '请填写类型和来源' });
+  if (!['drain','gain'].includes(type)) return res.json({ success: false, message: '类型必须是 drain 或 gain' });
+  const list = readData('energy');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    type,
+    source: source.trim(),
+    amount: Math.min(10, Math.max(1, parseInt(amount) || 5)),
+    durationMin: parseInt(durationMin) || 0,
+    note: (note || '').trim(),
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  list.push(item);
+  writeData('energy', list);
+  const reflection = ENG.energy(item, list);
+  res.json({ success: true, item, reflection });
+});
+
+app.delete('/api/energy/:id', (req, res) => {
+  const list = readData('energy');
+  writeData('energy', list.filter(e => String(e.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+app.get('/api/energy/audit', (req, res) => {
+  res.json(ENG.energyAudit());
+});
+
+// ---------- 5. 周/月自动复盘 ----------
+app.get('/api/review/auto', (req, res) => {
+  const period = (req.query.period === 'month') ? 'month' : 'week';
+  res.json(ENG.autoReview(period));
+});
+
+app.get('/api/reviews', (req, res) => {
+  res.json(readData('reviews').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.post('/api/reviews', (req, res) => {
+  const { period, content, highlights, regrets, nextActions } = req.body;
+  if (!content || !content.trim()) return res.json({ success: false, message: '复盘内容不能为空' });
+  const list = readData('reviews');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    period: period || 'week',
+    content: content.trim(),
+    highlights: highlights || '',
+    regrets: regrets || '',
+    nextActions: nextActions || '',
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  list.push(item);
+  writeData('reviews', list);
+  res.json({ success: true, item });
+});
+
+app.delete('/api/reviews/:id', (req, res) => {
+  const list = readData('reviews');
+  writeData('reviews', list.filter(r => String(r.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ============================================================
+// Phase 3：成长轴
+// 1) 信念追踪
+// 2) 品格雷达
+// 3) 自我画像演化
+// 4) 反熵增监控
+// 5) 反脆弱缓冲评估
+// ============================================================
+
+// ---------- 1. 信念追踪 ----------
+app.get('/api/beliefs', (req, res) => {
+  res.json(readData('beliefs').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.post('/api/beliefs', (req, res) => {
+  const { belief, source, confidence, category } = req.body;
+  if (!belief || !belief.trim()) return res.json({ success: false, message: '请写下你的信念' });
+  const list = readData('beliefs');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    belief: belief.trim(),
+    source: (source || '').trim(),
+    confidence: Math.min(5, Math.max(1, parseInt(confidence) || 3)),
+    category: category || '人生',
+    tested: 0,
+    heldUp: 0,
+    broken: 0,
+    lastTestedAt: null,
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  list.push(item);
+  writeData('beliefs', list);
+  const reflection = ENG.belief(item);
+  res.json({ success: true, item, reflection });
+});
+
+app.post('/api/beliefs/:id/test', (req, res) => {
+  const { result, note } = req.body;
+  if (!['held','broken','uncertain'].includes(result)) {
+    return res.json({ success: false, message: 'result 必须是 held/broken/uncertain' });
+  }
+  const list = readData('beliefs');
+  const targetId = String(req.params.id);
+  const item = list.find(b => String(b.id) === targetId);
+  if (!item) return res.json({ success: false, message: '信念不存在' });
+  item.tested = (item.tested || 0) + 1;
+  if (result === 'held') item.heldUp = (item.heldUp || 0) + 1;
+  if (result === 'broken') item.broken = (item.broken || 0) + 1;
+  item.lastTestedAt = new Date().toISOString();
+  item.lastTestResult = result;
+  item.lastTestNote = (note || '').trim();
+  writeData('beliefs', list);
+  res.json({ success: true, item, reflection: ENG.beliefTest(item) });
+});
+
+app.delete('/api/beliefs/:id', (req, res) => {
+  const list = readData('beliefs');
+  writeData('beliefs', list.filter(b => String(b.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ---------- 2. 品格雷达 ----------
+app.get('/api/character', (req, res) => {
+  res.json(readData('character').sort((a,b) => (a.date < b.date ? 1 : -1)));
+});
+
+app.post('/api/character', (req, res) => {
+  const { honesty, courage, resilience, restraint, responsibility, altruism, note } = req.body;
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    honesty: Math.min(10, Math.max(0, parseInt(honesty) || 5)),
+    courage: Math.min(10, Math.max(0, parseInt(courage) || 5)),
+    resilience: Math.min(10, Math.max(0, parseInt(resilience) || 5)),
+    restraint: Math.min(10, Math.max(0, parseInt(restraint) || 5)),
+    responsibility: Math.min(10, Math.max(0, parseInt(responsibility) || 5)),
+    altruism: Math.min(10, Math.max(0, parseInt(altruism) || 5)),
+    note: (note || '').trim(),
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  const list = readData('character');
+  list.push(item);
+  writeData('character', list);
+  res.json({ success: true, item, reflection: ENG.character(item, list) });
+});
+
+app.get('/api/character/radar', (req, res) => {
+  res.json(ENG.characterRadar());
+});
+
+app.delete('/api/character/:id', (req, res) => {
+  const list = readData('character');
+  writeData('character', list.filter(c => String(c.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ---------- 3. 自我画像演化 ----------
+app.get('/api/self-portrait', (req, res) => {
+  res.json(readData('self_portrait').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.post('/api/self-portrait/generate', (req, res) => {
+  const portrait = ENG.selfPortrait();
+  const list = readData('self_portrait');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    ...portrait,
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  // 保留最近12份（每月一份，一年）
+  const trimmed = [item, ...list].slice(0, 12);
+  writeData('self_portrait', trimmed);
+  res.json({ success: true, item });
+});
+
+app.delete('/api/self-portrait/:id', (req, res) => {
+  const list = readData('self_portrait');
+  writeData('self_portrait', list.filter(p => String(p.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ---------- 4. 反熵增监控 ----------
+app.get('/api/entropy', (req, res) => {
+  res.json(ENG.entropyMonitor());
+});
+
+app.post('/api/entropy/log', (req, res) => {
+  const { dimension, signal, severity, note } = req.body;
+  if (!dimension || !signal) return res.json({ success: false, message: '请填写维度和信号' });
+  const list = readData('entropy_logs');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    dimension,
+    signal: signal.trim(),
+    severity: ['low','med','high'].includes(severity) ? severity : 'med',
+    note: (note || '').trim(),
+    resolved: false,
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  list.push(item);
+  writeData('entropy_logs', list);
+  res.json({ success: true, item });
+});
+
+app.post('/api/entropy/log/:id/resolve', (req, res) => {
+  const list = readData('entropy_logs');
+  const targetId = String(req.params.id);
+  const item = list.find(e => String(e.id) === targetId);
+  if (!item) return res.json({ success: false, message: '记录不存在' });
+  item.resolved = true;
+  item.resolvedAt = new Date().toISOString();
+  writeData('entropy_logs', list);
+  res.json({ success: true, item });
+});
+
+app.get('/api/entropy/logs', (req, res) => {
+  res.json(readData('entropy_logs').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.delete('/api/entropy/log/:id', (req, res) => {
+  const list = readData('entropy_logs');
+  writeData('entropy_logs', list.filter(e => String(e.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ---------- 5. 反脆弱缓冲评估 ----------
+app.get('/api/antifragile', (req, res) => {
+  res.json(ENG.antifragile());
+});
+
+app.post('/api/antifragile', (req, res) => {
+  const { financial, skill, social, health, mental, note } = req.body;
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    financial: Math.min(10, Math.max(0, parseInt(financial) || 0)),
+    skill: Math.min(10, Math.max(0, parseInt(skill) || 0)),
+    social: Math.min(10, Math.max(0, parseInt(social) || 0)),
+    health: Math.min(10, Math.max(0, parseInt(health) || 0)),
+    mental: Math.min(10, Math.max(0, parseInt(mental) || 0)),
+    note: (note || '').trim(),
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  const list = readData('antifragile_logs');
+  list.push(item);
+  writeData('antifragile_logs', list);
+  res.json({ success: true, item, reflection: ENG.antifragile(item) });
+});
+
+app.get('/api/antifragile/logs', (req, res) => {
+  res.json(readData('antifragile_logs').sort((a,b) => (a.date < b.date ? 1 : -1)));
+});
+
+app.delete('/api/antifragile/:id', (req, res) => {
+  const list = readData('antifragile_logs');
+  writeData('antifragile_logs', list.filter(a => String(a.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ============================================================
+// Phase 4：船长工具
+// 1) 坐标系 + 北极星
+// 2) 危机预案
+// 3) 临终测试
+// 4) 年度叙事
+// 5) 船长宣言
+// ============================================================
+
+// ---------- 1. 坐标系 + 北极星 ----------
+app.get('/api/north-star', (req, res) => {
+  res.json(readData('north_star'));
+});
+
+app.post('/api/north-star', (req, res) => {
+  const { ultimate, fiveYear, oneYear, thisQuarter, thisWeek, today, manifesto } = req.body;
+  const data = readData('north_star');
+  const item = {
+    id: data.length ? data[0].id : Date.now().toString(36),
+    ultimate: (ultimate || '').trim(),
+    fiveYear: (fiveYear || '').trim(),
+    oneYear: (oneYear || '').trim(),
+    thisQuarter: (thisQuarter || '').trim(),
+    thisWeek: (thisWeek || '').trim(),
+    today: (today || '').trim(),
+    manifesto: (manifesto || '').trim(),
+    updatedAt: new Date().toISOString()
+  };
+  writeData('north_star', [item]);
+  res.json({ success: true, item, reflection: ENG.northStar(item) });
+});
+
+app.delete('/api/north-star', (req, res) => {
+  writeData('north_star', []);
+  res.json({ success: true });
+});
+
+// ---------- 2. 危机预案 ----------
+app.get('/api/crisis-plan', (req, res) => {
+  res.json(readData('crisis_plan').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.post('/api/crisis-plan', (req, res) => {
+  const { scenario, probability, impact, precondition, immediateAction, threeDayPlan, recoveryPlan, note } = req.body;
+  if (!scenario || !scenario.trim()) return res.json({ success: false, message: '请填写危机场景' });
+  const list = readData('crisis_plan');
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    scenario: scenario.trim(),
+    probability: ['low','med','high'].includes(probability) ? probability : 'med',
+    impact: ['low','med','high','critical'].includes(impact) ? impact : 'high',
+    precondition: (precondition || '').trim(),
+    immediateAction: (immediateAction || '').trim(),
+    threeDayPlan: (threeDayPlan || '').trim(),
+    recoveryPlan: (recoveryPlan || '').trim(),
+    note: (note || '').trim(),
+    rehearsed: false,
+    rehearsedAt: null,
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  list.push(item);
+  writeData('crisis_plan', list);
+  res.json({ success: true, item, reflection: ENG.crisisPlan(item) });
+});
+
+app.post('/api/crisis-plan/:id/rehearse', (req, res) => {
+  const { note } = req.body;
+  const list = readData('crisis_plan');
+  const targetId = String(req.params.id);
+  const item = list.find(c => String(c.id) === targetId);
+  if (!item) return res.json({ success: false, message: '预案不存在' });
+  item.rehearsed = true;
+  item.rehearsedAt = new Date().toISOString();
+  item.rehearseNote = (note || '').trim();
+  writeData('crisis_plan', list);
+  res.json({ success: true, item });
+});
+
+app.delete('/api/crisis-plan/:id', (req, res) => {
+  const list = readData('crisis_plan');
+  writeData('crisis_plan', list.filter(c => String(c.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ---------- 3. 临终测试 ----------
+app.get('/api/death-test', (req, res) => {
+  res.json(readData('death_test').sort((a,b) => (a.date < b.date ? 1 : -1)));
+});
+
+app.post('/api/death-test', (req, res) => {
+  const { regrets, undone, proudOf, wouldChange, focus } = req.body;
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    regrets: (regrets || '').trim(),
+    undone: (undone || '').trim(),
+    proudOf: (proudOf || '').trim(),
+    wouldChange: (wouldChange || '').trim(),
+    focus: (focus || '').trim(),
+    createdAt: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  const list = readData('death_test');
+  list.push(item);
+  writeData('death_test', list);
+  res.json({ success: true, item, reflection: ENG.deathTest(item) });
+});
+
+app.delete('/api/death-test/:id', (req, res) => {
+  const list = readData('death_test');
+  writeData('death_test', list.filter(d => String(d.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ---------- 4. 年度叙事 ----------
+app.get('/api/narrative', (req, res) => {
+  res.json(readData('narrative').sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1)));
+});
+
+app.post('/api/narrative/generate', (req, res) => {
+  const year = parseInt(req.body.year) || new Date().getFullYear();
+  const narrative = ENG.narrative(year);
+  const list = readData('narrative');
+  // 同年覆盖
+  const filtered = list.filter(n => n.year !== year);
+  const item = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    year,
+    ...narrative,
+    createdAt: new Date().toISOString()
+  };
+  writeData('narrative', [item, ...filtered]);
+  res.json({ success: true, item });
+});
+
+app.delete('/api/narrative/:id', (req, res) => {
+  const list = readData('narrative');
+  writeData('narrative', list.filter(n => String(n.id) !== String(req.params.id)));
+  res.json({ success: true });
+});
+
+// ---------- 5. 船长宣言 ----------
+app.get('/api/manifesto', (req, res) => {
+  res.json(readData('manifesto'));
+});
+
+app.post('/api/manifesto', (req, res) => {
+  const { title, body, signedAt } = req.body;
+  const data = readData('manifesto');
+  const item = {
+    id: data.length ? data[0].id : Date.now().toString(36),
+    title: (title || '我的船长宣言').trim(),
+    body: (body || '').trim(),
+    signedAt: signedAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  writeData('manifesto', [item]);
+  res.json({ success: true, item, reflection: ENG.manifesto(item) });
+});
+
+app.delete('/api/manifesto', (req, res) => {
+  writeData('manifesto', []);
+  res.json({ success: true });
+});
+
+// ============================================================
+// 保存记录（带认知反馈）API
+// ============================================================
+app.post('/api/record/add', (req, res) => {
+  const { mid, data, editId } = req.body;
+  if (!mid) return res.json({ success: false, message: '缺少模块ID' });
+  if (!data || typeof data !== 'object') return res.json({ success: false, message: '缺少数据' });
+  const list = readData(mid);
+  let item;
+  if (editId) {
+    const targetId = String(editId);
+    item = list.find(x => String(x.id) === targetId);
+    if (item) Object.assign(item, data);
+    else { item = Object.assign({ id: targetId, created: new Date().toISOString() }, data); list.push(item); }
+  } else {
+    item = Object.assign({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), created: new Date().toISOString() }, data);
+    list.push(item);
+  }
+  writeData(mid, list);
+
+  // 生成认知反馈
+  const hist = ENG.buildHistory();
+  const reflection = ENG.reflect(mid, data, hist);
+  const correlations = ENG.correlate(hist);
+  const risks = ENG.risks(hist);
+  const dailySummary = ENG.daily(hist);
+
+  res.json({
+    success: true,
+    item,
+    reflection,
+    correlations,
+    risks,
+    dailySummary
+  });
+});
+
+// ============================================================
 // 通用 CRUD API（必须放在所有具体路由之后！）
 // ============================================================
 app.get('/api/:module', (req, res) => {
@@ -792,8 +2285,9 @@ app.post('/api/:module/add', (req, res) => {
 });
 app.delete('/api/:module/:id', (req, res) => {
   const d = readData(req.params.module);
-  writeData(req.params.module, d.filter(i => i.id !== req.params.id));
-  res.json({ success: true });
+  const targetId = String(req.params.id);
+  writeData(req.params.module, d.filter(i => String(i.id) !== targetId));
+  res.json({ success: true, removed: d.length - readData(req.params.module).length });
 });
 
 app.listen(PORT, '0.0.0.0', () => {

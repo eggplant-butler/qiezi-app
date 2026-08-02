@@ -223,8 +223,117 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
   <div id="workContent" style="font-size:13px;color:#CBD5E1;min-height:20px;">加载中...</div>
 </div>
 
+<!-- ====== 认知引擎（Phase 1）====== -->
+<div style="background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(236,72,153,0.05));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(139,92,246,0.15);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🧠 认知引擎</span>
+    <span style="font-size:10px;color:#64748B;">鬼谷子视角 · 不以物喜不以己悲</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <div onclick="openPrinciples()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:22px;">📐</div>
+      <div style="font-size:12px;color:#F1F5F9;font-weight:600;margin-top:4px;">原则库</div>
+      <div style="font-size:10px;color:#64748B;margin-top:2px;" id="principleCount">0 条</div>
+    </div>
+    <div onclick="openDecisions()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:22px;">🎯</div>
+      <div style="font-size:12px;color:#F1F5F9;font-weight:600;margin-top:4px;">决策推演台</div>
+      <div style="font-size:10px;color:#64748B;margin-top:2px;" id="decisionCount">0 条</div>
+    </div>
+  </div>
+  <div id="todayReflectionCard" style="margin-top:10px;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;display:none;border-left:3px solid #A78BFA;">
+    <div style="font-size:11px;color:#94A3B8;margin-bottom:4px;">📝 今日认知反馈</div>
+    <div id="todayReflectionText" style="font-size:12px;color:#CBD5E1;line-height:1.6;"></div>
+  </div>
+</div>
+
+<!-- ====== Phase 2：深度闭环 ====== -->
+<div style="background:linear-gradient(135deg,rgba(16,185,129,0.06),rgba(59,130,246,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(16,185,129,0.15);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🌀 深度闭环</span>
+    <span style="font-size:10px;color:#64748B;">追根因 · 看博弈 · 练定力 · 算能量 · 自动复盘</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+    <div onclick="openRootCause()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">🔬</div>
+      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">5Why根因</div>
+      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="rootCauseCount">0</div>
+    </div>
+    <div onclick="openInterpersonal()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">♟️</div>
+      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">人际博弈</div>
+      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="interpersonalCount">0</div>
+    </div>
+    <div onclick="openMindfulness()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">🧘</div>
+      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">定力训练</div>
+      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="mindfulnessCount">0</div>
+    </div>
+    <div onclick="openEnergy()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">⚡</div>
+      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">能量审计</div>
+      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="energyNet">0</div>
+    </div>
+    <div onclick="openReview()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">📅</div>
+      <div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">周月复盘</div>
+      <div style="font-size:9px;color:#64748B;margin-top:2px;" id="reviewCount">0</div>
+    </div>
+  </div>
+</div>
+
 <div id="homeCorrelations"></div>
 <div id="homeSuggestions"></div>
+</div>
+
+<!-- ====== Phase 3：成长轴 ====== -->
+<div style="background:linear-gradient(135deg,rgba(236,72,153,0.06),rgba(168,85,247,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(236,72,153,0.15);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🌳 成长轴</span>
+    <span style="font-size:10px;color:#64748B;">信念 · 品格 · 画像 · 反熵增 · 反脆弱</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+    <div onclick="openBeliefs()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">💎</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">信念追踪</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="beliefCount">0</div>
+    </div>
+    <div onclick="openCharacter()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">🎯</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">品格雷达</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="characterCount">0</div>
+    </div>
+    <div onclick="openSelfPortrait()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">🪞</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">自我画像</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="portraitCount">0</div>
+    </div>
+    <div onclick="openEntropy()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">📉</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">反熵增</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="entropyScore">0</div>
+    </div>
+    <div onclick="openAntifragile()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">🛡️</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">反脆弱</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="antifragileAvg">-</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Phase 4：船长工具 ====== -->
+<div style="background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(239,68,68,0.04));border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(245,158,11,0.2);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:600;color:#F1F5F9;">🧭 船长工具</span>
+    <span style="font-size:10px;color:#64748B;">你是这艘船的船长</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+    <div onclick="openNorthStar()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">⭐</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">北极星</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="northStarStatus">未设</div>
+    </div>
+    <div onclick="openCrisisPlan()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">🚨</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">危机预案</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="crisisCount">0</div>
+    </div>
+    <div onclick="openDeathTest()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">⚰️</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">临终测试</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="deathTestCount">0</div>
+    </div>
+    <div onclick="openNarrative()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">📖</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">年度叙事</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="narrativeCount">0</div>
+    </div>
+    <div onclick="openManifesto()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04);">
+      <div style="font-size:20px;">📜</div><div style="font-size:11px;color:#F1F5F9;font-weight:600;margin-top:4px;">船长宣言</div><div style="font-size:9px;color:#64748B;margin-top:2px;" id="manifestoStatus">未立</div>
+    </div>
+  </div>
 </div>
 
 <div class="pg" id="pgRecord"><div id="recordList"></div></div>
@@ -234,6 +343,9 @@ body{background:#0F0A1E;color:#E2E8F0;min-height:100vh;padding-bottom:80px}
 <div class="detail" id="detail"><button class="back" onclick="closeDetail()">‹ 返回</button><h2 id="detailTitle"></h2><div id="detailContent"></div><button class="add" onclick="openAdd()">+</button></div>
 
 <div class="modal" id="modal"><div class="modal-b"><h3 id="modalTitle">添加记录</h3><div id="modalBody"></div><div class="row"><button class="sv" onclick="saveRecord()">保存</button><button class="cn" onclick="closeModal()">取消</button></div></div></div>
+
+<!-- 认知引擎专用弹窗 -->
+<div class="modal" id="modal2"><div class="modal-b"><h3 id="modal2Title">认知引擎</h3><div id="modal2Body"></div><div class="row" id="modal2Actions"><button class="cn" onclick="closeModal2()">关闭</button></div></div></div>
 
 <div class="bar"><div class="tab act" onclick="switchTab('home')"><span class="ic">🏠</span>首页</div><div class="tab" onclick="switchTab('record')"><span class="ic">📋</span>记录</div><div class="tab" onclick="switchTab('insight')"><span class="ic">🔮</span>洞察</div><div class="tab" onclick="switchTab('me')"><span class="ic">👤</span>我</div></div>
 </div>
@@ -317,6 +429,7 @@ async function initApp() {
   loadSocial();
   loadAchievements();
   loadWork();
+  loadCognitiveCounts();
 }
 
 async function loadDailyQuestion() {
@@ -742,19 +855,45 @@ async function saveRecord(){
     var required = config.fields.find(function(f){ return f.key === 'content' || f.key === 'amount' || f.key === 'hours'; });
     if(required && !formData[required.key]){ alert('请填写'+required.label); return; }
   }
-  var data=Array.isArray(dataCache[curScene])?dataCache[curScene]:(dataCache[curScene]=[]);
-  if(editId){
-    var item=data.find(function(x){ return String(x.id)===String(editId); });
-    if(item){ Object.assign(item, formData); }
-    await apiSave(curScene,data);
-  } else {
-    var newItem = Object.assign({id:genId(), created:new Date().toISOString()}, formData);
-    data.push(newItem);
-    await apiSave(curScene,data);
+  // 走认知引擎 API（带反思/关联/风险反馈）
+  try {
+    var body = { mid: curScene, data: formData };
+    if (editId) body.editId = editId;
+    var r = await fetch('/api/record/add', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    var res = await r.json();
+    if (res.success) {
+      // 同步前端 dataCache
+      if (!Array.isArray(dataCache[curScene])) dataCache[curScene] = [];
+      if (editId) {
+        var item = dataCache[curScene].find(function(x){ return String(x.id)===String(editId); });
+        if (item) Object.assign(item, res.item);
+      } else {
+        dataCache[curScene].push(res.item);
+      }
+      closeModal();
+      renderDetail(curScene);
+      renderHome();
+      showCognitiveFeedback(res);
+    } else {
+      alert(res.message || '保存失败');
+    }
+  } catch(e) {
+    // 网络错误回退到原 apiSave
+    var data = Array.isArray(dataCache[curScene]) ? dataCache[curScene] : (dataCache[curScene] = []);
+    if (editId) {
+      var it = data.find(function(x){ return String(x.id)===String(editId); });
+      if (it) Object.assign(it, formData);
+      await apiSave(curScene, data);
+    } else {
+      var newItem = Object.assign({id:genId(), created:new Date().toISOString()}, formData);
+      data.push(newItem);
+      await apiSave(curScene, data);
+    }
+    closeModal();
+    renderDetail(curScene);
+    renderHome();
+    alert('已保存（离线模式）');
   }
-  closeModal();
-  renderDetail(curScene);
-  renderHome();
 }
 
 async function delRec(sceneId,id){
@@ -767,6 +906,1160 @@ async function delRec(sceneId,id){
 }
 
 function closeModal(){ document.getElementById('modal').classList.remove('act'); editId=null; }
+
+// ============================================================
+// 认知引擎（Phase 1）：modal2 + 原则库 + 决策推演 + 反馈弹窗
+// ============================================================
+function closeModal2(){ document.getElementById('modal2').classList.remove('act'); }
+function openModal2(title, bodyHtml, actionsHtml){
+  document.getElementById('modal2Title').textContent = title;
+  document.getElementById('modal2Body').innerHTML = bodyHtml;
+  document.getElementById('modal2Actions').innerHTML = actionsHtml || '<button class="cn" onclick="closeModal2()">关闭</button>';
+  document.getElementById('modal2').classList.add('act');
+}
+
+// ---- 原则库 ----
+async function openPrinciples(){
+  openModal2('📐 原则库', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/principles');
+    var list = await r.json();
+    var html = '<div style="margin-bottom:14px">';
+    html += '<textarea id="newPrincipleText" placeholder="提炼一条你的人生原则..." style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;font-family:inherit;min-height:60px;resize:vertical"></textarea>';
+    html += '<input id="newPrincipleSource" placeholder="来源（可选：范仲淹/自我感悟/反思提炼）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-top:6px">';
+    html += '<button onclick="addPrinciple()" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff;font-weight:600;cursor:pointer">添加原则</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有原则。<br>每次反思后提炼一条，这是你的人生智慧积累。<br><br>例如：「不以物喜，不以己悲」「权衡利弊，先看势再看人」「能量不足时不做重要决策」</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条</div>';
+      list.forEach(function(p){
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #A78BFA">';
+        html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.5">'+escapeHtml(p.text)+'</div>';
+        if (p.source) html += '<div style="font-size:11px;color:#64748B;margin-top:4px">— '+escapeHtml(p.source)+'</div>';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span style="font-size:10px;color:#475569">'+(p.createdAt||'').split('T')[0]+'</span><span style="font-size:11px;color:#EF4444;cursor:pointer" onclick="delPrinciple(\''+p.id+'\')">删除</span></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('📐 原则库（'+list.length+'）', html);
+  } catch(e) { openModal2('📐 原则库', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function addPrinciple(){
+  var text = document.getElementById('newPrincipleText').value.trim();
+  var source = document.getElementById('newPrincipleSource').value.trim();
+  if (!text) { alert('请输入原则'); return; }
+  try {
+    var r = await fetch('/api/principles', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:text, source:source}) });
+    var d = await r.json();
+    if (d.success) { openPrinciples(); loadCognitiveCounts(); }
+    else alert(d.message || '添加失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delPrinciple(id){
+  if (!confirm('删除这条原则？')) return;
+  try {
+    await fetch('/api/principles/'+id, { method:'DELETE' });
+    openPrinciples(); loadCognitiveCounts();
+  } catch(e) { alert('网络错误'); }
+}
+
+// ---- 决策推演台 ----
+async function openDecisions(){
+  openModal2('🎯 决策推演台', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/decisions');
+    var list = await r.json();
+    var html = '<div style="margin-bottom:14px;background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;border:1px solid rgba(245,158,11,0.15)">';
+    html += '<div style="font-size:11px;color:#FBBF24;margin-bottom:8px">📝 记录当下的推理，日后回溯判断力</div>';
+    html += '<input id="decTitle" placeholder="决策标题（如：是否跳槽）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="decReason" placeholder="推理过程：基于什么事实？考虑了什么？权衡了什么？" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="decExpected" placeholder="预期结果" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<input id="decDeadline" type="date" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<button onclick="addDecision()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录决策</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有决策记录。<br>面对重要选择时，记录你的推理过程，<br>日后回溯能看出你的判断力在演化。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条决策</div>';
+      list.forEach(function(d){
+        var reviewed = d.reviewed;
+        var correct = d.correct;
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid '+(reviewed?(correct===true?'#22C55E':correct===false?'#EF4444':'#94A3B8'):'#FBBF24')+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px;color:#F1F5F9">'+escapeHtml(d.title)+'</b>';
+        html += '<span style="font-size:10px;padding:2px 8px;border-radius:8px;'+(reviewed?'background:rgba(34,197,94,0.15);color:#22C55E':'background:rgba(251,191,36,0.15);color:#FBBF24')+'">'+(reviewed?'已回溯':'待回溯')+'</span></div>';
+        if (d.reasoning) html += '<div style="font-size:12px;color:#94A3B8;margin-top:6px;line-height:1.5"><b>推理：</b>'+escapeHtml(d.reasoning)+'</div>';
+        if (d.expected) html += '<div style="font-size:12px;color:#94A3B8;margin-top:4px"><b>预期：</b>'+escapeHtml(d.expected)+'</div>';
+        if (d.deadline) html += '<div style="font-size:11px;color:#64748B;margin-top:4px">📅 截止：'+d.deadline+'</div>';
+        if (reviewed) {
+          if (d.outcome) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:6px;padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px"><b>结果：</b>'+escapeHtml(d.outcome)+'</div>';
+          html += '<div style="font-size:11px;color:'+(correct===true?'#22C55E':correct===false?'#EF4444':'#94A3B8')+';margin-top:4px">'+(correct===true?'✅ 判断正确':correct===false?'❌ 判断错误':'⚖️ 中性')+'</div>';
+        } else {
+          html += '<button onclick="reviewDecision(\''+d.id+'\')" style="margin-top:6px;font-size:11px;padding:4px 12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:#A78BFA;cursor:pointer">回溯结果</button>';
+        }
+        html += '</div>';
+      });
+    }
+    openModal2('🎯 决策推演台（'+list.length+'）', html);
+  } catch(e) { openModal2('🎯 决策推演台', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function addDecision(){
+  var title = document.getElementById('decTitle').value.trim();
+  var reasoning = document.getElementById('decReason').value.trim();
+  var expected = document.getElementById('decExpected').value.trim();
+  var deadline = document.getElementById('decDeadline').value;
+  if (!title) { alert('请输入决策标题'); return; }
+  try {
+    var r = await fetch('/api/decisions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title:title, reasoning:reasoning, expected:expected, deadline:deadline}) });
+    var d = await r.json();
+    if (d.success) { openDecisions(); loadCognitiveCounts(); }
+    else alert(d.message || '添加失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+function reviewDecision(id){
+  var outcome = prompt('实际结果是什么？');
+  if (outcome === null) return;
+  var correct = confirm('判断是否正确？\n确定=正确，取消=错误') ? true : confirm('判断错误？确定=是，取消=中性') ? false : null;
+  fetch('/api/decisions/'+id+'/review', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({outcome:outcome, correct:correct}) })
+    .then(function(){ openDecisions(); })
+    .catch(function(){ alert('网络错误'); });
+}
+
+// ============================================================
+// Phase 2：深度闭环 - 5个功能弹窗
+// ============================================================
+
+// ---- 1. 5Why 根因分析 ----
+async function openRootCause(){
+  openModal2('🔬 5Why 根因分析', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/root-cause'); var list = await r.json();
+    var html = '<div style="background:rgba(16,185,129,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(16,185,129,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新根因分析</div>';
+    html += '<label style="font-size:11px;color:#94A3B8">触发事件（让你情绪波动/决策失误的事）</label>';
+    html += '<textarea id="rcTrigger" placeholder="如：今天和同事吵了一架 / 又熬夜了 / 冲动消费了" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<div id="rcWhys" style="margin-bottom:8px"></div>';
+    html += '<div style="display:flex;gap:6px;margin-bottom:8px"><button onclick="addWhy()" style="flex:1;padding:8px;border:1px dashed rgba(16,185,129,0.4);border-radius:8px;background:rgba(16,185,129,0.04);color:#10B981;font-size:12px;cursor:pointer">+ 追加一层追问</button></div>';
+    html += '<label style="font-size:11px;color:#94A3B8">根因（一句话，必须是你能改变的）</label>';
+    html += '<input id="rcRoot" placeholder="如：我在压力下习惯性逃避对话" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:14px;margin-bottom:8px">';
+    html += '<button onclick="saveRootCause()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#10B981,#34D399);color:#fff;font-weight:600;cursor:pointer">保存根因分析</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有根因记录。<br>当你遇到反复发生的问题时，用5Why挖到底——<br>表层原因解决一次，根因解决一辈子。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条</div>';
+      list.forEach(function(rc){
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+(rc.resolved?'#22C55E':'#F59E0B')+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#64748B">'+rc.date+'</span><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+(rc.resolved?'rgba(34,197,94,0.15)':'rgba(245,158,11,0.15)')+';color:'+(rc.resolved?'#22C55E':'#F59E0B')+'">'+(rc.resolved?'已解决':'待解决')+'</span></div>';
+        html += '<div style="font-size:13px;color:#F1F5F9;margin-top:6px"><b>触发：</b>'+escapeHtml(rc.trigger)+'</div>';
+        if (rc.whys && rc.whys.length) {
+          html += '<div style="margin-top:6px">';
+          rc.whys.forEach(function(w, i){ html += '<div style="font-size:12px;color:#CBD5E1;padding:3px 0;white-space:pre-wrap"><span style="color:#10B981">'+(i+1)+'. 为什么：</span>'+escapeHtml(w)+'</div>'; });
+          html += '</div>';
+        }
+        if (rc.root) html += '<div style="font-size:12px;color:#10B981;margin-top:6px;padding:6px 10px;background:rgba(16,185,129,0.06);border-radius:6px"><b>根因：</b>'+escapeHtml(rc.root)+'</div>';
+        if (rc.resolved && rc.resolvedAction) html += '<div style="font-size:11px;color:#22C55E;margin-top:4px">✓ 采取行动：'+escapeHtml(rc.resolvedAction)+'</div>';
+        html += '<div style="display:flex;gap:8px;margin-top:8px">';
+        if (!rc.resolved) html += '<button onclick="resolveRootCause(\''+rc.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(34,197,94,0.3);border-radius:8px;background:rgba(34,197,94,0.06);color:#22C55E;cursor:pointer">标记已解决</button>';
+        html += '<button onclick="delRootCause(\''+rc.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button>';
+        html += '</div></div>';
+      });
+    }
+    addWhyCount = 0;
+    renderWhyInputs();
+    openModal2('🔬 5Why 根因分析（'+list.length+'）', html);
+  } catch(e) { openModal2('🔬 5Why 根因分析', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+var addWhyCount = 0;
+function renderWhyInputs(){
+  var c = document.getElementById('rcWhys'); if(!c) return;
+  var html = '';
+  for (var i=0; i<addWhyCount+1; i++) {
+    html += '<label style="font-size:11px;color:#94A3B8">第 '+(i+1)+' 层 为什么？</label>';
+    html += '<input id="rcWhy'+i+'" placeholder="因为..." style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+  }
+  c.innerHTML = html;
+}
+function addWhy(){ addWhyCount++; renderWhyInputs(); }
+
+async function saveRootCause(){
+  var trigger = document.getElementById('rcTrigger').value.trim();
+  var root = document.getElementById('rcRoot').value.trim();
+  var whys = [];
+  for (var i=0; i<=addWhyCount; i++) {
+    var v = document.getElementById('rcWhy'+i).value.trim();
+    if (v) whys.push(v);
+  }
+  if (!trigger) { alert('请填写触发事件'); return; }
+  if (whys.length === 0) { alert('请至少填写一层"为什么"'); return; }
+  try {
+    var r = await fetch('/api/root-cause', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({trigger:trigger, whys:whys, root:root}) });
+    var d = await r.json();
+    if (d.success) {
+      openRootCause(); loadCognitiveCounts();
+      if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection});
+    } else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function resolveRootCause(id){
+  var action = prompt('你采取了什么行动来解决这个根因？');
+  if (action === null) return;
+  try {
+    await fetch('/api/root-cause/'+id+'/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:action}) });
+    openRootCause(); loadCognitiveCounts();
+  } catch(e) { alert('网络错误'); }
+}
+
+async function delRootCause(id){
+  if (!confirm('删除这条根因记录？')) return;
+  try {
+    await fetch('/api/root-cause/'+id, { method:'DELETE' });
+    openRootCause(); loadCognitiveCounts();
+  } catch(e) { alert('网络错误'); }
+}
+
+// ---- 2. 人际博弈日志 ----
+async function openInterpersonal(){
+  openModal2('♟️ 人际博弈日志', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/interpersonal'); var list = await r.json();
+    var html = '<div style="background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新博弈记录</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipPerson" placeholder="对象姓名" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><input id="ipRole" placeholder="角色（同事/家人/朋友）" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div>';
+    html += '<textarea id="ipEvent" placeholder="发生了什么事？" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyGoal" placeholder="我要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><input id="ipTheirGoal" placeholder="他/她要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyMove" placeholder="我做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><input id="ipTheirMove" placeholder="他/她做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyCost" type="number" placeholder="我的成本(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><input id="ipMyGain" type="number" placeholder="我的收益(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div>';
+    html += '<textarea id="ipLesson" placeholder="一句教训/收获" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveInterpersonal()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">保存博弈</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有博弈记录。<br>鬼谷子：知彼知己，胜乃不殆；知天知地，胜乃可全。<br>记录每次重要互动，看清背后的利益/成本结构。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条</div>';
+      list.forEach(function(it){
+        var netColor = it.net > 0 ? '#22C55E' : it.net < 0 ? '#EF4444' : '#94A3B8';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+netColor+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#F1F5F9;font-weight:600">'+escapeHtml(it.person)+(it.role?' · '+escapeHtml(it.role):'')+'</span><span style="font-size:10px;color:#64748B">'+it.date+'</span></div>';
+        html += '<div style="font-size:12px;color:#CBD5E1;margin-top:4px">'+escapeHtml(it.event)+'</div>';
+        if (it.myGoal) html += '<div style="font-size:11px;color:#94A3B8;margin-top:4px">我要：'+escapeHtml(it.myGoal)+'</div>';
+        if (it.theirGoal) html += '<div style="font-size:11px;color:#94A3B8">他要：'+escapeHtml(it.theirGoal)+'</div>';
+        html += '<div style="font-size:11px;color:'+netColor+';margin-top:4px">净收益：'+(it.net>=0?'+':'')+it.net+'（成本'+it.myCost+' / 收益'+it.myGain+'）</div>';
+        if (it.lesson) html += '<div style="font-size:11px;color:#FBBF24;margin-top:4px;padding:4px 8px;background:rgba(251,191,36,0.06);border-radius:6px">💡 '+escapeHtml(it.lesson)+'</div>';
+        html += '<div style="margin-top:6px"><button onclick="delInterpersonal(\''+it.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('♟️ 人际博弈日志（'+list.length+'）', html);
+  } catch(e) { openModal2('♟️ 人际博弈日志', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveInterpersonal(){
+  var data = {
+    person: document.getElementById('ipPerson').value.trim(),
+    role: document.getElementById('ipRole').value.trim(),
+    event: document.getElementById('ipEvent').value.trim(),
+    myGoal: document.getElementById('ipMyGoal').value.trim(),
+    theirGoal: document.getElementById('ipTheirGoal').value.trim(),
+    myMove: document.getElementById('ipMyMove').value.trim(),
+    theirMove: document.getElementById('ipTheirMove').value.trim(),
+    myCost: document.getElementById('ipMyCost').value,
+    myGain: document.getElementById('ipMyGain').value,
+    lesson: document.getElementById('ipLesson').value.trim()
+  };
+  if (!data.person || !data.event) { alert('请填写对象和事件'); return; }
+  try {
+    var r = await fetch('/api/interpersonal', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openInterpersonal(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delInterpersonal(id){
+  if (!confirm('删除这条博弈记录？')) return;
+  try { await fetch('/api/interpersonal/'+id, { method:'DELETE' }); openInterpersonal(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 3. 定力训练 ----
+async function openMindfulness(){
+  openModal2('🧘 定力训练', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r1 = await fetch('/api/mindfulness'); var list = await r1.json();
+    var r2 = await fetch('/api/mindfulness/baseline'); var base = await r2.json();
+    var html = '';
+    if (base && base.interpretation) {
+      html += '<div style="background:rgba(139,92,246,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #8B5CF6">';
+      html += '<div style="font-size:12px;color:#A78BFA;margin-bottom:6px">📊 心境基线</div>';
+      html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(base.interpretation)+'</div>';
+      html += '</div>';
+    }
+    html += '<div style="background:rgba(139,92,246,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(139,92,246,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新训练记录</div>';
+    html += '<label style="font-size:11px;color:#94A3B8">类型</label>';
+    html += '<select id="mfType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<option value="情绪冲击">情绪冲击（被激怒/焦虑）</option>';
+    html += '<option value="诱惑">诱惑（想吃/想买/想刷）</option>';
+    html += '<option value="延迟满足">延迟满足</option>';
+    html += '<option value="冥想">主动冥想</option>';
+    html += '<option value="停顿">停顿3秒</option>';
+    html += '</select>';
+    html += '<input id="mfTrigger" placeholder="触发事件（如：被领导批评）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><label style="font-size:11px;color:#94A3B8">触发前心境(1-5)</label><input id="mfBefore" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div><div><label style="font-size:11px;color:#94A3B8">触发后心境(1-5)</label><input id="mfAfter" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div></div>';
+    html += '<input id="mfMethod" placeholder="用了什么方法（深呼吸/离开现场/数到10）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="mfNote" placeholder="感悟（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveMindfulness()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:#fff;font-weight:600;cursor:pointer">保存训练</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有训练记录。<br>定力不是"忍住"，是"看见而不被带走"。<br>每次情绪冲击，都是一次训练机会——记录下来，看清自己的反应模式。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条</div>';
+      list.forEach(function(m){
+        var dColor = m.delta > 0 ? '#22C55E' : m.delta < 0 ? '#EF4444' : '#94A3B8';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+dColor+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#F1F5F9;font-weight:600">'+escapeHtml(m.type)+'</span><span style="font-size:10px;color:#64748B">'+m.date+'</span></div>';
+        if (m.trigger) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:4px">触发：'+escapeHtml(m.trigger)+'</div>';
+        html += '<div style="font-size:11px;color:'+dColor+';margin-top:4px">心境 '+m.beforeLevel+' → '+m.afterLevel+' ('+(m.delta>=0?'+':'')+m.delta+')</div>';
+        if (m.method) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">方法：'+escapeHtml(m.method)+'</div>';
+        if (m.note) html += '<div style="font-size:11px;color:#A78BFA;margin-top:4px;padding:4px 8px;background:rgba(139,92,246,0.06);border-radius:6px">📝 '+escapeHtml(m.note)+'</div>';
+        html += '<div style="margin-top:6px"><button onclick="delMindfulness(\''+m.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('🧘 定力训练（'+list.length+'）', html);
+  } catch(e) { openModal2('🧘 定力训练', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveMindfulness(){
+  var data = {
+    type: document.getElementById('mfType').value,
+    trigger: document.getElementById('mfTrigger').value.trim(),
+    beforeLevel: document.getElementById('mfBefore').value,
+    afterLevel: document.getElementById('mfAfter').value,
+    method: document.getElementById('mfMethod').value.trim(),
+    note: document.getElementById('mfNote').value.trim()
+  };
+  try {
+    var r = await fetch('/api/mindfulness', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openMindfulness(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delMindfulness(id){
+  if (!confirm('删除这条训练记录？')) return;
+  try { await fetch('/api/mindfulness/'+id, { method:'DELETE' }); openMindfulness(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 4. 能量审计 ----
+async function openEnergy(){
+  openModal2('⚡ 能量审计', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r1 = await fetch('/api/energy'); var list = await r1.json();
+    var r2 = await fetch('/api/energy/audit'); var audit = await r2.json();
+    var html = '';
+    if (audit && audit.interpretation) {
+      var netColor = audit.net > 0 ? '#22C55E' : audit.net < 0 ? '#EF4444' : '#94A3B8';
+      html += '<div style="background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid '+netColor+'">';
+      html += '<div style="font-size:12px;color:#FBBF24;margin-bottom:6px">📊 本周能量报表</div>';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;margin-bottom:8px"><div><div style="font-size:11px;color:#EF4444">消耗</div><div style="font-size:18px;color:#EF4444;font-weight:700">'+audit.totalDrain+'</div></div><div><div style="font-size:11px;color:#22C55E">充能</div><div style="font-size:18px;color:#22C55E;font-weight:700">'+audit.totalGain+'</div></div><div><div style="font-size:11px;color:#94A3B8">净</div><div style="font-size:18px;color:'+netColor+';font-weight:700">'+(audit.net>=0?'+':'')+audit.net+'</div></div></div>';
+      html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(audit.interpretation)+'</div>';
+      html += '</div>';
+    }
+    html += '<div style="background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 记录能量</div>';
+    html += '<label style="font-size:11px;color:#94A3B8">类型</label>';
+    html += '<select id="egType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<option value="drain">消耗（让我累）</option>';
+    html += '<option value="gain">充能（让我有力）</option>';
+    html += '</select>';
+    html += '<input id="egSource" placeholder="来源（如：刷短视频/深度对话/运动）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<label style="font-size:11px;color:#94A3B8">强度(1-10)</label>';
+    html += '<input id="egAmount" type="number" min="1" max="10" value="5" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="egNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveEnergy()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有能量记录。<br>看不见的能量，管不住。<br>记录一周，你会看清自己的能量黑洞和能量源泉。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">最近 '+list.length+' 条</div>';
+      list.slice(0, 15).forEach(function(e){
+        var color = e.type === 'drain' ? '#EF4444' : '#22C55E';
+        var icon = e.type === 'drain' ? '🔴' : '🟢';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:8px 12px;margin-bottom:4px;border-left:3px solid '+color+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#F1F5F9">'+icon+' '+escapeHtml(e.source)+'</span><span style="font-size:11px;color:'+color+';font-weight:600">'+(e.type==='drain'?'-':'+')+e.amount+'</span></div>';
+        if (e.note) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">'+escapeHtml(e.note)+'</div>';
+        html += '<div style="font-size:10px;color:#64748B">'+e.date+'</div>';
+        html += '</div>';
+      });
+    }
+    openModal2('⚡ 能量审计', html);
+  } catch(e) { openModal2('⚡ 能量审计', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveEnergy(){
+  var data = {
+    type: document.getElementById('egType').value,
+    source: document.getElementById('egSource').value.trim(),
+    amount: document.getElementById('egAmount').value,
+    note: document.getElementById('egNote').value.trim()
+  };
+  if (!data.source) { alert('请填写能量来源'); return; }
+  try {
+    var r = await fetch('/api/energy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openEnergy(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delEnergy(id){
+  if (!confirm('删除这条能量记录？')) return;
+  try { await fetch('/api/energy/'+id, { method:'DELETE' }); openEnergy(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 5. 周月复盘 ----
+async function openReview(){
+  openModal2('📅 周/月复盘', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r1 = await fetch('/api/reviews'); var list = await r1.json();
+    var r2 = await fetch('/api/review/auto?period=week'); var autoWeek = await r2.json();
+    var r3 = await fetch('/api/review/auto?period=month'); var autoMonth = await r3.json();
+
+    var html = '<div style="background:rgba(139,92,246,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #8B5CF6">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#F1F5F9">🤖 本周自动复盘</span><span style="font-size:10px;color:#64748B">'+autoWeek.range+'</span></div>';
+    html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap;margin-bottom:6px">'+escapeHtml(autoWeek.summary)+'</div>';
+    if (autoWeek.suggestions && autoWeek.suggestions.length) {
+      html += '<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06)">';
+      autoWeek.suggestions.forEach(function(s){ html += '<div style="font-size:11px;color:#FBBF24;padding:2px 0">⚠️ '+escapeHtml(s)+'</div>'; });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    html += '<div style="background:rgba(59,130,246,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #3B82F6">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#F1F5F9">🤖 本月自动复盘</span><span style="font-size:10px;color:#64748B">'+autoMonth.range+'</span></div>';
+    html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap">'+escapeHtml(autoMonth.summary)+'</div>';
+    html += '</div>';
+
+    html += '<div style="background:rgba(139,92,246,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(139,92,246,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 写一条自己的复盘</div>';
+    html += '<select id="rvPeriod" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px"><option value="week">本周</option><option value="month">本月</option></select>';
+    html += '<textarea id="rvContent" placeholder="这周/月你最重要的反思是什么？" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="rvHighlights" placeholder="亮点（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<input id="rvRegrets" placeholder="遗憾（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<input id="rvNextActions" placeholder="下周/月要做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:8px">';
+    html += '<button onclick="saveReview()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff;font-weight:600;cursor:pointer">保存复盘</button>';
+    html += '</div>';
+
+    if (list.length > 0) {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史复盘 '+list.length+' 条</div>';
+      list.forEach(function(rv){
+        var pLabel = rv.period === 'month' ? '月度' : '周度';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #8B5CF6">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#A78BFA">'+pLabel+'复盘</span><span style="font-size:10px;color:#64748B">'+rv.date+'</span></div>';
+        html += '<div style="font-size:12px;color:#F1F5F9;margin-top:4px;line-height:1.6">'+escapeHtml(rv.content)+'</div>';
+        if (rv.highlights) html += '<div style="font-size:11px;color:#22C55E;margin-top:4px">✨ '+escapeHtml(rv.highlights)+'</div>';
+        if (rv.regrets) html += '<div style="font-size:11px;color:#EF4444;margin-top:2px">💭 '+escapeHtml(rv.regrets)+'</div>';
+        if (rv.nextActions) html += '<div style="font-size:11px;color:#FBBF24;margin-top:2px">→ '+escapeHtml(rv.nextActions)+'</div>';
+        html += '<div style="margin-top:6px"><button onclick="delReview(\''+rv.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('📅 周/月复盘（'+list.length+'）', html);
+  } catch(e) { openModal2('📅 周/月复盘', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveReview(){
+  var data = {
+    period: document.getElementById('rvPeriod').value,
+    content: document.getElementById('rvContent').value.trim(),
+    highlights: document.getElementById('rvHighlights').value.trim(),
+    regrets: document.getElementById('rvRegrets').value.trim(),
+    nextActions: document.getElementById('rvNextActions').value.trim()
+  };
+  if (!data.content) { alert('请写下你的反思'); return; }
+  try {
+    var r = await fetch('/api/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openReview(); loadCognitiveCounts(); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delReview(id){
+  if (!confirm('删除这条复盘？')) return;
+  try { await fetch('/api/reviews/'+id, { method:'DELETE' }); openReview(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ============================================================
+// Phase 3：成长轴 - 5个功能弹窗
+// ============================================================
+
+// ---- 1. 信念追踪 ----
+async function openBeliefs(){
+  openModal2('💎 信念追踪', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/beliefs'); var list = await r.json();
+    var html = '<div style="background:rgba(236,72,153,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(236,72,153,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 记录一条信念</div>';
+    html += '<textarea id="blBelief" placeholder="你坚信的事，如：努力会有回报 / 人性本善 / 我能掌控自己" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="blSource" placeholder="来源（自己验证/父母教的/书上看的/创伤形成的）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><div><label style="font-size:11px;color:#94A3B8">信心(1-5)</label><input id="blConfidence" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"></div><div><label style="font-size:11px;color:#94A3B8">分类</label><select id="blCategory" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><option>人生</option><option>金钱</option><option>关系</option><option>工作</option><option>自己</option></select></div></div>';
+    html += '<button onclick="saveBelief()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#EC4899,#F472B6);color:#fff;font-weight:600;cursor:pointer">记录信念</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有信念记录。<br>信念是人生的操作系统——你所有的决策都基于它。<br>但很多信念你从没验证过，只是"以为"它对。<br>记录下来，定期让现实打脸。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 条信念</div>';
+      list.forEach(function(b){
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #EC4899">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#94A3B8">'+b.category+' · 信心'+b.confidence+'/5</span><span style="font-size:10px;color:#64748B">'+b.date+'</span></div>';
+        html += '<div style="font-size:13px;color:#F1F5F9;margin-top:4px;font-weight:500">'+escapeHtml(b.belief)+'</div>';
+        if (b.source) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">来源：'+escapeHtml(b.source)+'</div>';
+        if (b.tested > 0) html += '<div style="font-size:11px;color:#A78BFA;margin-top:4px">已检验'+b.tested+'次 · 成立'+b.heldUp+' · 被打破'+b.broken+'</div>';
+        html += '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
+        html += '<button onclick="testBelief(\''+b.id+'\',\'held\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(34,197,94,0.3);border-radius:8px;background:rgba(34,197,94,0.06);color:#22C55E;cursor:pointer">✓ 成立</button>';
+        html += '<button onclick="testBelief(\''+b.id+'\',\'broken\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;background:rgba(239,68,68,0.06);color:#EF4444;cursor:pointer">✗ 打破</button>';
+        html += '<button onclick="delBelief(\''+b.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:#94A3B8;cursor:pointer">删除</button>';
+        html += '</div></div>';
+      });
+    }
+    openModal2('💎 信念追踪（'+list.length+'）', html);
+  } catch(e) { openModal2('💎 信念追踪', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveBelief(){
+  var data = {
+    belief: document.getElementById('blBelief').value.trim(),
+    source: document.getElementById('blSource').value.trim(),
+    confidence: document.getElementById('blConfidence').value,
+    category: document.getElementById('blCategory').value
+  };
+  if (!data.belief) { alert('请写下你的信念'); return; }
+  try {
+    var r = await fetch('/api/beliefs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openBeliefs(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function testBelief(id, result){
+  var note = prompt(result === 'held' ? '什么事件验证了它？' : '什么事件打破了它？简述');
+  if (note === null) return;
+  try {
+    var r = await fetch('/api/beliefs/'+id+'/test', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({result:result, note:note}) });
+    var d = await r.json();
+    openBeliefs();
+    if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection});
+  } catch(e) { alert('网络错误'); }
+}
+
+async function delBelief(id){
+  if (!confirm('删除这条信念？')) return;
+  try { await fetch('/api/beliefs/'+id, { method:'DELETE' }); openBeliefs(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 2. 品格雷达 ----
+async function openCharacter(){
+  openModal2('🎯 品格雷达', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r1 = await fetch('/api/character/radar'); var radar = await r1.json();
+    var r2 = await fetch('/api/character'); var list = await r2.json();
+    var html = '';
+    if (radar.interpretation) {
+      html += '<div style="background:rgba(168,85,247,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #A855F7">';
+      html += '<div style="font-size:12px;color:#A855F7;margin-bottom:6px">📊 品格演化</div>';
+      html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(radar.interpretation)+'</div>';
+      html += '</div>';
+    }
+    html += '<div style="background:rgba(168,85,247,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(168,85,247,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新自评（0-10）</div>';
+    var dims = [['honesty','诚实'],['courage','勇气'],['resilience','韧性'],['restraint','克制'],['responsibility','担当'],['altruism','利他']];
+    dims.forEach(function(d){
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:13px;color:#F1F5F9;width:50px">'+d[1]+'</span><input id="ch_'+d[0]+'" type="range" min="0" max="10" value="5" style="flex:1" oninput="document.getElementById(\'ch_'+d[0]+'_v\').textContent=this.value"><span id="ch_'+d[0]+'_v" style="font-size:13px;color:#A855F7;width:24px;text-align:right">5</span></div>';
+    });
+    html += '<textarea id="chNote" placeholder="为什么这次这么评？（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveCharacter()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#A855F7,#C084FC);color:#fff;font-weight:600;cursor:pointer">保存自评</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有品格记录。<br>诚实是所有品格的基石——先诚实，再谈其他。<br>每月自评一次，看自己的演化轨迹。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史 '+list.length+' 份</div>';
+      list.slice(0, 6).forEach(function(c){
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #A855F7">';
+        html += '<div style="font-size:11px;color:#64748B">'+c.date+'</div>';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:11px">';
+        dims.forEach(function(d){ html += '<div style="color:#94A3B8">'+d[1]+'：<span style="color:#F1F5F9;font-weight:600">'+c[d[0]]+'</span></div>'; });
+        html += '</div>';
+        if (c.note) html += '<div style="font-size:11px;color:#A855F7;margin-top:4px;padding:4px 8px;background:rgba(168,85,247,0.06);border-radius:6px">📝 '+escapeHtml(c.note)+'</div>';
+        html += '<div style="margin-top:6px"><button onclick="delCharacter(\''+c.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('🎯 品格雷达', html);
+  } catch(e) { openModal2('🎯 品格雷达', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveCharacter(){
+  var data = {
+    honesty: document.getElementById('ch_honesty').value,
+    courage: document.getElementById('ch_courage').value,
+    resilience: document.getElementById('ch_resilience').value,
+    restraint: document.getElementById('ch_restraint').value,
+    responsibility: document.getElementById('ch_responsibility').value,
+    altruism: document.getElementById('ch_altruism').value,
+    note: document.getElementById('chNote').value.trim()
+  };
+  try {
+    var r = await fetch('/api/character', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openCharacter(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delCharacter(id){
+  if (!confirm('删除这份自评？')) return;
+  try { await fetch('/api/character/'+id, { method:'DELETE' }); openCharacter(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 3. 自我画像 ----
+async function openSelfPortrait(){
+  openModal2('🪞 自我画像', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/self-portrait'); var list = await r.json();
+    var html = '<div style="background:linear-gradient(135deg,rgba(236,72,153,0.1),rgba(168,85,247,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(236,72,153,0.2);text-align:center">';
+    html += '<button onclick="generatePortrait()" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#EC4899,#A855F7);color:#fff;font-weight:600;cursor:pointer">🪞 生成当前画像</button>';
+    html += '<div style="font-size:11px;color:#64748B;margin-top:6px">基于你所有记录，系统会画出"你是谁"</div>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有画像。<br>画像不是你想成为谁，是你实际是谁。<br>基于你的记录，系统会诚实地告诉你答案。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史画像 '+list.length+' 份（最多保留12份）</div>';
+      list.forEach(function(p){
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid #EC4899">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#EC4899">'+p.date+' 画像</span><span style="font-size:10px;color:#64748B">基于'+p.sampleSize+'条</span></div>';
+        if (p.oneLine) html += '<div style="font-size:14px;color:#F1F5F9;font-weight:600;margin-top:6px">'+escapeHtml(p.oneLine)+'</div>';
+        if (p.narrative) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:6px;line-height:1.7;white-space:pre-wrap">'+escapeHtml(p.narrative)+'</div>';
+        html += '<div style="margin-top:6px"><button onclick="delPortrait(\''+p.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('🪞 自我画像演化', html);
+  } catch(e) { openModal2('🪞 自我画像', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function generatePortrait(){
+  try {
+    var r = await fetch('/api/self-portrait/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({}) });
+    var d = await r.json();
+    if (d.success) { openSelfPortrait(); loadCognitiveCounts(); if (d.item && d.item.narrative) showCognitiveFeedback({success:true, reflection:d.item.narrative}); }
+    else alert(d.message || '生成失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delPortrait(id){
+  if (!confirm('删除这份画像？')) return;
+  try { await fetch('/api/self-portrait/'+id, { method:'DELETE' }); openSelfPortrait(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 4. 反熵增监控 ----
+async function openEntropy(){
+  openModal2('📉 反熵增监控', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r1 = await fetch('/api/entropy'); var monitor = await r1.json();
+    var r2 = await fetch('/api/entropy/logs'); var logs = await r2.json();
+    var scoreColor = monitor.entropyScore > 8 ? '#EF4444' : monitor.entropyScore > 4 ? '#F59E0B' : '#22C55E';
+    var html = '<div style="background:rgba(245,158,11,0.08);border-radius:12px;padding:14px;margin-bottom:14px;border-left:3px solid '+scoreColor+'">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:600;color:#F1F5F9">📊 当前熵增</span><span style="font-size:18px;font-weight:700;color:'+scoreColor+'">'+monitor.entropyScore+'</span></div>';
+    html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(monitor.interpretation)+'</div>';
+    html += '</div>';
+    if (monitor.signals && monitor.signals.length > 0) {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0 8px">⚠️ 信号 '+monitor.signals.length+' 条</div>';
+      monitor.signals.forEach(function(s){
+        var sc = s.severity === 'high' ? '#EF4444' : s.severity === 'med' ? '#F59E0B' : '#94A3B8';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+sc+'">';
+        html += '<div style="font-size:12px;color:#F1F5F9">'+escapeHtml(s.signal)+'</div>';
+        if (s.suggestion) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">→ '+escapeHtml(s.suggestion)+'</div>';
+        html += '</div>';
+      });
+    }
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-top:10px;border:1px solid rgba(255,255,255,0.04)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:6px">📝 手动记录熵增信号</div>';
+    html += '<select id="epDim" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px"><option>健康</option><option>关系</option><option>财务</option><option>工作</option><option>情绪</option><option>习惯</option></select>';
+    html += '<input id="epSignal" placeholder="信号（如：连续3天没联系家人）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<select id="epSev" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px"><option value="low">轻度</option><option value="med" selected>中度</option><option value="high">严重</option></select>';
+    html += '<button onclick="saveEntropyLog()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录信号</button>';
+    html += '</div>';
+    if (logs.length > 0) {
+      html += '<div style="font-size:11px;color:#64748B;margin:10px 0 6px">手动记录 '+logs.length+' 条</div>';
+      logs.forEach(function(l){
+        var sc = l.severity === 'high' ? '#EF4444' : l.severity === 'med' ? '#F59E0B' : '#94A3B8';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+(l.resolved?'#22C55E':sc)+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#94A3B8">'+l.dimension+'</span>'+(l.resolved?'<span style="font-size:10px;color:#22C55E">已处理</span>':'')+'</div>';
+        html += '<div style="font-size:12px;color:#F1F5F9;margin-top:2px">'+escapeHtml(l.signal)+'</div>';
+        if (l.note) html += '<div style="font-size:11px;color:#94A3B8;margin-top:2px">'+escapeHtml(l.note)+'</div>';
+        if (!l.resolved) html += '<button onclick="resolveEntropy(\''+l.id+'\')" style="font-size:10px;padding:3px 8px;border:1px solid rgba(34,197,94,0.3);border-radius:6px;background:rgba(34,197,94,0.06);color:#22C55E;cursor:pointer;margin-top:4px">标记已处理</button>';
+        html += '</div>';
+      });
+    }
+    openModal2('📉 反熵增监控', html);
+  } catch(e) { openModal2('📉 反熵增监控', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveEntropyLog(){
+  var data = {
+    dimension: document.getElementById('epDim').value,
+    signal: document.getElementById('epSignal').value.trim(),
+    severity: document.getElementById('epSev').value
+  };
+  if (!data.signal) { alert('请填写信号'); return; }
+  try {
+    var r = await fetch('/api/entropy/log', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openEntropy(); loadCognitiveCounts(); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function resolveEntropy(id){
+  try { await fetch('/api/entropy/log/'+id+'/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({}) }); openEntropy(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 5. 反脆弱缓冲评估 ----
+async function openAntifragile(){
+  openModal2('🛡️ 反脆弱评估', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r1 = await fetch('/api/antifragile'); var cur = await r1.json();
+    var r2 = await fetch('/api/antifragile/logs'); var list = await r2.json();
+    var html = '';
+    if (cur && cur.interpretation) {
+      html += '<div style="background:rgba(34,197,94,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #22C55E">';
+      html += '<div style="font-size:12px;color:#22C55E;margin-bottom:6px">📊 当前评估</div>';
+      html += '<div style="font-size:13px;color:#F1F5F9;line-height:1.6;white-space:pre-wrap">'+escapeHtml(cur.interpretation)+'</div>';
+      html += '</div>';
+    }
+    html += '<div style="background:rgba(34,197,94,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(34,197,94,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新评估（0-10）</div>';
+    var dims = [['financial','💰 财务缓冲','存6个月生活费前不算自由'],['skill','🎯 技能冗余','只会一件事是单点故障'],['social','👥 关系网络','深交3人胜过认识100人'],['health','💪 身体储备','健康归零一切归零'],['mental','🧠 心智韧性','遭遇挫折的反弹力']];
+    dims.forEach(function(d){
+      html += '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#F1F5F9">'+d[1]+'</span><span id="af_'+d[0]+'_v" style="font-size:13px;color:#22C55E;font-weight:600">5</span></div><input id="af_'+d[0]+'" type="range" min="0" max="10" value="5" style="width:100%" oninput="document.getElementById(\'af_'+d[0]+'_v\').textContent=this.value"></div>';
+      html += '<div style="font-size:10px;color:#64748B;margin-bottom:4px">'+d[2]+'</div>';
+    });
+    html += '<textarea id="afNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveAntifragile()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#22C55E,#34D399);color:#fff;font-weight:600;cursor:pointer">保存评估</button>';
+    html += '</div>';
+    if (list.length > 0) {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史 '+list.length+' 份</div>';
+      list.slice(0, 5).forEach(function(a){
+        var total = a.financial + a.skill + a.social + a.health + a.mental;
+        var avg = (total/5).toFixed(1);
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #22C55E">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#64748B">'+a.date+'</span><span style="font-size:13px;color:#22C55E;font-weight:600">均'+avg+'</span></div>';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;margin-top:6px;font-size:10px;text-align:center">';
+        html += '<div><div style="color:#64748B">财务</div><div style="color:#F1F5F9">'+a.financial+'</div></div>';
+        html += '<div><div style="color:#64748B">技能</div><div style="color:#F1F5F9">'+a.skill+'</div></div>';
+        html += '<div><div style="color:#64748B">关系</div><div style="color:#F1F5F9">'+a.social+'</div></div>';
+        html += '<div><div style="color:#64748B">身体</div><div style="color:#F1F5F9">'+a.health+'</div></div>';
+        html += '<div><div style="color:#64748B">心智</div><div style="color:#F1F5F9">'+a.mental+'</div></div>';
+        html += '</div>';
+        html += '</div>';
+      });
+    }
+    openModal2('🛡️ 反脆弱缓冲评估', html);
+  } catch(e) { openModal2('🛡️ 反脆弱评估', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveAntifragile(){
+  var data = {
+    financial: document.getElementById('af_financial').value,
+    skill: document.getElementById('af_skill').value,
+    social: document.getElementById('af_social').value,
+    health: document.getElementById('af_health').value,
+    mental: document.getElementById('af_mental').value,
+    note: document.getElementById('afNote').value.trim()
+  };
+  try {
+    var r = await fetch('/api/antifragile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openAntifragile(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+// ============================================================
+// Phase 4：船长工具 - 5个功能弹窗
+// ============================================================
+
+// ---- 1. 北极星 ----
+async function openNorthStar(){
+  openModal2('⭐ 北极星坐标系', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/north-star'); var data = (await r.json())[0];
+    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2)">';
+    html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:10px">🧭 你的坐标系</div>';
+    html += '<label style="font-size:11px;color:#F59E0B;font-weight:600">⭐ 终局（你想活成什么样）</label>';
+    html += '<textarea id="nsUltimate" placeholder="如：一个自由、有爱、有创造力的人" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin:4px 0 8px">'+escapeHtml(data ? data.ultimate || '' : '')+'</textarea>';
+    html += '<label style="font-size:11px;color:#F59E0B">5年目标</label>';
+    html += '<input id="nsFiveYear" placeholder="5年后要成为什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.fiveYear || '' : '')+'">';
+    html += '<label style="font-size:11px;color:#F59E0B">1年目标</label>';
+    html += '<input id="nsOneYear" placeholder="今年要达成什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.oneYear || '' : '')+'">';
+    html += '<label style="font-size:11px;color:#F59E0B">本季度</label>';
+    html += '<input id="nsQuarter" placeholder="这3个月做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisQuarter || '' : '')+'">';
+    html += '<label style="font-size:11px;color:#F59E0B">本周</label>';
+    html += '<input id="nsWeek" placeholder="这周做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisWeek || '' : '')+'">';
+    html += '<label style="font-size:11px;color:#F59E0B">今天</label>';
+    html += '<input id="nsToday" placeholder="今天做什么让终局近1%" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.today || '' : '')+'">';
+    html += '<button onclick="saveNorthStar()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">保存坐标系</button>';
+    html += '</div>';
+    if (!data || !data.ultimate) {
+      html += '<div style="text-align:center;color:#64748B;padding:16px;font-size:13px;line-height:1.6">没有终局，所有努力都是漂移。<br>写下你的北极星——所有日常记录都将对齐它。</div>';
+    }
+    openModal2('⭐ 北极星坐标系', html);
+  } catch(e) { openModal2('⭐ 北极星', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveNorthStar(){
+  var data = {
+    ultimate: document.getElementById('nsUltimate').value.trim(),
+    fiveYear: document.getElementById('nsFiveYear').value.trim(),
+    oneYear: document.getElementById('nsOneYear').value.trim(),
+    thisQuarter: document.getElementById('nsQuarter').value.trim(),
+    thisWeek: document.getElementById('nsWeek').value.trim(),
+    today: document.getElementById('nsToday').value.trim()
+  };
+  try {
+    var r = await fetch('/api/north-star', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openNorthStar(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+// ---- 2. 危机预案 ----
+async function openCrisisPlan(){
+  openModal2('🚨 危机预案', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/crisis-plan'); var list = await r.json();
+    var html = '<div style="background:rgba(239,68,68,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(239,68,68,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">📝 新危机预案</div>';
+    html += '<input id="cpScenario" placeholder="危机场景（如：失业/生病/分手）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><select id="cpProb" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><option value="low">低概率</option><option value="med" selected>中概率</option><option value="high">高概率</option></select><select id="cpImpact" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px"><option value="low">轻度</option><option value="med">中度</option><option value="high" selected>严重</option><option value="critical">致命</option></select></div>';
+    html += '<input id="cpPrecondition" placeholder="前置信号（如：连续3个月入不敷出）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="cpImmediate" placeholder="立即行动（头24小时做什么）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="cpThreeDay" placeholder="3天计划（止血、稳住）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="cpRecovery" placeholder="恢复计划（长期）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveCrisisPlan()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#EF4444,#F87171);color:#fff;font-weight:600;cursor:pointer">保存预案</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有危机预案。<br>危机来时，人会因为恐慌而冻结——预案的意义，是不用临时决策。<br>预想3-5个最可能的危机，写下应对剧本。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">共 '+list.length+' 个预案</div>';
+      list.forEach(function(c){
+        var pColor = c.probability === 'high' ? '#EF4444' : c.probability === 'med' ? '#F59E0B' : '#94A3B8';
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+pColor+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#F1F5F9;font-weight:600">'+escapeHtml(c.scenario)+'</span>'+(c.rehearsed?'<span style="font-size:10px;color:#22C55E">已演练</span>':'')+'</div>';
+        html += '<div style="font-size:11px;color:'+pColor+';margin-top:4px">概率'+c.probability+' · 影响'+c.impact+'</div>';
+        if (c.immediateAction) html += '<div style="font-size:11px;color:#CBD5E1;margin-top:4px"><b>立即：</b>'+escapeHtml(c.immediateAction)+'</div>';
+        if (c.threeDayPlan) html += '<div style="font-size:11px;color:#CBD5E1;margin-top:2px"><b>3天：</b>'+escapeHtml(c.threeDayPlan)+'</div>';
+        if (c.recoveryPlan) html += '<div style="font-size:11px;color:#CBD5E1;margin-top:2px"><b>恢复：</b>'+escapeHtml(c.recoveryPlan)+'</div>';
+        html += '<div style="display:flex;gap:6px;margin-top:6px">';
+        if (!c.rehearsed) html += '<button onclick="rehearseCrisis(\''+c.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(245,158,11,0.3);border-radius:8px;background:rgba(245,158,11,0.06);color:#F59E0B;cursor:pointer">演练</button>';
+        html += '<button onclick="delCrisisPlan(\''+c.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button>';
+        html += '</div></div>';
+      });
+    }
+    openModal2('🚨 危机预案（'+list.length+'）', html);
+  } catch(e) { openModal2('🚨 危机预案', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveCrisisPlan(){
+  var data = {
+    scenario: document.getElementById('cpScenario').value.trim(),
+    probability: document.getElementById('cpProb').value,
+    impact: document.getElementById('cpImpact').value,
+    precondition: document.getElementById('cpPrecondition').value.trim(),
+    immediateAction: document.getElementById('cpImmediate').value.trim(),
+    threeDayPlan: document.getElementById('cpThreeDay').value.trim(),
+    recoveryPlan: document.getElementById('cpRecovery').value.trim()
+  };
+  if (!data.scenario) { alert('请填写危机场景'); return; }
+  try {
+    var r = await fetch('/api/crisis-plan', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openCrisisPlan(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function rehearseCrisis(id){
+  var note = prompt('演练结果如何？预案是否可执行？');
+  if (note === null) return;
+  try { await fetch('/api/crisis-plan/'+id+'/rehearse', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({note:note}) }); openCrisisPlan(); }
+  catch(e) { alert('网络错误'); }
+}
+
+async function delCrisisPlan(id){
+  if (!confirm('删除这个预案？')) return;
+  try { await fetch('/api/crisis-plan/'+id, { method:'DELETE' }); openCrisisPlan(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 3. 临终测试 ----
+async function openDeathTest(){
+  openModal2('⚰️ 临终测试', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/death-test'); var list = await r.json();
+    var html = '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid rgba(99,102,241,0.15)">';
+    html += '<div style="font-size:12px;color:#94A3B8;margin-bottom:8px">💭 假如今天就是终点</div>';
+    html += '<textarea id="dtRegrets" placeholder="最大的遗憾是什么？" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtUndone" placeholder="想做却没做的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtProud" placeholder="让你骄傲的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtChange" placeholder="如果重来，你会改变什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="dtFocus" placeholder="由此刻起，最重要的一件事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:8px">';
+    html += '<button onclick="saveDeathTest()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#818CF8);color:#fff;font-weight:600;cursor:pointer">记录</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有临终测试记录。<br>这不是诅咒，是反向校准——\n站在终点看现在，很多事就不纠结了。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#64748B;margin:6px 0">历史 '+list.length+' 次</div>';
+      list.forEach(function(d){
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6366F1">';
+        html += '<div style="font-size:11px;color:#64748B">'+d.date+'</div>';
+        if (d.regrets) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:4px"><b style="color:#EF4444">遗憾：</b>'+escapeHtml(d.regrets)+'</div>';
+        if (d.undone) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:2px"><b style="color:#F59E0B">未做：</b>'+escapeHtml(d.undone)+'</div>';
+        if (d.proudOf) html += '<div style="font-size:12px;color:#CBD5E1;margin-top:2px"><b style="color:#22C55E">骄傲：</b>'+escapeHtml(d.proudOf)+'</div>';
+        if (d.focus) html += '<div style="font-size:12px;color:#6366F1;margin-top:4px;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:6px">→ '+escapeHtml(d.focus)+'</div>';
+        html += '<div style="margin-top:6px"><button onclick="delDeathTest(\''+d.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('⚰️ 临终测试（'+list.length+'）', html);
+  } catch(e) { openModal2('⚰️ 临终测试', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveDeathTest(){
+  var data = {
+    regrets: document.getElementById('dtRegrets').value.trim(),
+    undone: document.getElementById('dtUndone').value.trim(),
+    proudOf: document.getElementById('dtProud').value.trim(),
+    wouldChange: document.getElementById('dtChange').value.trim(),
+    focus: document.getElementById('dtFocus').value.trim()
+  };
+  try {
+    var r = await fetch('/api/death-test', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openDeathTest(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delDeathTest(id){
+  if (!confirm('删除这条记录？')) return;
+  try { await fetch('/api/death-test/'+id, { method:'DELETE' }); openDeathTest(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 4. 年度叙事 ----
+async function openNarrative(){
+  openModal2('📖 年度叙事', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/narrative'); var list = await r.json();
+    var curYear = new Date().getFullYear();
+    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(236,72,153,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2);text-align:center">';
+    html += '<div style="font-size:13px;color:#F1F5F9;margin-bottom:8px">生成 '+curYear+' 年的故事</div>';
+    html += '<button onclick="generateNarrative('+curYear+')" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#EC4899);color:#fff;font-weight:600;cursor:pointer">📖 生成年度叙事</button>';
+    html += '<div style="font-size:11px;color:#64748B;margin-top:6px">基于你的所有记录，系统会写出"你这一年活成了什么"</div>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有年度叙事。<br>记录不是终点——这些数据要变成故事，变成判断力。</div>';
+    } else {
+      list.forEach(function(n){
+        html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;margin-bottom:8px;border-left:3px solid #F59E0B">';
+        html += '<div style="font-size:14px;color:#F59E0B;font-weight:600;margin-bottom:8px">📖 '+n.year+' 年叙事</div>';
+        if (n.story) html += '<div style="font-size:12px;color:#F1F5F9;line-height:1.8;white-space:pre-wrap">'+escapeHtml(n.story)+'</div>';
+        if (n.conclusion) html += '<div style="font-size:12px;color:#EC4899;margin-top:10px;padding:8px 10px;background:rgba(236,72,153,0.06);border-radius:6px;white-space:pre-wrap">'+escapeHtml(n.conclusion)+'</div>';
+        html += '<div style="margin-top:8px"><button onclick="delNarrative(\''+n.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('📖 年度叙事', html);
+  } catch(e) { openModal2('📖 年度叙事', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function generateNarrative(year){
+  try {
+    var r = await fetch('/api/narrative/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({year:year}) });
+    var d = await r.json();
+    if (d.success) { openNarrative(); loadCognitiveCounts(); if (d.item && d.item.story) showCognitiveFeedback({success:true, reflection:d.item.story + '\n\n' + d.item.conclusion}); }
+    else alert(d.message || '生成失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delNarrative(id){
+  if (!confirm('删除这份叙事？')) return;
+  try { await fetch('/api/narrative/'+id, { method:'DELETE' }); openNarrative(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 5. 船长宣言 ----
+async function openManifesto(){
+  openModal2('📜 船长宣言', '<div style="text-align:center;color:#64748B;padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/manifesto'); var data = (await r.json())[0];
+    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2)">';
+    html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:8px">📜 你给自己的契约</div>';
+    html += '<input id="mfTitle" placeholder="标题（如：我的船长宣言）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;margin-bottom:6px" value="'+escapeHtml(data ? data.title || '' : '')+'">';
+    html += '<textarea id="mfBody" placeholder="写下你对自己的承诺——必须包含你愿意付出的代价。\n如：我承诺做一个诚实的人，即使诚实会让我失去机会。\n我承诺照顾身体，即使这意味着放弃一些享乐。\n..." style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F1F5F9;font-size:13px;font-family:inherit;min-height:120px;resize:vertical;margin-bottom:8px">'+escapeHtml(data ? data.body || '' : '')+'</textarea>';
+    html += '<button onclick="saveManifesto()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-weight:600;cursor:pointer">'+(data ? '更新宣言' : '签订宣言')+'</button>';
+    html += '</div>';
+    if (!data) {
+      html += '<div style="text-align:center;color:#64748B;padding:20px;font-size:13px;line-height:1.6">还没有宣言。<br>宣言不是口号，是契约——\n写下你愿意为什么付出代价，那才是真宣言。</div>';
+    } else {
+      html += '<div style="text-align:center;color:#64748B;padding:10px;font-size:11px">签订于 '+new Date(data.signedAt).toLocaleString('zh-CN')+'</div>';
+    }
+    openModal2('📜 船长宣言', html);
+  } catch(e) { openModal2('📜 船长宣言', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveManifesto(){
+  var data = {
+    title: document.getElementById('mfTitle').value.trim(),
+    body: document.getElementById('mfBody').value.trim()
+  };
+  if (!data.body) { alert('请写下你的宣言'); return; }
+  try {
+    var r = await fetch('/api/manifesto', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openManifesto(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+// ---- 首页计数 + 今日反馈 ----
+async function loadCognitiveCounts(){
+  try {
+    var r1 = await fetch('/api/principles'); var p = await r1.json();
+    var r2 = await fetch('/api/decisions'); var d = await r2.json();
+    var pe = document.getElementById('principleCount'); if (pe) pe.textContent = p.length + ' 条';
+    var de = document.getElementById('decisionCount'); if (de) de.textContent = d.length + ' 条';
+  } catch(e) {}
+  // Phase 2 计数
+  try {
+    var a1 = await fetch('/api/root-cause'); var rc = await a1.json();
+    var a2 = await fetch('/api/interpersonal'); var ip = await a2.json();
+    var a3 = await fetch('/api/mindfulness'); var mf = await a3.json();
+    var a4 = await fetch('/api/energy/audit'); var eg = await a4.json();
+    var a5 = await fetch('/api/reviews'); var rv = await a5.json();
+    var r1e = document.getElementById('rootCauseCount'); if (r1e) r1e.textContent = rc.length + ' 条';
+    var r2e = document.getElementById('interpersonalCount'); if (r2e) r2e.textContent = ip.length + ' 条';
+    var r3e = document.getElementById('mindfulnessCount'); if (r3e) r3e.textContent = mf.length + ' 次';
+    var r4e = document.getElementById('energyNet'); if (r4e) r4e.textContent = '净 ' + (eg.net || 0);
+    var r5e = document.getElementById('reviewCount'); if (r5e) r5e.textContent = rv.length + ' 条';
+  } catch(e) {}
+  // Phase 3 计数
+  try {
+    var b1 = await fetch('/api/beliefs'); var bl = await b1.json();
+    var b2 = await fetch('/api/character'); var ch = await b2.json();
+    var b3 = await fetch('/api/self-portrait'); var sp = await b3.json();
+    var b4 = await fetch('/api/entropy'); var en = await b4.json();
+    var b5 = await fetch('/api/antifragile'); var af = await b5.json();
+    var b1e = document.getElementById('beliefCount'); if (b1e) b1e.textContent = bl.length + ' 条';
+    var b2e = document.getElementById('characterCount'); if (b2e) b2e.textContent = ch.length + ' 份';
+    var b3e = document.getElementById('portraitCount'); if (b3e) b3e.textContent = sp.length + ' 份';
+    var b4e = document.getElementById('entropyScore'); if (b4e) b4e.textContent = '熵 ' + (en.entropyScore || 0);
+    var b5e = document.getElementById('antifragileAvg'); if (b5e) b5e.textContent = af && af.average ? '均' + af.average.toFixed(1) : '-';
+  } catch(e) {}
+  // Phase 4 计数
+  try {
+    var c1 = await fetch('/api/north-star'); var ns = await c1.json();
+    var c2 = await fetch('/api/crisis-plan'); var cp = await c2.json();
+    var c3 = await fetch('/api/death-test'); var dt = await c3.json();
+    var c4 = await fetch('/api/narrative'); var nr = await c4.json();
+    var c5 = await fetch('/api/manifesto'); var mf2 = await c5.json();
+    var c1e = document.getElementById('northStarStatus'); if (c1e) c1e.textContent = ns.length && ns[0].ultimate ? '已设' : '未设';
+    var c2e = document.getElementById('crisisCount'); if (c2e) c2e.textContent = cp.length + ' 个';
+    var c3e = document.getElementById('deathTestCount'); if (c3e) c3e.textContent = dt.length + ' 次';
+    var c4e = document.getElementById('narrativeCount'); if (c4e) c4e.textContent = nr.length + ' 份';
+    var c5e = document.getElementById('manifestoStatus'); if (c5e) c5e.textContent = mf2.length && mf2[0].body ? '已立' : '未立';
+  } catch(e) {}
+}
+
+function showTodayReflection(text){
+  var card = document.getElementById('todayReflectionCard');
+  var txt = document.getElementById('todayReflectionText');
+  if (text && card && txt) { txt.innerHTML = escapeHtml(text).replace(/\n/g, '<br>'); card.style.display = 'block'; }
+}
+
+// ---- 保存记录后的认知反馈弹窗 ----
+function showCognitiveFeedback(res){
+  if (!res || !res.success) return;
+  var parts = [];
+  if (res.reflection) parts.push('<div style="background:rgba(167,139,250,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #A78BFA"><div style="font-size:11px;color:#A78BFA;margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#F1F5F9;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
+  if (res.dailySummary) parts.push('<div style="font-size:11px;color:#64748B;margin-bottom:8px">📊 '+escapeHtml(res.dailySummary)+'</div>');
+  if (res.correlations && res.correlations.length > 0) {
+    var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:#A78BFA;margin-bottom:6px">🔗 关联发现</div>';
+    res.correlations.forEach(function(c){
+      var color = c.s === 'crit' ? '#EF4444' : c.s === 'high' ? '#F59E0B' : '#A78BFA';
+      ch += '<div style="background:rgba(167,139,250,0.06);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#CBD5E1;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
+    });
+    ch += '</div>';
+    parts.push(ch);
+  }
+  if (res.risks && res.risks.length > 0) {
+    var rh = '<div style="margin-bottom:10px"><div style="font-size:11px;color:#EF4444;margin-bottom:6px">⚠️ 风险预警</div>';
+    res.risks.forEach(function(r){
+      var bg = r.l === 'high' ? 'rgba(239,68,68,0.1)' : r.l === 'med' ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.04)';
+      rh += '<div style="background:'+bg+';border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+(r.l==='high'?'#EF4444':r.l==='med'?'#F59E0B':'#94A3B8')+';font-size:12px;color:#CBD5E1;line-height:1.6;white-space:pre-wrap">'+escapeHtml(r.t)+'</div>';
+    });
+    rh += '</div>';
+    parts.push(rh);
+  }
+  if (parts.length === 0) {
+    parts.push('<div style="text-align:center;color:#64748B;padding:20px;font-size:13px">已保存 ✓<br><br>多记录几次，认知引擎会开始发现你的模式。</div>');
+  }
+  // 在保存反馈里加一个"提炼为原则"的快捷按钮
+  if (res.reflection) {
+    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid rgba(167,139,250,0.3);border-radius:8px;background:transparent;color:#A78BFA;font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
+    window.__lastReflection = res.reflection;
+  }
+  openModal2('✨ 保存后的认知反馈', parts.join(''), '<button class="sv" onclick="closeModal2()">知道了</button>');
+}
+
+function quickAddPrincipleFromReflection(){
+  var text = window.__lastReflection || '';
+  var shortened = text.split('\n')[0]; // 取第一行作为原则候选
+  var p = prompt('提炼为原则：', shortened);
+  if (!p) return;
+  fetch('/api/principles', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:p, source:'反思提炼'}) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) { closeModal2(); loadCognitiveCounts(); alert('✅ 已加入原则库'); }
+      else alert(d.message || '失败');
+    })
+    .catch(function(){ alert('网络错误'); });
+}
+
+// 简单HTML转义
+function escapeHtml(s){
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 function renderRecord(){
   var c=document.getElementById('recordList');
@@ -827,6 +2120,17 @@ function renderInsight(){
     if(m.changeText) html += '<div style="font-size:13px;color:'+(m.change>0.3?'#22C55E':m.change<-0.3?'#EF4444':'#94A3B8')+'">'+m.changeText+'</div>';
     html += '</div>';
   }
+  // Phase 2 深度闭环入口
+  html += '<div style="background:linear-gradient(135deg,rgba(16,185,129,0.06),rgba(59,130,246,0.04));border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid rgba(16,185,129,0.15)">';
+  html += '<div style="font-weight:600;font-size:14px;margin-bottom:10px">🌀 深度闭环</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html += '<div onclick="openRootCause()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#10B981">🔬 根因分析</div><div style="font-size:10px;color:#64748B;margin-top:2px">挖到能改的那一层</div></div>';
+  html += '<div onclick="openInterpersonal()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#F59E0B">♟️ 人际博弈</div><div style="font-size:10px;color:#64748B;margin-top:2px">看穿利益与成本</div></div>';
+  html += '<div onclick="openMindfulness()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#8B5CF6">🧘 定力训练</div><div style="font-size:10px;color:#64748B;margin-top:2px">看见而不被带走</div></div>';
+  html += '<div onclick="openEnergy()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#FBBF24">⚡ 能量审计</div><div style="font-size:10px;color:#64748B;margin-top:2px">黑洞与源泉</div></div>';
+  html += '<div onclick="openReview()" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;cursor:pointer;grid-column:span 2;border:1px solid rgba(255,255,255,0.04)"><div style="font-size:11px;color:#EC4899">📅 周月自动复盘</div><div style="font-size:10px;color:#64748B;margin-top:2px">系统替你看一周/一月的轨迹</div></div>';
+  html += '</div>';
+  html += '</div>';
   if(!html) html = '<div class="empty"><span class="ic">📭</span>继续记录，系统会生成洞察</div>';
   c.innerHTML = html;
 }
