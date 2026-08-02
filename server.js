@@ -889,6 +889,178 @@ const ENG = {
       if (spend >= 1000) out.push({ t:'high_spend', s:'med', m:`近3笔支出合计${spend.toFixed(0)}元。\n这是计划内，还是情绪驱动？\n后者不是钱的问题，是填补的欲望。` });
     }
 
+    // ========== 新增8条关联（try-catch包裹，字段缺失不报错）==========
+    try {
+      // 5. 饮食吃撑 + 次日/同日 情绪低分
+      const diet = hist.filter(x => x.mid === 'diet').slice(0, 14);
+      const emo = hist.filter(x => x.mid === 'emotion').slice(0, 14);
+      if (diet.length >= 1 && emo.length >= 1) {
+        const overeatDates = new Set(diet.filter(x => {
+          const sat = x.data?.satiety;
+          return sat === '吃撑了' || sat === 10 || sat === '9分饱' || sat === 9;
+        }).map(x => (x.ts || '').split('T')[0]));
+        if (overeatDates.size >= 1) {
+          const affected = emo.filter(e => {
+            const d = (e.ts || '').split('T')[0];
+            const r = parseInt(e.data?.rating || e.data?.level || 5);
+            const prev = new Date(Date.parse(d) - 864e5).toISOString().split('T')[0];
+            return (overeatDates.has(d) || overeatDates.has(prev)) && r <= 4;
+          });
+          if (affected.length >= 1) {
+            const avg = affected.reduce((s,x) => s + parseInt(x.data?.rating || x.data?.level || 3), 0) / affected.length;
+            out.push({ t:'overeat_mood', s:'med', m:`吃撑后情绪均${avg.toFixed(1)}/10。脾胃伤则情志乱——吃撑不是满足欲望，却是在消耗后天之本。问自己：那一勺入口的"最后一口"，是满足了谁？` });
+          }
+        }
+      }
+    } catch(e) {}
+
+    try {
+      // 6. 情绪性进食 + 情绪低分
+      const dietAll = hist.filter(x => x.mid === 'diet').slice(0, 14);
+      const emoAll = hist.filter(x => x.mid === 'emotion').slice(0, 14);
+      if (dietAll.length >= 2 && emoAll.length >= 2) {
+        const emoEat = dietAll.filter(x => x.data?.emotional && String(x.data.emotional) !== '否');
+        if (emoEat.length >= 2) {
+          const emoDates = new Set(emoEat.map(x => (x.ts || '').split('T')[0]));
+          const pairedMoods = emoAll.filter(e => emoDates.has((e.ts || '').split('T')[0]));
+          if (pairedMoods.length >= 1) {
+            const avg = pairedMoods.reduce((s,x) => s + parseInt(x.data?.rating || x.data?.level || 5), 0) / pairedMoods.length;
+            if (avg <= 5) out.push({ t:'emoeat_mood', s:'high', m:`情绪性进食${emoEat.length}次，当日情绪均${avg.toFixed(1)}/10。用食物填情绪，就像用木塞堵海水——塞子越多，浪越大。那口真正饿的，是没被看见的那个情绪。` });
+          }
+        }
+      }
+    } catch(e) {}
+
+    try {
+      // 7. 财务高必要性(3-4级冲动) > 3次/周 + 情绪分数低
+      const finAll = hist.filter(x => x.mid === 'finance');
+      const now2 = new Date();
+      const weekAgo = new Date(now2); weekAgo.setDate(now2.getDate() - 7);
+      const ws = weekAgo.toISOString().split('T')[0];
+      const weekFin = finAll.filter(x => (x.ts || '').split('T')[0] >= ws);
+      const emoAll2 = hist.filter(x => x.mid === 'emotion').slice(0, 14);
+      if (weekFin.length >= 3 && emoAll2.length >= 3) {
+        const impulsive = weekFin.filter(x => {
+          const nec = x.data?.necessity;
+          return nec === 3 || nec === 4 || nec === '3-想要' || nec === '4-冲动';
+        });
+        if (impulsive.length >= 3) {
+          const avgM = emoAll2.slice(0, 7).reduce((s,x) => s + parseInt(x.data?.rating || x.data?.level || 5), 0) / Math.min(7, emoAll2.length);
+          if (avgM <= 5) out.push({ t:'impulse_spend', s:'med', m:`本周冲动消费${impulsive.length}次，情绪基线${avgM.toFixed(1)}/10。心空则物满——当心里缺什么，就会用买什么来"填空"。但账单来了，空还在那里。` });
+        }
+      }
+    } catch(e) {}
+
+    try {
+      // 8. 睡眠夜醒>=2 + 当日专注度低 / 心流无
+      const slAll = hist.filter(x => x.mid === 'sleep').slice(0, 14);
+      const workAll = hist.filter(x => x.mid === 'work').slice(0, 14);
+      if (slAll.length >= 2 && workAll.length >= 2) {
+        const wakeDates = new Set(slAll.filter(x => {
+          const nw = x.data?.nightWakes;
+          return (typeof nw === 'number' && nw >= 2) || nw === '2' || nw === '3' || nw === '4' || nw === '4+';
+        }).map(x => (x.ts || '').split('T')[0]));
+        if (wakeDates.size >= 1) {
+          const affectedWork = workAll.filter(w => wakeDates.has((w.ts || '').split('T')[0]));
+          if (affectedWork.length >= 1) {
+            const lowFocus = affectedWork.filter(w => {
+              const f = w.data?.focusLevel;
+              return f === 1 || f === 2 || f === '1-摸鱼' || f === '2-分心';
+            });
+            if (lowFocus.length >= 1 || affectedWork.length >= 1) {
+              out.push({ t:'wake_focus', s:'med', m:`夜醒≥2次后，工作专注度明显下滑。一夜数着醒来的不是身体，是心神不宁——碎片化睡眠是表象，思虑才是真凶。那些夜里让你放不下的那件事，是什么？` });
+            }
+          }
+        }
+      }
+    } catch(e) {}
+
+    try {
+      // 9. 关系feel低分 <5 + 当日情绪
+      const rel = hist.filter(x => x.mid === 'relation').slice(0, 14);
+      const emo3 = hist.filter(x => x.mid === 'emotion').slice(0, 14);
+      if (rel.length >= 2 && emo3.length >= 2) {
+        const badRel = rel.filter(x => {
+          const f = x.data?.feel;
+          if (typeof f === 'number') return f < 5;
+          if (!f) return false;
+          var m = String(f).match(/^(\d+)/);
+          return m ? parseInt(m[1]) < 5 : false;
+        });
+        if (badRel.length >= 1) {
+          const relDates = badRel.map(x => (x.ts || '').split('T')[0]);
+          const paired = emo3.filter(e => relDates.includes((e.ts || '').split('T')[0]));
+          if (paired.length >= 1) {
+            const avg = paired.reduce((s,x) => s + parseInt(x.data?.rating || x.data?.level || 5), 0) / paired.length;
+            if (avg <= 5) out.push({ t:'relation_mood', s:'high', m:`关系感受<5分后情绪${avg.toFixed(1)}/10。人是情绪最大的环境——一段关系让你变差，不是你不好，是该换换气了。问：这段关系里，你是不是在勉强自己？` });
+          }
+        }
+      }
+    } catch(e) {}
+
+    try {
+      // 10. 锻炼后身体反馈很累/酸痛 + 第二天记录减少（过度训练）
+      const exAll = hist.filter(x => x.mid === 'exercise').slice(0, 21);
+      if (exAll.length >= 3) {
+        const hardDays = exAll.filter(x => {
+          const fb = x.data?.bodyFeedback;
+          return fb === '很累' || fb === '酸痛';
+        });
+        if (hardDays.length >= 2) {
+          let dropCount = 0;
+          hardDays.forEach(hd => {
+            const d = (hd.ts || '').split('T')[0];
+            const next = new Date(Date.parse(d) + 864e5).toISOString().split('T')[0];
+            const nextDayCount = exAll.filter(x => (x.ts || '').split('T')[0] === next).length;
+            const avgBefore = exAll.filter(x => (x.ts || '').split('T')[0] < next && (x.ts || '').split('T')[0] > new Date(Date.parse(d) - 864e5 * 3).toISOString().split('T')[0]).length / 3;
+            if (nextDayCount < Math.max(1, avgBefore * 0.5)) dropCount++;
+          });
+          if (dropCount >= 1 && hardDays.length >= 2) {
+            out.push({ t:'overtrain', s:'med', m:`练到很累/酸痛${hardDays.length}次，次日记录量下降。过度训练不是自律，是自虐——身体会说谎，但身体不会。酸痛后的断，是身体在喊"罢工"。休息几天？` });
+          }
+        }
+      }
+    } catch(e) {}
+
+    try {
+      // 11. 学习时长+理解度组合：时长够但理解<=2（方法不对）
+      const learnAll = hist.filter(x => x.mid === 'learn').slice(0, 14);
+      if (learnAll.length >= 3) {
+        const badMethod = learnAll.filter(x => {
+          const dur = parseFloat(x.data?.duration || 0);
+          const und = x.data?.understanding;
+          const undNum = typeof und === 'number' ? und : (und && String(und).match(/^\d+/) ? parseInt(String(und).match(/^\d+/)[0]) : 3);
+          return dur >= 45 && undNum <= 2;
+        });
+        if (badMethod.length >= 2) {
+          const avgDur = badMethod.reduce((s,x) => s + parseFloat(x.data?.duration || 0), 0) / badMethod.length;
+          out.push({ t:'learn_wrong', s:'med', m:`${badMethod.length}次学习≥${avgDur.toFixed(0)}分钟但理解≤2。努力≠勤奋在低质量勤奋，是最隐蔽的懒惰——你不是不用功，是用错了功。问：你是在"学"，还是在"让自己看起来在学"？` });
+        }
+      }
+    } catch(e) {}
+
+    try {
+      // 12. 时间价值=浪费/后悔 出现>=2次/周 + 整体情绪基线低
+      const timeAll = hist.filter(x => x.mid === 'time');
+      const now3 = new Date();
+      const weekAgo2 = new Date(now3); weekAgo2.setDate(now3.getDate() - 7);
+      const ws2 = weekAgo2.toISOString().split('T')[0];
+      const weekTime = timeAll.filter(x => (x.ts || '').split('T')[0] >= ws2);
+      const emoAll4 = hist.filter(x => x.mid === 'emotion').slice(0, 14);
+      if (weekTime.length >= 3 && emoAll4.length >= 3) {
+        const wasted = weekTime.filter(x => {
+          const v = x.data?.value;
+          return v === '浪费' || v === '后悔';
+        });
+        if (wasted.length >= 2) {
+          const baseline = emoAll4.slice(0, 7).reduce((s,x) => s + parseInt(x.data?.rating || x.data?.level || 5), 0) / Math.min(7, emoAll4.length);
+          if (baseline <= 5) {
+            out.push({ t:'waste_baseline', s:'high', m:`本周${wasted.length}次时间后悔/浪费，情绪基线${baseline.toFixed(1)}/10。时间是最诚实的账本——你把时间浪费在哪里，你就把人生浪费在哪里。问：如果这一周重来，哪2小时你一定不会那样过？` });
+          }
+        }
+      }
+    } catch(e) {}
+
     return out;
   },
 

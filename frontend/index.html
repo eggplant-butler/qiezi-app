@@ -673,6 +673,9 @@ var MODAL_FORMS = {
       {key:'type', label:'类型', type:'select', options:['支出','收入']},
       {key:'amount', label:'金额(¥)', type:'number', placeholder:'0.00'},
       {key:'category', label:'分类', type:'select', options:['餐饮','交通','购物','娱乐','医疗','教育','工资','奖金','其他']},
+      {key:'paymentMethod', label:'支付方式', type:'select', options:['微信','支付宝','现金','银行卡','信用卡','其他']},
+      {key:'necessity', label:'必要性', type:'select', options:['1-刚需','2-需要','3-想要','4-冲动']},
+      {key:'account', label:'资金账户', type:'text', placeholder:'例：招商卡/余额宝/钱包'},
       {key:'content', label:'备注', type:'text', placeholder:'简要说明'},
       {key:'date', label:'日期', type:'date'}
     ]
@@ -681,7 +684,12 @@ var MODAL_FORMS = {
     title: '睡眠记录',
     fields: [
       {key:'hours', label:'时长(小时)', type:'number', placeholder:'如 7.5'},
+      {key:'sleepTime', label:'入睡时间', type:'time'},
+      {key:'wakeTime', label:'起床时间', type:'time'},
       {key:'quality', label:'质量', type:'select', options:['很差','差','一般','好','很好']},
+      {key:'nap', label:'午睡分钟', type:'number', placeholder:'如 30'},
+      {key:'nightWakes', label:'夜醒次数', type:'select', options:['0','1','2','3','4+']},
+      {key:'dream', label:'是否做梦', type:'select', options:['无/不记得','有好梦','有梦境','有噩梦']},
       {key:'content', label:'备注', type:'text', placeholder:'睡眠状况描述'},
       {key:'date', label:'日期', type:'date'}
     ]
@@ -691,7 +699,12 @@ var MODAL_FORMS = {
     fields: [
       {key:'type', label:'类型', type:'select', options:['跑步','骑行','游泳','力量','瑜伽','拉伸','其他']},
       {key:'duration', label:'时长(分钟)', type:'number', placeholder:'30'},
+      {key:'distance', label:'距离(km)', type:'number', placeholder:'如 5.2'},
+      {key:'calories', label:'消耗卡路里', type:'number', placeholder:'如 350'},
+      {key:'sets', label:'组数', type:'number', placeholder:'如 4'},
+      {key:'reps', label:'每组次数', type:'number', placeholder:'如 12'},
       {key:'intensity', label:'强度', type:'select', options:['轻松','中等','剧烈']},
+      {key:'bodyFeedback', label:'身体反馈', type:'select', options:['轻松','有点累','刚好','很累','酸痛']},
       {key:'content', label:'备注', type:'text', placeholder:'感受说明'},
       {key:'date', label:'日期', type:'date'}
     ]
@@ -700,6 +713,9 @@ var MODAL_FORMS = {
     title: '情绪记录',
     fields: [
       {key:'rating', label:'情绪评分(1-10)', type:'select', options:['1','2','3','4','5','6','7','8','9','10']},
+      {key:'trigger', label:'触发源/事件', type:'text', placeholder:'什么事引起的？'},
+      {key:'physical', label:'身体感受', type:'text', placeholder:'如：胸口紧/头晕/胃胀'},
+      {key:'action', label:'当时做了什么', type:'textarea', placeholder:'描述当时的行为...'},
       {key:'content', label:'描述', type:'text', placeholder:'心情如何？'},
       {key:'date', label:'日期', type:'date'}
     ]
@@ -710,6 +726,8 @@ var MODAL_FORMS = {
       {key:'meal', label:'餐次', type:'select', options:['早餐','午餐','晚餐','加餐']},
       {key:'content', label:'食物', type:'text', placeholder:'如：鸡胸肉沙拉'},
       {key:'calories', label:'卡路里', type:'number', placeholder:'可选'},
+      {key:'satiety', label:'饱腹感', type:'select', options:['3分饱','5分饱','7分饱','9分饱','吃撑了']},
+      {key:'emotional', label:'是否情绪性进食', type:'select', options:['否','是-焦虑吃','是-孤独吃','是-压力吃']},
       {key:'date', label:'日期', type:'date'}
     ]
   },
@@ -742,6 +760,8 @@ var MODAL_FORMS = {
     fields: [
       {key:'subject', label:'学科/主题', type:'text', placeholder:'如：英语、编程、设计'},
       {key:'content', label:'学习内容', type:'textarea', placeholder:'学了什么...'},
+      {key:'output', label:'产出/成果', type:'textarea', placeholder:'例：做了3道题/写了笔记'},
+      {key:'understanding', label:'理解度', type:'select', options:['1-听不明白','2-有点懂','3-懂了','4-会用','5-能教']},
       {key:'duration', label:'时长(分钟)', type:'number', placeholder:'30'},
       {key:'date', label:'日期', type:'date'}
     ]
@@ -761,6 +781,104 @@ var MODAL_FORMS = {
       {key:'name', label:'空间名称', type:'text', placeholder:'如：客厅、卧室'},
       {key:'area', label:'面积(㎡)', type:'number', placeholder:'可选'},
       {key:'content', label:'描述', type:'textarea', placeholder:'空间用途、整理情况...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  work: {
+    title: '工作记录',
+    fields: [
+      {key:'role', label:'角色/岗位', type:'text', placeholder:'如：产品经理'},
+      {key:'task', label:'今日任务', type:'textarea', placeholder:'完成了什么任务...'},
+      {key:'focusLevel', label:'专注度', type:'select', options:['1-摸鱼','2-分心','3-正常','4-专注','5-心流']},
+      {key:'income', label:'当日收入', type:'number', placeholder:'可选'},
+      {key:'meaning', label:'价值感 1-5', type:'select', options:['1','2','3','4','5']},
+      {key:'content', label:'总结', type:'textarea', placeholder:'今日工作总结...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  home: {
+    title: '居住记录',
+    fields: [
+      {key:'space', label:'空间', type:'text', placeholder:'例：客厅/卧室'},
+      {key:'action', label:'动作', type:'select', options:['打扫','整理','购买','丢弃','搬家','其他']},
+      {key:'items', label:'涉及物品', type:'text', placeholder:'如：旧衣服/书架'},
+      {key:'cost', label:'花费', type:'number', placeholder:'可选'},
+      {key:'security', label:'安全感 1-5', type:'select', options:['1','2','3','4','5']},
+      {key:'content', label:'备注', type:'textarea', placeholder:'说明备注...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  travel: {
+    title: '出行记录',
+    fields: [
+      {key:'purpose', label:'目的', type:'select', options:['上班','办事','购物','约会','旅行','其他']},
+      {key:'transport', label:'交通', type:'select', options:['步行','骑车','公交','地铁','打车','自驾','火车','飞机']},
+      {key:'from', label:'起点', type:'text', placeholder:'如：家'},
+      {key:'to', label:'终点', type:'text', placeholder:'如：公司'},
+      {key:'cost', label:'花费', type:'number', placeholder:'可选'},
+      {key:'comfort', label:'舒适度 1-5', type:'select', options:['1','2','3','4','5']},
+      {key:'content', label:'备注', type:'textarea', placeholder:'出行备注...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  body: {
+    title: '身体状况记录',
+    fields: [
+      {key:'symptom', label:'症状', type:'textarea', placeholder:'例：头晕/喉咙痛'},
+      {key:'area', label:'部位', type:'text', placeholder:'例：颈部/胃'},
+      {key:'severity', label:'严重度 1-5', type:'select', options:['1','2','3','4','5']},
+      {key:'measure', label:'处理方式', type:'textarea', placeholder:'吃药/休息/就医...'},
+      {key:'weight', label:'体重(kg)', type:'number', placeholder:'可选'},
+      {key:'bloodPressure', label:'血压', type:'text', placeholder:'如：120/80'},
+      {key:'content', label:'备注', type:'textarea', placeholder:'其他备注...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  relation: {
+    title: '关系记录',
+    fields: [
+      {key:'person', label:'对方', type:'text', placeholder:'如：张三'},
+      {key:'role', label:'关系', type:'select', options:['父母','伴侣','同事','朋友','领导','陌生人','其他']},
+      {key:'interaction', label:'互动方式', type:'select', options:['见面','电话','微信','吵架','合作','其他']},
+      {key:'topic', label:'话题/事件', type:'textarea', placeholder:'聊了什么/发生了什么...'},
+      {key:'cost', label:'花费', type:'number', placeholder:'可选'},
+      {key:'feel', label:'感受 1-10', type:'select', options:['1','2','3','4','5','6','7','8','9','10']},
+      {key:'lesson', label:'收获/教训', type:'textarea', placeholder:'学到了什么...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  time: {
+    title: '时间分配记录',
+    fields: [
+      {key:'category', label:'类型', type:'select', options:['工作','学习','运动','休息','娱乐','社交','家务','睡眠','其他']},
+      {key:'duration', label:'时长(分钟)', type:'number', placeholder:'如 60'},
+      {key:'value', label:'是否有价值', type:'select', options:['非常有','比较有','一般','浪费','后悔']},
+      {key:'content', label:'做了什么', type:'textarea', placeholder:'具体描述...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  growth: {
+    title: '成长记录',
+    fields: [
+      {key:'skill', label:'技能/方向', type:'text', placeholder:'例：英语/编程'},
+      {key:'method', label:'方法', type:'select', options:['看书','听课','练习','复盘','请教','其他']},
+      {key:'duration', label:'时长(分钟)', type:'number', placeholder:'如 45'},
+      {key:'progress', label:'今日进步', type:'textarea', placeholder:'取得了什么进步...'},
+      {key:'obstacle', label:'遇到的障碍', type:'textarea', placeholder:'遇到了什么困难...'},
+      {key:'plan', label:'下一步计划', type:'textarea', placeholder:'接下来怎么做...'},
+      {key:'content', label:'总结', type:'textarea', placeholder:'今日成长总结...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  spirit: {
+    title: '精神记录',
+    fields: [
+      {key:'mood', label:'心境', type:'select', options:['平静','喜悦','焦虑','低落','愤怒','迷茫','感恩']},
+      {key:'practice', label:'修炼', type:'select', options:['冥想','读书','写日记','独处','祈祷','其他']},
+      {key:'duration', label:'时长(分钟)', type:'number', placeholder:'如 20'},
+      {key:'belief', label:'信念/感悟', type:'textarea', placeholder:'有什么感悟...'},
+      {key:'gratitude', label:'感恩/觉察', type:'textarea', placeholder:'觉察到什么/感恩什么...'},
+      {key:'content', label:'总结', type:'textarea', placeholder:'今日精神总结...'},
       {key:'date', label:'日期', type:'date'}
     ]
   }
@@ -797,19 +915,42 @@ function renderFormHtml(sceneId, item){
   return html;
 }
 
+function parseNumPrefix(v){
+  if(v === undefined || v === null || v === '') return v;
+  var s = String(v);
+  var m = s.match(/^(\d+)/);
+  if(m) return parseInt(m[1]);
+  if(s === '4+') return 4;
+  if(s === '吃撑了') return 10;
+  return v;
+}
+var INT_SELECT_KEYS = {
+  necessity:true, focusLevel:true, satiety:true, understanding:true,
+  meaning:true, security:true, comfort:true, severity:true,
+  feel:true, nightWakes:true, rating:true, quality:true
+};
 function readFormData(sceneId){
   var config = getFormConfig(sceneId);
   var data = {};
   if(!config){
     data.content = document.getElementById('f_c').value.trim();
     data.date = document.getElementById('f_d').value;
-    data.rating = document.getElementById('f_r').value;
+    var rv = document.getElementById('f_r').value;
+    data.rating = rv ? parseInt(rv) : rv;
     data.note = document.getElementById('f_n').value;
     return data;
   }
   config.fields.forEach(function(f){
     var el = document.getElementById('f_'+f.key);
-    if(el) data[f.key] = el.value;
+    if(!el) return;
+    var v = el.value;
+    if(f.type === 'select' && INT_SELECT_KEYS[f.key] && v !== ''){
+      data[f.key] = parseNumPrefix(v);
+    } else if(f.type === 'number' && v !== ''){
+      data[f.key] = parseFloat(v);
+    } else {
+      data[f.key] = v;
+    }
   });
   return data;
 }
