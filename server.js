@@ -221,8 +221,14 @@ app.get('/api/health', (req, res) => {
   try {
     db.prepare('SELECT 1').get();
     const dbSize = fs.statSync(DB_PATH).size;
-    const stats = fs.statSync('/');
-    const diskFree = stats.bavail * 4096;
+    let diskFree = null;
+    try {
+      const stats = fs.statfsSync ? fs.statfsSync(DATA_DIR) : null;
+      if (stats && typeof stats.bavail === 'number' && typeof stats.bsize === 'number') {
+        diskFree = stats.bavail * BigInt(stats.bsize);
+        diskFree = Number(diskFree);
+      }
+    } catch (e) {}
     const backups = listAllBackups ? listAllBackups() : [];
     const latestBackup = backups[0];
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
