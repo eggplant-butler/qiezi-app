@@ -783,25 +783,58 @@ function renderDetail(id){
     } else if(id==='diet'){
       l=(item.meal||'')+' · '+(item.content||'');
       if(item.calories) l+=' · '+item.calories+'卡';
+      if(item.source) l+=' · '+item.source;
+      if(item.nutrition) l+=' · 营养'+item.nutrition;
+      if(item.emotional && item.emotional!=='否') l+=' · '+item.emotional;
     } else if(id==='photo'){
       l=item.title||'摄影作品';
+      if(item.style) l+=' · '+item.style;
+      if(item.location) l+=' · '+item.location;
+      if(item.device) l+=' · '+item.device;
       if(item.quality) l+=' · ⭐'+item.quality;
-      if(item.content) l+=' · '+item.content;
+      if(item.learnPoint) l+=' · '+String(item.learnPoint).substring(0,30);
     } else if(id==='think'){
-      l=item.content||'思考';
+      var thinkParts=[];
+      if(item.category) thinkParts.push(item.category);
+      if(item.title) thinkParts.push(item.title);
+      l=thinkParts.length?thinkParts.join(' · '):(item.content||'思考');
+      if(item.cognitiveLevel) l+=' · '+item.cognitiveLevel;
       if(item.rating) l+=' · 深度'+item.rating+'/5';
+      if(item.principle) l+=' · 原则:'+String(item.principle).substring(0,30);
+      if(item.action) l+=' · 行动:'+String(item.action).substring(0,30);
     } else if(id==='diary'){
-      l=item.content||'日记';
+      var diaryParts=[];
+      if(item.mood) diaryParts.push(item.mood);
+      if(item.weather) diaryParts.push(item.weather);
+      if(item.energy) diaryParts.push('能量'+item.energy);
+      l=diaryParts.length?diaryParts.join(' · '):(item.content||'日记');
+      if(item.highlight) l+=' · 高光:'+String(item.highlight).substring(0,30);
+      if(item.tomorrow) l+=' · 明日:'+String(item.tomorrow).substring(0,20);
     } else if(id==='learn'){
       l=(item.subject||'')+' · '+(item.content||'学习记录');
       if(item.duration) l+=' · '+item.duration+'分钟';
       if(item.understanding) l+=' · 理解'+item.understanding;
     } else if(id==='inventory'){
-      l=(item.name||'物品')+' × '+(item.quantity||1);
+      var invParts=[];
+      if(item.name) invParts.push(item.name);
+      if(item.category) invParts.push(item.category);
+      if(item.quantity) invParts.push('×'+item.quantity);
+      l=invParts.length?invParts.join(' · '):(item.content||'物品');
+      if(item.price) l+=' · ¥'+item.price;
       if(item.location) l+=' · '+item.location;
+      if(item.usageFreq) l+=' · '+item.usageFreq;
+      if(item.necessity) l+=' · '+item.necessity;
+      if(item.declutter && item.declutter!=='保留') l+=' · ['+item.declutter+']';
     } else if(id==='space'){
-      l=(item.name||'空间')+' · '+(item.area||'');
-      if(item.content) l+=' · '+item.content;
+      var spParts=[];
+      if(item.name) spParts.push(item.name);
+      if(item.function) spParts.push(item.function);
+      l=spParts.length?spParts.join(' · '):(item.content||'空间');
+      if(item.area) l+=' · '+item.area+'㎡';
+      if(item.tidiness) l+=' · 整洁'+item.tidiness+'/5';
+      if(item.comfort) l+=' · 舒适'+item.comfort+'/5';
+      if(item.usageFreq) l+=' · '+item.usageFreq;
+      if(item.improve) l+=' · 待改进:'+String(item.improve).substring(0,30);
     } else if(id==='body'){
       // 身体：优先显示症状/体重/血压
       var bodyParts=[];
@@ -935,11 +968,17 @@ var MODAL_FORMS = {
   diet: {
     title: '饮食记录',
     fields: [
-      {key:'meal', label:'餐次', type:'select', options:['早餐','午餐','晚餐','加餐']},
-      {key:'content', label:'食物', type:'text', placeholder:'如：鸡胸肉沙拉'},
-      {key:'calories', label:'卡路里', type:'number', placeholder:'可选'},
+      {key:'meal', label:'餐次', type:'select', options:['早餐','午餐','晚餐','加餐','夜宵']},
+      {key:'content', label:'食物', type:'text', placeholder:'如：鸡胸肉沙拉+糙米饭'},
       {key:'satiety', label:'饱腹感', type:'select', options:['3分饱','5分饱','7分饱','9分饱','吃撑了']},
-      {key:'emotional', label:'是否情绪性进食', type:'select', options:['否','是-焦虑吃','是-孤独吃','是-压力吃']},
+      {key:'source', label:'来源', type:'select', options:['自做','外卖','堂食','食堂','零食','朋友请']},
+      {key:'calories', label:'卡路里', type:'number', placeholder:'可选'},
+      {key:'water', label:'饮水量(ml)', type:'number', placeholder:'如 1500'},
+      {key:'nutrition', label:'营养均衡自评', type:'select', options:['1-单一','2-偏缺','3-一般','4-均衡','5-完美']},
+      {key:'afterFeel', label:'餐后体感', type:'select', options:['精力充沛','舒适','困倦','腹胀','罪恶感','满足']},
+      {key:'emotional', label:'情绪性进食', type:'select', options:['否','是-焦虑','是-孤独','是-压力','是-奖励']},
+      {key:'trigger', label:'触发原因', type:'text', placeholder:'如：加班晚/看到广告/情绪低落'},
+      {key:'improve', label:'下次改进', type:'textarea', placeholder:'如：提前备餐/减少外卖/多喝水'},
       {key:'date', label:'日期', type:'date'}
     ]
   },
@@ -947,15 +986,33 @@ var MODAL_FORMS = {
     title: '摄影记录',
     fields: [
       {key:'title', label:'作品名称', type:'text', placeholder:'作品标题'},
-      {key:'content', label:'描述', type:'text', placeholder:'拍摄地点、设备、心得'},
-      {key:'quality', label:'质量(1-5)', type:'select', options:['1','2','3','4','5']},
+      {key:'location', label:'拍摄地点', type:'text', placeholder:'如：西湖断桥'},
+      {key:'device', label:'设备', type:'text', placeholder:'如：iPhone 15 / Sony A7M4'},
+      {key:'style', label:'风格', type:'select', options:['人像','风景','街拍','美食','建筑','微距','夜景','黑白','纪实','其他']},
+      {key:'aperture', label:'光圈', type:'text', placeholder:'如 f/2.8'},
+      {key:'shutter', label:'快门', type:'text', placeholder:'如 1/125'},
+      {key:'iso', label:'ISO', type:'number', placeholder:'如 400'},
+      {key:'postProcess', label:'后期', type:'select', options:['原片直出','轻度调色','重度修图','黑白转换','HDR合成']},
+      {key:'quality', label:'满意度(1-5)', type:'select', options:['1','2','3','4','5']},
+      {key:'mood', label:'当时心境', type:'text', placeholder:'拍摄时的心情/感受'},
+      {key:'learnPoint', label:'学习收获', type:'textarea', placeholder:'构图/光影/时机的感悟'},
+      {key:'content', label:'描述', type:'textarea', placeholder:'作品说明...'},
       {key:'date', label:'日期', type:'date'}
     ]
   },
   think: {
-    title: '思考记录',
+    title: '认真思考',
     fields: [
-      {key:'content', label:'思考内容', type:'textarea', placeholder:'你的想法、决策、复盘...'},
+      {key:'category', label:'思考类型', type:'select', options:['决策权衡','事件复盘','灵感记录','疑问探究','原则提炼','反常识洞察','未来推演','人性观察']},
+      {key:'title', label:'标题', type:'text', placeholder:'一句话概括'},
+      {key:'content', label:'思考内容', type:'textarea', placeholder:'详细推演你的思考过程...'},
+      {key:'context', label:'触发场景', type:'text', placeholder:'什么事/什么人引发的思考'},
+      {key:'reasoning', label:'推演过程', type:'textarea', placeholder:'你的分析逻辑：因为...所以...但是...'},
+      {key:'counter', label:'反面观点', type:'textarea', placeholder:'如果反过来想呢？反对者会怎么说？'},
+      {key:'action', label:'转化为行动', type:'textarea', placeholder:'这个思考如何指导我的下一步？'},
+      {key:'principle', label:'可提炼原则', type:'text', placeholder:'能否抽象成一条可复用原则？'},
+      {key:'verify', label:'验证方式', type:'text', placeholder:'如何知道这个思考是对的？多久验证？'},
+      {key:'cognitiveLevel', label:'认知层级', type:'select', options:['1-表象','2-规律','3-系统','4-本质','5-元认知']},
       {key:'rating', label:'深度(1-5)', type:'select', options:['1','2','3','4','5']},
       {key:'date', label:'日期', type:'date'}
     ]
@@ -963,7 +1020,15 @@ var MODAL_FORMS = {
   diary: {
     title: '日记',
     fields: [
-      {key:'content', label:'日记内容', type:'textarea', placeholder:'记录今天的经历、感受...'},
+      {key:'mood', label:'今日心情', type:'select', options:['😊开心','😐平淡','😔低落','😤烦躁','😴疲惫','🤔迷茫','😌平静','🥰感恩']},
+      {key:'weather', label:'天气', type:'select', options:['晴','多云','阴','雨','雪','雾','大风']},
+      {key:'highlight', label:'今日高光', type:'textarea', placeholder:'今天最值得记住的一件事'},
+      {key:'lowlight', label:'今日不足', type:'textarea', placeholder:'今天哪里做得不够好？'},
+      {key:'gratitude', label:'感恩三事', type:'textarea', placeholder:'1. ... 2. ... 3. ...'},
+      {key:'content', label:'日记正文', type:'textarea', placeholder:'记录今天的经历、感受、对话...'},
+      {key:'dialogue', label:'自我对话', type:'textarea', placeholder:'如果和明天的自己说一句话...'},
+      {key:'tomorrow', label:'明日重点', type:'text', placeholder:'明天最该做的一件事'},
+      {key:'energy', label:'能量值 1-10', type:'select', options:['1','2','3','4','5','6','7','8','9','10']},
       {key:'date', label:'日期', type:'date'}
     ]
   },
@@ -979,19 +1044,39 @@ var MODAL_FORMS = {
     ]
   },
   inventory: {
-    title: '物品记录',
+    title: '物品登记',
     fields: [
       {key:'name', label:'物品名称', type:'text', placeholder:'如：笔记本电脑'},
+      {key:'category', label:'分类', type:'select', options:['电子产品','衣物','书籍','厨具','家具','美妆','运动','文具','其他']},
       {key:'quantity', label:'数量', type:'number', placeholder:'1'},
-      {key:'location', label:'存放位置', type:'text', placeholder:'如：书房'},
-      {key:'date', label:'日期', type:'date'}
+      {key:'price', label:'购入价格(¥)', type:'number', placeholder:'如 5999'},
+      {key:'purchaseDate', label:'购入日期', type:'date'},
+      {key:'location', label:'存放位置', type:'text', placeholder:'如：书房书架第二层'},
+      {key:'usageFreq', label:'使用频率', type:'select', options:['每日','每周','每月','季节性','几乎不用','已闲置']},
+      {key:'lifespan', label:'预期寿命', type:'text', placeholder:'如 3年/500次'},
+      {key:'condition', label:'当前状态', type:'select', options:['全新','良好','有磨损','需维修','报废边缘']},
+      {key:'necessity', label:'必需程度', type:'select', options:['1-刚需','2-常用','3-偶尔用','4-可替代','5-可丢弃']},
+      {key:'declutter', label:'断舍离决策', type:'select', options:['保留','犹豫','考虑处理','即将丢弃','已捐赠/出售']},
+      {key:'emotion', label:'情感价值', type:'text', placeholder:'如：礼物/纪念/无特殊'},
+      {key:'content', label:'备注', type:'textarea', placeholder:'用途说明、保修信息等...'},
+      {key:'date', label:'登记日期', type:'date'}
     ]
   },
   space: {
-    title: '空间记录',
+    title: '空间管理',
     fields: [
-      {key:'name', label:'空间名称', type:'text', placeholder:'如：客厅、卧室'},
+      {key:'name', label:'空间名称', type:'text', placeholder:'如：客厅/卧室/书房'},
+      {key:'function', label:'功能定位', type:'select', options:['休息','工作','用餐','收纳','运动','休闲','混合']},
       {key:'area', label:'面积(㎡)', type:'number', placeholder:'可选'},
+      {key:'usageFreq', label:'使用频率', type:'select', options:['每日','每周','偶尔','几乎不用']},
+      {key:'stayHours', label:'日均停留(小时)', type:'number', placeholder:'如 8'},
+      {key:'tidiness', label:'整洁度 1-5', type:'select', options:['1-混乱','2-偏乱','3-一般','4-整洁','5-极简']},
+      {key:'comfort', label:'舒适度 1-5', type:'select', options:['1','2','3','4','5']},
+      {key:'lighting', label:'采光', type:'select', options:['充足','适中','偏暗','昏暗']},
+      {key:'ventilation', label:'通风', type:'select', options:['良好','一般','差']},
+      {key:'itemCount', label:'物品数量估计', type:'number', placeholder:'如 30'},
+      {key:'improve', label:'待改进项', type:'textarea', placeholder:'如：增加收纳/换灯泡/断舍离旧物'},
+      {key:'plan', label:'改造计划', type:'text', placeholder:'如：本月清理书架/下月换窗帘'},
       {key:'content', label:'描述', type:'textarea', placeholder:'空间用途、整理情况...'},
       {key:'date', label:'日期', type:'date'}
     ]
