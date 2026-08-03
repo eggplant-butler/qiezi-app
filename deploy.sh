@@ -52,6 +52,7 @@ curl $CURL_OPTS "$BASE_URL/server.js" -o server.js || { echo "❌ server.js 下�
 curl $CURL_OPTS "$BASE_URL/package.json" -o package.json || { echo "❌ package.json 下载失败"; exit 1; }
 mkdir -p frontend
 curl $CURL_OPTS "$BASE_URL/frontend/index.html" -o frontend/index.html || { echo "❌ frontend/index.html 下载失败"; exit 1; }
+curl $CURL_OPTS "$BASE_URL/frontend/sw.js" -o frontend/sw.js || { echo "❌ frontend/sw.js 下载失败"; exit 1; }
 echo "      ✅ 代码文件已更新"
 echo ""
 

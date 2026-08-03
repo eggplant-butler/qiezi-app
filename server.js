@@ -17,7 +17,7 @@ app.set('trust proxy', 1);
 // 生产环境输出 JSON，便于 PM2/grep 分析；本地开发可用 LOG_PRETTY=1 美化
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  base: { service: 'qiezi-app', version: '6.2.0' },
+  base: { service: 'qiezi-app', version: '6.3.0' },
   timestamp: pino.stdTimeFunctions.isoTime,
   transport: process.env.LOG_PRETTY === '1' ? {
     target: 'pino-pretty',
@@ -256,14 +256,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// 前端静态文件：HTML 走 no-cache（保证版本更新即时生效），其他资源长缓存
+// 前端静态文件：HTML/sw.js 走 no-cache（保证更新即时生效），其他资源长缓存
 if (fs.existsSync(path.join(__dirname, 'frontend'))) {
   app.use(express.static('frontend', {
     etag: true,
     lastModified: true,
     maxAge: 0,
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.html')) {
+      if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+        // HTML 和 Service Worker 必须每次都验证，否则版本更新检测不到
         res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       } else {
         res.setHeader('Cache-Control', 'public, max-age=86400');
@@ -292,13 +293,13 @@ app.get('/api/health', (req, res) => {
     const backupHealthy = latestBackup ? latestBackup.mtime > oneDayAgo : false;
     res.json({
       status: 'ok',
-      version: '6.2.0',
+      version: '6.3.0',
       db: { connected: true, size: dbSize },
       disk: { freeBytes: diskFree },
       backup: { count: backups.length, healthy: backupHealthy, latest: latestBackup ? latestBackup.name : null }
     });
   } catch (e) {
-    res.status(503).json({ status: 'error', version: '6.2.0', message: e.message });
+    res.status(503).json({ status: 'error', version: '6.3.0', message: e.message });
   }
 });
 
