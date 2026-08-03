@@ -6,8 +6,25 @@ const crypto = require('crypto');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const pino = require('pino');
 const app = express();
 const PORT = 3000;
+// 信任一层反向代理（腾讯云/PM2 前置代理会转发 X-Forwarded-For）。
+// 不设置则 express-rate-limit v8 会抛 ERR_ERL_UNEXPECTED_X_FORWARDED_FOR，登录限流失效。
+app.set('trust proxy', 1);
+
+// ============ 结构化日志（pino）============
+// 生产环境输出 JSON，便于 PM2/grep 分析；本地开发可用 LOG_PRETTY=1 美化
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  base: { service: 'qiezi-app', version: '6.1.0' },
+  timestamp: pino.stdTimeFunctions.isoTime,
+  transport: process.env.LOG_PRETTY === '1' ? {
+    target: 'pino-pretty',
+    options: { colorize: true, translateTime: 'SYS:yyyy-mm-dd HH:MM:ss' }
+  } : undefined
+});
+app.locals.logger = logger;
 
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -210,9 +227,44 @@ app.use('/api/', apiLimiter);
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// 前端静态文件
+// ============ API 请求日志中间件 ============
+// 仅记录 /api/ 请求，输出结构化字段：method/path/status/durationMs/ip
+// 注意：req.path 在 mount 中间件（如 app.use('/api/', requireAuth)）执行后会被改写，
+// 因此必须在中间件入口先捕获原始路径，避免 finish 回调里取到剥离前缀后的路径。
+app.use((req, res, next) => {
+  const start = Date.now();
+  const origPath = req.path;
+  const origUrl = req.originalUrl || req.url;
+  if (!origPath.startsWith('/api/')) return next();
+  res.on('finish', () => {
+    const dur = Date.now() - start;
+    const level = res.statusCode >= 500 ? 'error' : (res.statusCode >= 400 ? 'warn' : 'info');
+    logger[level]({
+      method: req.method,
+      path: origPath,
+      url: origUrl,
+      status: res.statusCode,
+      durationMs: dur,
+      ip: req.ip
+    }, 'req');
+  });
+  next();
+});
+
+// 前端静态文件：HTML 走 no-cache（保证版本更新即时生效），其他资源长缓存
 if (fs.existsSync(path.join(__dirname, 'frontend'))) {
-  app.use(express.static('frontend'));
+  app.use(express.static('frontend', {
+    etag: true,
+    lastModified: true,
+    maxAge: 0,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+      }
+    }
+  }));
 }
 
 // ============ 公开路由（无需认证）============
@@ -235,13 +287,13 @@ app.get('/api/health', (req, res) => {
     const backupHealthy = latestBackup ? latestBackup.mtime > oneDayAgo : false;
     res.json({
       status: 'ok',
-      version: '6.0.0',
+      version: '6.1.0',
       db: { connected: true, size: dbSize },
       disk: { freeBytes: diskFree },
       backup: { count: backups.length, healthy: backupHealthy, latest: latestBackup ? latestBackup.name : null }
     });
   } catch (e) {
-    res.status(503).json({ status: 'error', version: '6.0.0', message: e.message });
+    res.status(503).json({ status: 'error', version: '6.1.0', message: e.message });
   }
 });
 
@@ -4463,18 +4515,34 @@ app.use((err, req, res, next) => {
   if (res.headersSent) return next(err);
   res.status(500).json({ success: false, message: '服务器内部错误' });
 });
-// 未捕获 Promise 拒绝兜底，避免进程退出
+// 未捕获 Promise 拒绝：记录但不退出（Promise 拒绝非致命，避免误杀进程）
 process.on('unhandledRejection', (reason) => {
-  console.error('[unhandledRejection]', reason && reason.message);
+  logger.error({
+    msg: reason && reason.message,
+    stack: reason && reason.stack
+  }, 'unhandledRejection');
 });
+// 未捕获异常：进程已不稳定，记录后优雅退出由 PM2 重启
 process.on('uncaughtException', (err) => {
-  console.error('[uncaughtException]', err && err.message);
+  logger.fatal({
+    msg: err && err.message,
+    stack: err && err.stack
+  }, 'uncaughtException -> gracefulShutdown');
+  // 直接走 gracefulShutdown：清理定时器 -> 关 HTTP -> WAL checkpoint -> 关 DB -> 退出(1)
+  // PM2 检测到退出后会自动拉起一个全新健康的进程
+  try {
+    if (!isShuttingDown) gracefulShutdown('uncaughtException');
+    else process.exit(1);
+  } catch (e) {
+    logger.fatal({ msg: e && e.message }, 'gracefulShutdown 调用失败，强制退出');
+    process.exit(1);
+  }
 });
 
 // 回收站 API 已在通用 CRUD 之前定义，避免被 /api/:module 截获
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🍆 茄子管家 v6.0 运行在 http://localhost:${PORT}`);
+  logger.info({ port: PORT }, '🍆 茄子管家启动');
 });
 
 // 优雅关闭：收到信号时停止接受新请求，等现有请求结束，关闭数据库
@@ -4482,25 +4550,26 @@ let isShuttingDown = false;
 function gracefulShutdown(signal) {
   if (isShuttingDown) return;
   isShuttingDown = true;
-  console.log(`[gracefulShutdown] 收到 ${signal}，开始关闭...`);
+  logger.warn({ signal }, 'gracefulShutdown 开始');
   // 停止备份定时器
   try { clearInterval(backupInterval); clearInterval(walInterval); clearInterval(dailyInterval); } catch (e) {}
   server.close((err) => {
-    if (err) console.error('[gracefulShutdown] server.close 错误:', err.message);
-    else console.log('[gracefulShutdown] HTTP 服务已停止');
+    if (err) logger.error({ msg: err.message }, 'gracefulShutdown server.close 错误');
+    else logger.info('gracefulShutdown HTTP 服务已停止');
     try {
       // WAL checkpoint 后关闭数据库，避免数据丢失
       db.pragma('wal_checkpoint(TRUNCATE)');
       db.close();
-      console.log('[gracefulShutdown] 数据库已关闭');
+      logger.info('gracefulShutdown 数据库已关闭');
     } catch (e) {
-      console.error('[gracefulShutdown] 数据库关闭错误:', e.message);
+      logger.error({ msg: e.message }, 'gracefulShutdown 数据库关闭错误');
     }
-    process.exit(0);
+    // 信号触发正常退出 0；uncaughtException 触发退出 1，便于 PM2/监控识别异常重启
+    process.exit(signal === 'uncaughtException' ? 1 : 0);
   });
   // 兜底：5 秒后强制退出，避免卡死
   setTimeout(() => {
-    console.error('[gracefulShutdown] 超时强制退出');
+    logger.error('gracefulShutdown 超时强制退出');
     process.exit(1);
   }, 5000).unref();
 }
