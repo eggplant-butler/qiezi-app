@@ -47,10 +47,11 @@ echo ""
 # ---------- 第三步：下载最新代码（只覆盖代码文件）----------
 echo "[3/5] 📥 下载最新 server.js / package.json / frontend/index.html ..."
 BASE_URL="https://raw.githubusercontent.com/eggplant-butler/qiezi-app/main"
-curl -fsSL "$BASE_URL/server.js" -o server.js
-curl -fsSL "$BASE_URL/package.json" -o package.json
+CURL_OPTS="-fsSL --connect-timeout 15 --max-time 60 --retry 3 --retry-delay 2"
+curl $CURL_OPTS "$BASE_URL/server.js" -o server.js || { echo "❌ server.js 下载失败"; exit 1; }
+curl $CURL_OPTS "$BASE_URL/package.json" -o package.json || { echo "❌ package.json 下载失败"; exit 1; }
 mkdir -p frontend
-curl -fsSL "$BASE_URL/frontend/index.html" -o frontend/index.html
+curl $CURL_OPTS "$BASE_URL/frontend/index.html" -o frontend/index.html || { echo "❌ frontend/index.html 下载失败"; exit 1; }
 echo "      ✅ 代码文件已更新"
 echo ""
 
