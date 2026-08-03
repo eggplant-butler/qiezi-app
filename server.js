@@ -3803,10 +3803,52 @@ app.get('/api/eng/seasonal', (req, res) => {
 });
 
 // ============================================================
-// 备份 API
+// 备份 API：备份目录放在项目根目录，与 data/ 隔离，防止误删 data 时连带清空备份
 // ============================================================
-const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+const BACKUP_DIR = path.join(__dirname, 'backups');
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+
+// ============ 数据守护：启动时检测数据完整性 ============
+// 防止误操作（如 rm -rf data）后产生空库导致用户以为数据丢了
+(function dataGuardian() {
+  const dbExists = fs.existsSync(DB_PATH);
+  const dbSize = dbExists ? fs.statSync(DB_PATH).size : 0;
+  // 列出可用备份（按修改时间倒序）
+  let availableBackups = [];
+  try {
+    availableBackups = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith('qiezi-') && f.endsWith('.db'))
+      .map(f => {
+        const st = fs.statSync(path.join(BACKUP_DIR, f));
+        return { name: f, size: st.size, mtime: st.mtimeMs };
+      })
+      .sort((a, b) => b.mtime - a.mtime);
+  } catch (e) {}
+
+  if (!dbExists || dbSize < 8192) {
+    // 数据库不存在或极小（< 8KB，基本是空库），尝试从最近备份恢复
+    if (availableBackups.length > 0) {
+      const latest = availableBackups[0];
+      console.warn(`[dataGuardian] ⚠️  检测到异常：DB ${dbExists ? '仅' + dbSize + 'B' : '不存在'}，自动恢复最近备份 ${latest.name} (${latest.size}B)`);
+      try {
+        try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (e) {}
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+        fs.copyFileSync(path.join(BACKUP_DIR, latest.name), DB_PATH);
+        try { fs.unlinkSync(DB_PATH + '-wal'); } catch (e) {}
+        try { fs.unlinkSync(DB_PATH + '-shm'); } catch (e) {}
+        console.log(`[dataGuardian] ✅ 已从备份恢复: ${latest.name}`);
+        // 强制退出，让 PM2 用新 DB 重启
+        setTimeout(() => process.exit(0), 500);
+      } catch (e) {
+        console.error('[dataGuardian] ❌ 自动恢复失败:', e.message);
+      }
+    } else if (dbSize < 8192) {
+      console.warn('[dataGuardian] ⚠️  数据库为空且无可用备份，请检查是否误删了 data/ 目录');
+    }
+  }
+  // 打印数据状态，方便排查
+  console.log(`[dataGuardian] DB=${dbSize}B, 备份=${availableBackups.length}份${availableBackups[0] ? ', 最近=' + availableBackups[0].name : ''}`);
+})();
 function pad(n) { return String(n).padStart(2, '0'); }
 // 统一用本地时间命名，hasTodayBackup 也用本地时间，避免 UTC 时区错位
 function formatBackupFileName(d) {
