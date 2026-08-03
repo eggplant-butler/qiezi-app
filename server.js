@@ -17,7 +17,7 @@ app.set('trust proxy', 1);
 // 生产环境输出 JSON，便于 PM2/grep 分析；本地开发可用 LOG_PRETTY=1 美化
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  base: { service: 'qiezi-app', version: '6.1.0' },
+  base: { service: 'qiezi-app', version: '6.2.0' },
   timestamp: pino.stdTimeFunctions.isoTime,
   transport: process.env.LOG_PRETTY === '1' ? {
     target: 'pino-pretty',
@@ -45,7 +45,12 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS kv(
     key TEXT PRIMARY KEY, value TEXT
   );
+  -- 复合索引：按模块+创建时间查询（最高频场景：首页列表、模块时间线）
   CREATE INDEX IF NOT EXISTS idx_records_mid_created ON records(mid, created DESC);
+  -- ID 索引：按 ID 查询/删除单条记录
+  CREATE INDEX IF NOT EXISTS idx_records_id ON records(id);
+  -- 创建时间索引：按时间范围查询（如"最近7天"、"本月"）
+  CREATE INDEX IF NOT EXISTS idx_records_created ON records(created DESC);
 `);
 
 function genId() {
@@ -287,13 +292,13 @@ app.get('/api/health', (req, res) => {
     const backupHealthy = latestBackup ? latestBackup.mtime > oneDayAgo : false;
     res.json({
       status: 'ok',
-      version: '6.1.0',
+      version: '6.2.0',
       db: { connected: true, size: dbSize },
       disk: { freeBytes: diskFree },
       backup: { count: backups.length, healthy: backupHealthy, latest: latestBackup ? latestBackup.name : null }
     });
   } catch (e) {
-    res.status(503).json({ status: 'error', version: '6.1.0', message: e.message });
+    res.status(503).json({ status: 'error', version: '6.2.0', message: e.message });
   }
 });
 
@@ -4407,6 +4412,101 @@ function isModuleAllowed(m) {
   return VALID_MODULES.has(m);
 }
 
+// ============ API 输入数据白名单校验 ============
+// 定义每个模块允许的业务字段（不含系统字段 id/created/updated/_*）
+const MODULE_ALLOWED_FIELDS = {
+  finance: ['amount','category','date','note','type','account'],
+  sleep: ['date','duration','quality','note','bedtime','waketime'],
+  exercise: ['date','type','duration','intensity','note','calories'],
+  emotion: ['date','type','level','note','trigger'],
+  diet: ['date','type','food','calories','note','meal'],
+  body: ['date','weight','height','bmi','note','measurement'],
+  relation: ['name','type','note','contact','birthday'],
+  work: ['title','content','status','priority','dueDate','tags'],
+  home: ['room','item','note','status'],
+  travel: ['destination','date','note','status','cost'],
+  time: ['activity','duration','date','note'],
+  growth: ['topic','content','date','status'],
+  spirit: ['practice','duration','date','note'],
+  learn: ['topic','content','date','progress','tags'],
+  photo: ['url','caption','date','tags'],
+  think: ['topic','content','date','tags'],
+  diary: ['content','date','mood','tags'],
+  inventory: ['name','quantity','location','note'],
+  space: ['name','type','note'],
+  life_milestone: ['title','date','description','category'],
+  habits: ['name','frequency','goal','note'],
+  quickNote: ['content','date'],
+  dailyQuestion: ['question','answer','date'],
+  principles: ['title','content','importance'],
+  decisions: ['title','rationale','date','outcome'],
+  fiveWhy: ['topic','whys','conclusion'],
+  interview: ['company','position','date','result','note'],
+  skill: ['name','level','progress','category'],
+  work_mode: ['mode','description','status'],
+  reading: ['book','author','progress','note','rating'],
+  bills: ['item','amount','dueDate','status'],
+  contacts: ['name','phone','email','relation','note'],
+  housework: ['task','frequency','lastDone'],
+  mindfulness: ['type','duration','date','note'],
+  belief: ['topic','content','strength'],
+  character: ['trait','strength','growthArea'],
+  selfImage: ['aspect','score','note'],
+  entropy: ['source','impact','mitigation'],
+  fragility: ['factor','mitigation','status'],
+  northstar: ['description','steps','status'],
+  crisis: ['trigger','response','outcome','date'],
+  dyingTest: ['question','answer','date'],
+  annualNarrative: ['year','narrative','highlights'],
+  captainManifest: ['item','content','status'],
+  energy: ['date','level','source','note'],
+  reflection: ['topic','content','date','insight'],
+  rootCause: ['problem','analysis','solution'],
+  gameTheory: ['scenario','players','payoff','decision'],
+  discipline: ['area','rule','violation','consequence'],
+  review: ['topic','content','date','rating'],
+  habit_checkin: ['habitId','date','completed','note'],
+  plan: ['title','content','dueDate','status','priority'],
+  growth_stage: ['stage','milestone','date','reflection'],
+  journey: ['title','content','date','tags'],
+  wisdom: ['topic','content','source','applicability']
+};
+
+// 系统保留字段，任何模块都不允许用户直接设置
+const SYSTEM_FIELDS = new Set(['id', 'created', 'updated']);
+const SYSTEM_FIELD_PREFIX = '_';
+
+/**
+ * 根据模块白名单清洗用户输入数据
+ * @param {string} module - 模块名
+ * @param {Object} data - 用户输入的单条数据对象
+ * @returns {Object} - 清洗后的数据对象
+ */
+function sanitizeInputData(module, data) {
+  if (!data || typeof data !== 'object') return null;
+  
+  const allowed = MODULE_ALLOWED_FIELDS[module];
+  const sanitized = {};
+  
+  if (allowed) {
+    // 模块有明确白名单：只保留白名单内的字段
+    for (const key of allowed) {
+      if (key in data) {
+        sanitized[key] = data[key];
+      }
+    }
+  } else {
+    // 模块无白名单（如旧模块/未注册模块）：保留所有非系统字段
+    for (const key in data) {
+      if (!SYSTEM_FIELDS.has(key) && !key.startsWith(SYSTEM_FIELD_PREFIX)) {
+        sanitized[key] = data[key];
+      }
+    }
+  }
+  
+  return sanitized;
+}
+
 // ============ 首屏聚合接口：一次性返回所有核心模块数据 ============
 // 替代前端 19 次串行请求，减少网络瀑布，首屏提速 3-5 倍
 app.get('/api/bootstrap', (req, res) => {
@@ -4456,11 +4556,14 @@ app.post('/api/:module', (req, res) => {
     if (!Array.isArray(req.body)) {
       return res.status(400).json({ success: false, message: '请求体必须是数组（全量替换语义）' });
     }
-    writeData(m, req.body);
+    // 字段白名单清洗：对数组中的每个对象进行清洗
+    const sanitizedArray = req.body.map(item => sanitizeInputData(m, item)).filter(item => item !== null);
+    writeData(m, sanitizedArray);
     scheduleAutoBackup();
+    logger.info({ module: m, count: sanitizedArray.length }, 'POST /api/:module 全量替换');
     res.json({ success: true });
   } catch (e) {
-    console.error('[POST /api/:module]', e.message);
+    logger.error({ msg: e.message, stack: e.stack }, 'POST /api/:module 失败');
     res.status(500).json({ success: false, message: e.message || '保存失败' });
   }
 });
@@ -4474,14 +4577,20 @@ app.post('/api/:module/add', (req, res) => {
       return res.status(400).json({ success: false, message: '请求体必须是对象' });
     }
     const d = readData(m);
-    const newItem = req.body;
+    // 字段白名单清洗
+    const sanitized = sanitizeInputData(m, req.body);
+    if (!sanitized || Object.keys(sanitized).length === 0) {
+      return res.status(400).json({ success: false, message: '数据为空或字段不合法' });
+    }
+    const newItem = sanitized;
     if (!newItem.id) newItem.id = genId();
     d.push(newItem);
     writeData(m, d);
     scheduleAutoBackup();
+    logger.info({ module: m, id: newItem.id }, 'POST /api/:module/add 新增');
     res.json({ success: true, id: newItem.id });
   } catch (e) {
-    console.error('[POST /api/:module/add]', e.message);
+    logger.error({ msg: e.message, stack: e.stack }, 'POST /api/:module/add 失败');
     res.status(500).json({ success: false, message: e.message || '保存失败' });
   }
 });

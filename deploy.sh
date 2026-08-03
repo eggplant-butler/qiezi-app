@@ -61,8 +61,17 @@ npm install --no-audit --no-fund --silent 2>&1 | tail -3 || true
 echo "      ✅ 依赖就绪"
 echo ""
 
-# ---------- 第五步：重启服务 ----------
-echo "[5/5] 🔄 重启 PM2 服务..."
+# ---------- 第五步：配置日志轮转 & 重启服务 ----------
+echo "[5/5] 🔄 配置日志轮转 & 重启 PM2 服务..."
+# 安装/更新 pm2-logrotate（如果不存在）
+pm2 install pm2-logrotate 2>/dev/null || true
+# 设置轮转策略：单文件最大 10MB，保留最近 10 天，压缩旧日志
+pm2 set pm2-logrotate:max_size 10M 2>/dev/null || true
+pm2 set pm2-logrotate:retain 10 2>/dev/null || true
+pm2 set pm2-logrotate:compress true 2>/dev/null || true
+pm2 set pm2-logrotate:dateFormat YYYY-MM-DD 2>/dev/null || true
+echo "      ✅ 日志轮转策略已配置 (10MB/文件, 保留10天)"
+
 pm2 restart eggplant 2>&1 | tail -3 || true
 
 sleep 3
