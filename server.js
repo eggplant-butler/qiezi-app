@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
@@ -126,6 +127,74 @@ function deleteRecord(mid, id) {
   return info.changes > 0;
 }
 
+// ============ 认证层：JWT（crypto 原生实现，无额外依赖）============
+const AUTH_FILE = path.join(DATA_DIR, 'auth.json');
+let AUTH_SECRET, PASSWORD_HASH, PASSWORD_SALT;
+
+function initAuth() {
+  if (fs.existsSync(AUTH_FILE)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
+      PASSWORD_HASH = cfg.hash;
+      PASSWORD_SALT = cfg.salt;
+      AUTH_SECRET = cfg.secret;
+      console.log('[auth] ✅ 认证配置已加载');
+    } catch (e) {
+      console.error('[auth] 配置损坏，重新初始化:', e.message);
+      createAuthConfig('eggplant');
+    }
+  } else {
+    createAuthConfig('eggplant');
+    console.log('[auth] ✅ 首次初始化，默认密码: eggplant（请尽快在个人中心修改）');
+  }
+}
+function createAuthConfig(password) {
+  PASSWORD_SALT = crypto.randomBytes(16).toString('hex');
+  AUTH_SECRET = crypto.randomBytes(32).toString('hex');
+  PASSWORD_HASH = crypto.scryptSync(password, PASSWORD_SALT, 64).toString('hex');
+  fs.writeFileSync(AUTH_FILE, JSON.stringify({
+    hash: PASSWORD_HASH, salt: PASSWORD_SALT, secret: AUTH_SECRET,
+    created: new Date().toISOString()
+  }, null, 2));
+}
+function signToken(payload) {
+  const body = Buffer.from(JSON.stringify(Object.assign({}, payload, {
+    iat: Date.now(),
+    exp: Date.now() + 7 * 24 * 60 * 60 * 1000
+  }))).toString('base64url');
+  const sig = crypto.createHmac('sha256', AUTH_SECRET).update(body).digest('base64url');
+  return body + '.' + sig;
+}
+function verifyToken(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+    const [body, sig] = parts;
+    const expectedSig = crypto.createHmac('sha256', AUTH_SECRET).update(body).digest('base64url');
+    if (sig.length !== expectedSig.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) return null;
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString());
+    if (payload.exp && Date.now() > payload.exp) return null;
+    return payload;
+  } catch (e) { return null; }
+}
+function verifyPassword(pwd) {
+  const hash = crypto.scryptSync(pwd, PASSWORD_SALT, 64).toString('hex');
+  return hash.length === PASSWORD_HASH.length && crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(PASSWORD_HASH));
+}
+function requireAuth(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: '未登录' });
+  }
+  const payload = verifyToken(auth.slice(7));
+  if (!payload) {
+    return res.status(401).json({ success: false, message: '登录已过期，请重新登录' });
+  }
+  req.user = payload;
+  next();
+}
+initAuth();
+
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 
@@ -146,8 +215,63 @@ if (fs.existsSync(path.join(__dirname, 'frontend'))) {
   app.use(express.static('frontend'));
 }
 
-// ============ 修复：health 和 insights 必须在通用路由前 ============
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '6.0.0' }));
+// ============ 公开路由（无需认证）============
+// 深度健康检查：DB 连通性 + 磁盘空间 + 备份状态
+app.get('/api/health', (req, res) => {
+  try {
+    db.prepare('SELECT 1').get();
+    const dbSize = fs.statSync(DB_PATH).size;
+    const stats = fs.statSync('/');
+    const diskFree = stats.bavail * 4096;
+    const backups = listAllBackups ? listAllBackups() : [];
+    const latestBackup = backups[0];
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const backupHealthy = latestBackup ? latestBackup.mtime > oneDayAgo : false;
+    res.json({
+      status: 'ok',
+      version: '6.0.0',
+      db: { connected: true, size: dbSize },
+      disk: { freeBytes: diskFree },
+      backup: { count: backups.length, healthy: backupHealthy, latest: latestBackup ? latestBackup.name : null }
+    });
+  } catch (e) {
+    res.status(503).json({ status: 'error', version: '6.0.0', message: e.message });
+  }
+});
+
+// 登录：验证密码，签发 JWT
+const loginLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
+app.post('/api/login', loginLimiter, (req, res) => {
+  const { password } = req.body || {};
+  if (!password) return res.status(400).json({ success: false, message: '请输入密码' });
+  if (!verifyPassword(password)) {
+    return res.status(401).json({ success: false, message: '密码错误' });
+  }
+  const token = signToken({ user: 'captain' });
+  res.json({ success: true, token, expiresIn: 7 * 24 * 60 * 60 * 1000 });
+});
+
+// ============ 认证中间件：以下所有 /api/ 路由需携带有效 JWT ============
+app.use('/api/', requireAuth);
+
+// 验证当前 token 是否有效（前端启动时检查）
+app.get('/api/me', (req, res) => {
+  res.json({ success: true, user: req.user.user });
+});
+
+// 修改密码
+app.post('/api/change-password', (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!verifyPassword(currentPassword || '')) {
+    return res.status(401).json({ success: false, message: '当前密码错误' });
+  }
+  if (!newPassword || newPassword.length < 4) {
+    return res.status(400).json({ success: false, message: '新密码至少4位' });
+  }
+  createAuthConfig(newPassword);
+  const token = signToken({ user: 'captain' });
+  res.json({ success: true, message: '密码已修改', token });
+});
 
 // ============ 今日之问 API ============
 const QUESTION_POOL = [

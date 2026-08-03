@@ -386,6 +386,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div style="color:#6B7280;cursor:pointer;" onclick="changePwd()">🔐 修改密码</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="openTrash()">♻️ 回收站</div>
 <div style="color:#EF4444;cursor:pointer;" onclick="clearAll()">🗑️ 清空数据</div>
+<div style="color:#6B7280;cursor:pointer;" onclick="logout()">🚪 退出登录</div>
 </div>
 </div>
 
@@ -402,13 +403,41 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 </div>
 
 <script>
-var PWD = 'eggplant';
+var TOKEN_KEY = 'qzos_token';
+var TOKEN = localStorage.getItem(TOKEN_KEY) || '';
 var KEY = 'qzos_';
 var TODAY = new Date().toISOString().split('T')[0];
 var curScene = null, editId = null, privacyOn = false;
 var dataCache = {};
 var insightsCache = null;
 var suggestionFeedback = {};
+
+// ============ 认证：覆盖 fetch 自动注入 token + 401 自动登出 ============
+var _origFetch = window.fetch;
+window.fetch = function(url, opts) {
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  if (typeof url === 'string' && url.startsWith('/api/') && TOKEN) {
+    if (typeof opts.headers === 'object' && !(opts.headers instanceof Headers)) {
+      opts.headers['Authorization'] = 'Bearer ' + TOKEN;
+    }
+  }
+  return _origFetch(url, opts).then(function(resp) {
+    if (resp.status === 401 && typeof url === 'string' && url.startsWith('/api/') && !url.includes('/api/login')) {
+      TOKEN = '';
+      localStorage.removeItem(TOKEN_KEY);
+      var app = document.getElementById('app');
+      var lock = document.getElementById('lock');
+      if (app && lock) {
+        app.style.display = 'none';
+        lock.style.display = 'flex';
+        var err = document.getElementById('pwdErr');
+        if (err) { err.textContent = '登录已过期，请重新登录'; err.style.display = 'block'; }
+      }
+    }
+    return resp;
+  });
+};
 
 var SCENES = [
 {id:'work',name:'我的工作',icon:'💼',brief:'职业·收入·意义'},
@@ -460,12 +489,61 @@ async function fetchInsights() {
 }
 function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
-function login(){
+async function login(){
   var p = document.getElementById('pwdI').value;
-  if(p === PWD){ document.getElementById('lock').style.display = 'none'; document.getElementById('app').style.display = 'block'; applyTheme('home'); initApp(); }
-  else { document.getElementById('pwdErr').style.display = 'block'; }
+  if(!p) return;
+  try {
+    var r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: p })
+    });
+    var j = await r.json();
+    if (j.success && j.token) {
+      TOKEN = j.token;
+      localStorage.setItem(TOKEN_KEY, j.token);
+      document.getElementById('lock').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      applyTheme('home');
+      initApp();
+    } else {
+      var err = document.getElementById('pwdErr');
+      err.textContent = j.message || '密码错误';
+      err.style.display = 'block';
+    }
+  } catch(e) {
+    var err = document.getElementById('pwdErr');
+    err.textContent = '网络错误，请重试';
+    err.style.display = 'block';
+  }
 }
 document.getElementById('pwdI').addEventListener('keydown', function(e){ if(e.key === 'Enter') login(); });
+
+// 启动时检查是否已登录（token 是否有效）
+async function checkSession() {
+  if (!TOKEN) return false;
+  try {
+    var r = await fetch('/api/me');
+    return r.ok;
+  } catch(e) { return false; }
+}
+// 页面加载时自动登录
+(async function() {
+  if (await checkSession()) {
+    document.getElementById('lock').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    applyTheme('home');
+    initApp();
+  }
+})();
+
+function logout() {
+  TOKEN = '';
+  localStorage.removeItem(TOKEN_KEY);
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('lock').style.display = 'flex';
+  document.getElementById('pwdI').value = '';
+}
 
 async function initApp() {
   var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit'];
@@ -3575,7 +3653,27 @@ function renderMe(){
   loadCognitiveCounts();
 }
 
-function changePwd(){ var np=document.getElementById('newPwd').value; if(np.length<4){ alert('至少4位'); return; } PWD=np; alert('密码已修改'); }
+async function changePwd(){
+  var np = document.getElementById('newPwd').value;
+  if(np.length < 4){ alert('新密码至少4位'); return; }
+  var cp = prompt('请输入当前密码：');
+  if(!cp) return;
+  try {
+    var r = await fetch('/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword: cp, newPassword: np })
+    });
+    var j = await r.json();
+    if (j.success) {
+      TOKEN = j.token;
+      localStorage.setItem(TOKEN_KEY, j.token);
+      alert('密码已修改');
+    } else {
+      alert(j.message || '修改失败');
+    }
+  } catch(e) { alert('网络错误：' + e.message); }
+}
 function exportData(){
   var all={};
   SCENES.forEach(function(s){ all[s.id]=dataCache[s.id]||[]; });
@@ -3641,7 +3739,6 @@ function clearAll(){
 function togglePrivacy(){ privacyOn=!privacyOn; alert(privacyOn?'👁️ 隐私模式已开启':'👁️ 隐私模式已关闭'); }
 
 (function init(){
-  var s=localStorage.getItem('qzos_pwd'); if(s) PWD=s;
   document.getElementById('pwdI').focus();
 })();
 
