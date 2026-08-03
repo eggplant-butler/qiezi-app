@@ -3670,10 +3670,13 @@ function renderMe(){
 }
 
 async function changePwd(){
-  var np = document.getElementById('newPwd').value;
-  if(np.length < 4){ alert('新密码至少4位'); return; }
   var cp = prompt('请输入当前密码：');
   if(!cp) return;
+  var np = prompt('请输入新密码（至少4位）：');
+  if(!np) return;
+  if(np.length < 4){ alert('新密码至少4位'); return; }
+  var np2 = prompt('请再次输入新密码确认：');
+  if(np !== np2){ alert('两次输入不一致，已取消'); return; }
   try {
     var r = await fetch('/api/change-password', {
       method: 'POST',
@@ -3684,9 +3687,9 @@ async function changePwd(){
     if (j.success) {
       TOKEN = j.token;
       localStorage.setItem(TOKEN_KEY, j.token);
-      alert('密码已修改');
+      alert('✅ 密码已修改');
     } else {
-      alert(j.message || '修改失败');
+      alert('❌ ' + (j.message || '修改失败'));
     }
   } catch(e) { alert('网络错误：' + e.message); }
 }
