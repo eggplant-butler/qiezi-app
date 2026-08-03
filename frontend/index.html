@@ -380,7 +380,9 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div class="ts-title">👤 个人中心</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
 <div style="color:#6B7280">版本：v6.0 船长版</div>
+<div style="color:#2563EB;cursor:pointer;" onclick="restoreLatest()">⏪ 恢复最近备份</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="exportData()">💾 导出备份</div>
+<div style="color:#6B7280;cursor:pointer;" onclick="openBackupMgr()">📂 备份管理</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="changePwd()">🔐 修改密码</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="openTrash()">♻️ 回收站</div>
 <div style="color:#EF4444;cursor:pointer;" onclick="clearAll()">🗑️ 清空数据</div>
@@ -3583,8 +3585,55 @@ function exportData(){
   a.download='qiezi_backup_'+TODAY+'.json';
   a.click();
 }
+async function restoreLatest(){
+  if(!confirm('⚠️ 确定恢复最近备份？\n当前数据会先做一个快照备份，然后恢复到最近一次备份状态。\n恢复后页面自动刷新。')) return;
+  try{
+    var r=await fetch('/api/backup/restore-latest',{method:'POST'});
+    var j=await r.json();
+    if(j.success){ alert('✅ 恢复成功：'+(j.file||'')+'\n页面即将刷新...'); setTimeout(function(){location.reload();},1500); }
+    else alert('❌ 恢复失败：'+(j.message||''));
+  }catch(e){ alert('请求失败：'+e.message); }
+}
+async function openBackupMgr(){
+  var html='<p style="color:#6B7280;font-size:12px;margin-bottom:10px;">写入数据后5分钟自动备份（防抖），每日至少1份。<br>保留策略：24h内全留 → 1-7天/7-30天每天1份 → 30天外删除。</p><div id="bkList" style="max-height:50vh;overflow:auto;"></div>';
+  openModal2('📂 备份管理',html);
+  try{
+    var r=await fetch('/api/backup/list');
+    var j=await r.json();
+    if(!j.success||!j.backups||!j.backups.length){
+      document.getElementById('bkList').innerHTML='<div style="color:#6B7280;padding:20px;text-align:center;">暂无备份</div>'; return;
+    }
+    var s='<table style="width:100%;font-size:12px;border-collapse:collapse;">';
+    s+='<tr style="background:#F3F4F6;"><th style="padding:6px;text-align:left;">时间</th><th style="padding:6px;text-align:right;">大小</th><th style="padding:6px;">操作</th></tr>';
+    j.backups.forEach(function(b){
+      var d=new Date(b.mtime);
+      var ts=d.getFullYear()+'-'+pad0(d.getMonth()+1)+'-'+pad0(d.getDate())+' '+pad0(d.getHours())+':'+pad0(d.getMinutes())+':'+pad0(d.getSeconds());
+      var kb=Math.round(b.size/1024);
+      s+='<tr style="border-bottom:1px solid #F3F4F6;">';
+      s+='<td style="padding:8px;">'+ts+'<div style="font-size:10px;color:#9CA3AF;">'+(b.source||'')+'</div></td>';
+      s+='<td style="padding:8px;text-align:right;">'+kb+'KB</td>';
+      s+='<td style="padding:8px;text-align:center;">';
+      s+='<button onclick="restoreBackup(\''+b.file+'\')" style="margin-right:6px;background:#DBEAFE;color:#1E40AF;border:0;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;">恢复</button>';
+      s+='<a href="/api/backup/download/'+b.file+'" style="background:#E0F2FE;color:#075985;padding:4px 8px;border-radius:4px;font-size:11px;text-decoration:none;">下载</a>';
+      s+='</td></tr>';
+    });
+    s+='</table>';
+    s+='<div style="margin-top:14px;padding:10px;background:#FFFBE7;border-left:3px solid #F59E0B;font-size:11px;color:#92400E;">💡 恢复前系统会自动给当前状态再拍一份快照，可放心操作。</div>';
+    document.getElementById('bkList').innerHTML=s;
+  }catch(e){ document.getElementById('bkList').innerHTML='<div style="color:#EF4444;">加载失败：'+e.message+'</div>'; }
+}
+async function restoreBackup(fname){
+  if(!confirm('⚠️ 确定恢复该备份？\n当前数据会先做快照备份。')) return;
+  try{
+    var r=await fetch('/api/backup/restore/'+encodeURIComponent(fname),{method:'POST'});
+    var j=await r.json();
+    if(j.success){ alert('✅ 恢复成功，页面即将刷新...'); setTimeout(function(){location.reload();},1500); }
+    else alert('❌ 恢复失败：'+(j.message||''));
+  }catch(e){ alert('请求失败：'+e.message); }
+}
+function pad0(n){ return n<10?'0'+n:''+n; }
 function clearAll(){
-  if(!confirm('确定清空全部数据？不可恢复！')) return;
+  if(!confirm('确定清空全部数据？不可恢复！\n建议先去「📂 备份管理」下载一份备份。')) return;
   SCENES.forEach(function(s){ localStorage.removeItem(KEY+s.id); });
   CORE_MODULES.forEach(function(m){ localStorage.removeItem(KEY+m.id); });
   alert('已清空'); location.reload();

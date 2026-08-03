@@ -3807,37 +3807,75 @@ app.get('/api/eng/seasonal', (req, res) => {
 // ============================================================
 const BACKUP_DIR = path.join(__dirname, 'backups');
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+// 旧备份目录（data/backups/），用于兼容迁移
+const OLD_BACKUP_DIR = path.join(DATA_DIR, 'backups');
+
+// 统一列出所有备份：扫描新目录 + 旧目录，合并去重，按时间倒序
+function listAllBackups() {
+  const all = new Map();
+  const scanDir = (dir, label) => {
+    try {
+      const files = fs.readdirSync(dir).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
+      for (const f of files) {
+        if (all.has(f)) continue;
+        const st = fs.statSync(path.join(dir, f));
+        all.set(f, { name: f, size: st.size, mtime: st.mtimeMs, dir, label });
+      }
+    } catch (e) {}
+  };
+  scanDir(BACKUP_DIR, 'backups/');
+  scanDir(OLD_BACKUP_DIR, 'data/backups/');
+  return Array.from(all.values()).sort((a, b) => b.mtime - a.mtime);
+}
+
+// 启动时：把旧备份从 data/backups/ 迁移到根目录 backups/（防止下次 rm -rf data 再次丢失）
+(function migrateOldBackups() {
+  try {
+    if (!fs.existsSync(OLD_BACKUP_DIR)) return;
+    const files = fs.readdirSync(OLD_BACKUP_DIR).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
+    let moved = 0;
+    for (const f of files) {
+      const src = path.join(OLD_BACKUP_DIR, f);
+      const dst = path.join(BACKUP_DIR, f);
+      if (!fs.existsSync(dst)) {
+        try { fs.copyFileSync(src, dst); moved++; } catch (e) {}
+      }
+    }
+    if (moved > 0) console.log(`[migrateOldBackups] ✅ 从 data/backups/ 迁移 ${moved} 份历史备份到 backups/`);
+  } catch (e) {
+    console.warn('[migrateOldBackups] 迁移异常:', e.message);
+  }
+})();
+
+// 统一查找备份文件（兼容两个目录）
+function findBackupPath(fname) {
+  if (!fname.startsWith('qiezi-') || !fname.endsWith('.db')) return null;
+  const newPath = path.join(BACKUP_DIR, fname);
+  if (fs.existsSync(newPath)) return newPath;
+  const oldPath = path.join(OLD_BACKUP_DIR, fname);
+  if (fs.existsSync(oldPath)) return oldPath;
+  return null;
+}
 
 // ============ 数据守护：启动时检测数据完整性 ============
 // 防止误操作（如 rm -rf data）后产生空库导致用户以为数据丢了
 (function dataGuardian() {
   const dbExists = fs.existsSync(DB_PATH);
   const dbSize = dbExists ? fs.statSync(DB_PATH).size : 0;
-  // 列出可用备份（按修改时间倒序）
-  let availableBackups = [];
-  try {
-    availableBackups = fs.readdirSync(BACKUP_DIR)
-      .filter(f => f.startsWith('qiezi-') && f.endsWith('.db'))
-      .map(f => {
-        const st = fs.statSync(path.join(BACKUP_DIR, f));
-        return { name: f, size: st.size, mtime: st.mtimeMs };
-      })
-      .sort((a, b) => b.mtime - a.mtime);
-  } catch (e) {}
+  const availableBackups = listAllBackups();
 
   if (!dbExists || dbSize < 8192) {
     // 数据库不存在或极小（< 8KB，基本是空库），尝试从最近备份恢复
     if (availableBackups.length > 0) {
       const latest = availableBackups[0];
-      console.warn(`[dataGuardian] ⚠️  检测到异常：DB ${dbExists ? '仅' + dbSize + 'B' : '不存在'}，自动恢复最近备份 ${latest.name} (${latest.size}B)`);
+      console.warn(`[dataGuardian] ⚠️  检测到异常：DB ${dbExists ? '仅' + dbSize + 'B' : '不存在'}，自动恢复最近备份 ${latest.label}${latest.name} (${latest.size}B)`);
       try {
         try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (e) {}
         if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-        fs.copyFileSync(path.join(BACKUP_DIR, latest.name), DB_PATH);
+        fs.copyFileSync(path.join(latest.dir, latest.name), DB_PATH);
         try { fs.unlinkSync(DB_PATH + '-wal'); } catch (e) {}
         try { fs.unlinkSync(DB_PATH + '-shm'); } catch (e) {}
         console.log(`[dataGuardian] ✅ 已从备份恢复: ${latest.name}`);
-        // 强制退出，让 PM2 用新 DB 重启
         setTimeout(() => process.exit(0), 500);
       } catch (e) {
         console.error('[dataGuardian] ❌ 自动恢复失败:', e.message);
@@ -3846,7 +3884,6 @@ if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
       console.warn('[dataGuardian] ⚠️  数据库为空且无可用备份，请检查是否误删了 data/ 目录');
     }
   }
-  // 打印数据状态，方便排查
   console.log(`[dataGuardian] DB=${dbSize}B, 备份=${availableBackups.length}份${availableBackups[0] ? ', 最近=' + availableBackups[0].name : ''}`);
 })();
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -3858,119 +3895,143 @@ function getTodayLocalStr() {
   const d = new Date();
   return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
 }
+// ============ 增强备份策略：写入防抖自动备份 + 分级保留 ============
+// 规则：
+// 1. 写入 API 触发后，5 分钟内连续写入只做 1 次备份（防抖）
+// 2. 定时兜底：每小时检查当日是否已有备份，无则补 1 份
+// 3. 保留策略分级：最近24小时全部保留 → 1-7天每天保留1份 → 7-30天每天保留1份 → 30天外删除
+let lastBackupAt = 0;
+const BACKUP_DEBOUNCE_MS = 5 * 60 * 1000;
+function scheduleAutoBackup() {
+  const now = Date.now();
+  if (now - lastBackupAt < BACKUP_DEBOUNCE_MS) return;
+  lastBackupAt = now;
+  setImmediate(async () => {
+    try {
+      const r = await doBackup();
+      if (r.ok) console.log(`[autoBackup] ✅ 写入触发备份: ${r.file} (${r.size}B)`);
+    } catch (e) { console.warn('[autoBackup]', e.message); }
+  });
+}
 function cleanupOldBackups() {
   const now = Date.now();
-  const cutoff = now - 30 * 86400 * 1000;
+  const cut30d = now - 30 * 86400 * 1000;
+  const cut7d = now - 7 * 86400 * 1000;
+  const cut24h = now - 86400 * 1000;
   try {
-    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
-    for (const f of files) {
+    const processDir = (dir) => {
       try {
-        const st = fs.statSync(path.join(BACKUP_DIR, f));
-        if (st.mtimeMs < cutoff) fs.unlinkSync(path.join(BACKUP_DIR, f));
+        const files = fs.readdirSync(dir).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
+        const withStat = files.map(f => {
+          try {
+            const st = fs.statSync(path.join(dir, f));
+            return { name: f, mtime: st.mtimeMs, dir };
+          } catch (e) { return null; }
+        }).filter(Boolean).sort((a, b) => b.mtime - a.mtime);
+        const keepKeys = new Set();
+        const dayBuckets = {};
+        for (const f of withStat) {
+          const age = now - f.mtime;
+          if (age < 86400000) { keepKeys.add(f.name); continue; }          // 最近24h 全留
+          if (age < 7 * 86400000) {                                      // 1-7天 每天1份
+            const day = new Date(f.mtime).toISOString().slice(0, 10);
+            if (!dayBuckets['7d-' + day]) { dayBuckets['7d-' + day] = true; keepKeys.add(f.name); }
+            continue;
+          }
+          if (age < 30 * 86400000) {                                     // 7-30天 每天1份
+            const day = new Date(f.mtime).toISOString().slice(0, 10);
+            if (!dayBuckets['30d-' + day]) { dayBuckets['30d-' + day] = true; keepKeys.add(f.name); }
+            continue;
+          }
+          if (f.mtime < cut30d) { /* 超30天，不保留 */ continue; }
+        }
+        for (const f of withStat) {
+          if (!keepKeys.has(f.name)) {
+            try { fs.unlinkSync(path.join(f.dir, f.name)); } catch (e) {}
+          }
+        }
       } catch (e) {}
-    }
+    };
+    processDir(BACKUP_DIR);
+    processDir(OLD_BACKUP_DIR);
   } catch (e) {}
-}
-async function doBackup() {
-  const now = new Date();
-  const fname = formatBackupFileName(now);
-  const dest = path.join(BACKUP_DIR, fname);
-  try {
-    // better-sqlite3 的 db.backup() 会自动处理 WAL checkpoint，得到一致性的备份
-    // 不再用 fs.copyFileSync 回退（WAL 模式下复制主 db 文件会得到不一致的备份）
-    await db.backup(dest);
-    const st = fs.statSync(dest);
-    cleanupOldBackups();
-    return { ok: true, file: fname, size: st.size, time: now.toISOString() };
-  } catch (e) {
-    console.error('[doBackup] 备份失败:', e.message);
-    return { ok: false, error: e.message, time: now.toISOString() };
-  }
 }
 function hasTodayBackup() {
   const todayStr = getTodayLocalStr();
-  try {
-    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('qiezi-' + todayStr) && f.endsWith('.db'));
-    return files.length > 0;
-  } catch (e) { return false; }
+  const check = (dir) => {
+    try {
+      return fs.readdirSync(dir).filter(f => f.startsWith('qiezi-' + todayStr) && f.endsWith('.db')).length > 0;
+    } catch (e) { return false; }
+  };
+  return check(BACKUP_DIR) || check(OLD_BACKUP_DIR);
 }
-// 备份：触发（改 POST，避免 GET 副作用）
-app.post('/api/backup', async (req, res) => {
-  const result = await doBackup();
-  res.json(result);
-});
-// 备份：兼容旧 GET（保留，但标注 deprecated）
-app.get('/api/backup', async (req, res) => {
-  const result = await doBackup();
-  res.json(result);
-});
-// 备份列表
+// 备份列表 API：扫描两个目录
 app.get('/api/backup/list', (req, res) => {
   try {
-    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
-    const list = files.map(f => {
-      try {
-        const st = fs.statSync(path.join(BACKUP_DIR, f));
-        return {
-          file: f,
-          size: st.size,
-          mtime: st.mtimeMs,
-          mtimeStr: new Date(st.mtimeMs).toISOString()
-        };
-      } catch (e) { return null; }
-    }).filter(Boolean).sort((a, b) => b.mtime - a.mtime);
+    const list = listAllBackups().map(b => ({
+      file: b.name,
+      size: b.size,
+      mtime: b.mtime,
+      mtimeStr: new Date(b.mtime).toISOString(),
+      source: b.label
+    }));
     res.json({ success: true, count: list.length, backups: list });
   } catch (e) {
     res.status(500).json({ success: false, message: '读取备份列表失败' });
   }
 });
-// 备份下载（用于恢复，需手动操作：下载后替换 qiezi.db 重启）
+// 备份下载：兼容两个目录
 app.get('/api/backup/download/:file', (req, res) => {
   try {
     const fname = path.basename(req.params.file);
-    if (!fname.startsWith('qiezi-') || !fname.endsWith('.db')) {
-      return res.status(400).json({ success: false, message: '文件名不合法' });
-    }
-    const fpath = path.join(BACKUP_DIR, fname);
-    if (!fs.existsSync(fpath)) {
-      return res.status(404).json({ success: false, message: '备份文件不存在' });
-    }
+    const fpath = findBackupPath(fname);
+    if (!fpath) return res.status(404).json({ success: false, message: '备份文件不存在' });
     res.download(fpath, fname);
   } catch (e) {
     res.status(500).json({ success: false, message: '下载失败' });
   }
 });
-// 备份恢复（覆盖当前数据库，需立即重启进程）
+// 备份恢复：兼容两个目录 + 恢复前先快照当前状态
 app.post('/api/backup/restore/:file', async (req, res) => {
   try {
     const fname = path.basename(req.params.file);
-    if (!fname.startsWith('qiezi-') || !fname.endsWith('.db')) {
-      return res.status(400).json({ success: false, message: '文件名不合法' });
-    }
-    const fpath = path.join(BACKUP_DIR, fname);
-    if (!fs.existsSync(fpath)) {
-      return res.status(404).json({ success: false, message: '备份文件不存在' });
-    }
-    // 先做当前状态的备份（防止误恢复后无法回退）
+    const fpath = findBackupPath(fname);
+    if (!fpath) return res.status(404).json({ success: false, message: '备份文件不存在' });
     await doBackup();
-    // 关闭当前数据库连接
     try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (e) {}
-    // 用备份文件覆盖主 db
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.copyFileSync(fpath, DB_PATH);
-    // 删除可能残留的 -wal/-shm
     try { fs.unlinkSync(DB_PATH + '-wal'); } catch (e) {}
     try { fs.unlinkSync(DB_PATH + '-shm'); } catch (e) {}
     res.json({ success: true, message: '恢复成功，进程即将重启' });
-    // 1 秒后退出，由 pm2/systemd 自动拉起
     setTimeout(() => process.exit(0), 1000);
   } catch (e) {
     console.error('[restore]', e.message);
     res.status(500).json({ success: false, message: '恢复失败: ' + e.message });
-    // 进程可能处于不一致状态，强制重启
     setTimeout(() => process.exit(1), 1000);
   }
 });
-// 备份间隔引用（用于优雅关闭时清理）
+// 新增：一键恢复最近备份（简化操作）
+app.post('/api/backup/restore-latest', async (req, res) => {
+  const list = listAllBackups();
+  if (!list.length) return res.status(404).json({ success: false, message: '没有可用备份' });
+  const latest = list[0];
+  try {
+    await doBackup();
+    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (e) {}
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.copyFileSync(path.join(latest.dir, latest.name), DB_PATH);
+    try { fs.unlinkSync(DB_PATH + '-wal'); } catch (e) {}
+    try { fs.unlinkSync(DB_PATH + '-shm'); } catch (e) {}
+    res.json({ success: true, message: `已恢复最近备份：${latest.name}，进程即将重启`, file: latest.name });
+    setTimeout(() => process.exit(0), 1000);
+  } catch (e) {
+    console.error('[restore-latest]', e.message);
+    res.status(500).json({ success: false, message: '恢复失败: ' + e.message });
+    setTimeout(() => process.exit(1), 1000);
+  }
+});
+// 定时兜底备份：每小时检查 + 启动立即检查
 const backupInterval = setInterval(async () => {
   if (!hasTodayBackup()) await doBackup();
 }, 60 * 60 * 1000);
@@ -4191,6 +4252,7 @@ app.post('/api/:module', (req, res) => {
       return res.status(400).json({ success: false, message: '请求体必须是数组（全量替换语义）' });
     }
     writeData(m, req.body);
+    scheduleAutoBackup();
     res.json({ success: true });
   } catch (e) {
     console.error('[POST /api/:module]', e.message);
@@ -4211,6 +4273,7 @@ app.post('/api/:module/add', (req, res) => {
     if (!newItem.id) newItem.id = genId();
     d.push(newItem);
     writeData(m, d);
+    scheduleAutoBackup();
     res.json({ success: true, id: newItem.id });
   } catch (e) {
     console.error('[POST /api/:module/add]', e.message);
@@ -4233,6 +4296,7 @@ app.delete('/api/:module/:id', (req, res) => {
       writeData('deleted', trash);
     }
     writeData(m, d.filter(i => String(i.id) !== targetId));
+    scheduleAutoBackup();
     res.json({ success: true, removed: d.length - readData(m).length });
   } catch (e) {
     console.error('[DELETE /api/:module/:id]', e.message);
