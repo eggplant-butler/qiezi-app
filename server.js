@@ -62,11 +62,30 @@ function genId() {
 
 function readData(m) {
   const rows = db.prepare('SELECT data FROM records WHERE mid=? ORDER BY created DESC').all(m);
-  return rows.map(r => JSON.parse(r.data));
+  const result = [];
+  for (const r of rows) {
+    try {
+      const obj = JSON.parse(r.data);
+      if (obj && typeof obj === 'object') result.push(obj);
+      else console.warn('[readData] 跳过非对象记录 mid=' + m);
+    } catch (e) {
+      // 单条坏 JSON 不应击穿整个模块读取
+      console.error('[readData] JSON 解析失败 mid=' + m + ':', e.message);
+    }
+  }
+  return result;
 }
 function writeData(m, list) {
-  const ids = (list || []).map(r => String(r.id || genId()));
+  // 严格校验：必须是数组，防止误传对象/字符串导致崩溃或清空
+  if (!Array.isArray(list)) {
+    throw new Error('writeData: list 必须是数组，收到 ' + typeof list);
+  }
+  // 防御：单次写入上限 10000 条，防止误传超大 body 清空或污染数据
+  if (list.length > 10000) {
+    throw new Error('writeData: 单次写入上限 10000 条，收到 ' + list.length);
+  }
   const now = new Date().toISOString();
+  const ids = list.map(r => String((r && r.id) || genId()));
   const upsert = db.prepare('INSERT OR REPLACE INTO records(mid,id,data,created,updated) VALUES(?,?,?,?,?)');
   const tx = db.transaction(() => {
     if (ids.length === 0) {
@@ -75,7 +94,8 @@ function writeData(m, list) {
       const placeholders = ids.map(() => '?').join(',');
       db.prepare(`DELETE FROM records WHERE mid=? AND id NOT IN (${placeholders})`).run(m, ...ids);
     }
-    for (const row of (list || [])) {
+    for (const row of list) {
+      if (!row || typeof row !== 'object') continue;
       const rid = String(row.id || genId());
       if (!row.id) row.id = rid;
       const created = row.created || row.date || row.createdAt || now;
@@ -86,7 +106,8 @@ function writeData(m, list) {
 }
 function getOneRecord(mid, id) {
   const row = db.prepare('SELECT data FROM records WHERE mid=? AND id=?').get(mid, String(id));
-  return row ? JSON.parse(row.data) : null;
+  if (!row) return null;
+  try { return JSON.parse(row.data); } catch (e) { return null; }
 }
 function upsertRecord(mid, item) {
   const now = new Date().toISOString();
@@ -3772,8 +3793,13 @@ app.get('/api/eng/seasonal', (req, res) => {
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 function pad(n) { return String(n).padStart(2, '0'); }
+// 统一用本地时间命名，hasTodayBackup 也用本地时间，避免 UTC 时区错位
 function formatBackupFileName(d) {
   return `qiezi-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.db`;
+}
+function getTodayLocalStr() {
+  const d = new Date();
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
 }
 function cleanupOldBackups() {
   const now = Date.now();
@@ -3793,101 +3819,300 @@ async function doBackup() {
   const fname = formatBackupFileName(now);
   const dest = path.join(BACKUP_DIR, fname);
   try {
+    // better-sqlite3 的 db.backup() 会自动处理 WAL checkpoint，得到一致性的备份
+    // 不再用 fs.copyFileSync 回退（WAL 模式下复制主 db 文件会得到不一致的备份）
     await db.backup(dest);
     const st = fs.statSync(dest);
     cleanupOldBackups();
-    return { ok: true, file: fname, size: st.size };
+    return { ok: true, file: fname, size: st.size, time: now.toISOString() };
   } catch (e) {
-    try {
-      fs.copyFileSync(DB_PATH, dest);
-      const st = fs.statSync(dest);
-      cleanupOldBackups();
-      return { ok: true, file: fname, size: st.size };
-    } catch (e2) { return { ok: false, error: String(e) }; }
+    console.error('[doBackup] 备份失败:', e.message);
+    return { ok: false, error: e.message, time: now.toISOString() };
   }
 }
 function hasTodayBackup() {
-  const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+  const todayStr = getTodayLocalStr();
   try {
     const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('qiezi-' + todayStr) && f.endsWith('.db'));
     return files.length > 0;
   } catch (e) { return false; }
 }
+// 备份：触发（改 POST，避免 GET 副作用）
+app.post('/api/backup', async (req, res) => {
+  const result = await doBackup();
+  res.json(result);
+});
+// 备份：兼容旧 GET（保留，但标注 deprecated）
 app.get('/api/backup', async (req, res) => {
   const result = await doBackup();
   res.json(result);
 });
-setInterval(async () => {
+// 备份列表
+app.get('/api/backup/list', (req, res) => {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
+    const list = files.map(f => {
+      try {
+        const st = fs.statSync(path.join(BACKUP_DIR, f));
+        return {
+          file: f,
+          size: st.size,
+          mtime: st.mtimeMs,
+          mtimeStr: new Date(st.mtimeMs).toISOString()
+        };
+      } catch (e) { return null; }
+    }).filter(Boolean).sort((a, b) => b.mtime - a.mtime);
+    res.json({ success: true, count: list.length, backups: list });
+  } catch (e) {
+    res.status(500).json({ success: false, message: '读取备份列表失败' });
+  }
+});
+// 备份下载（用于恢复，需手动操作：下载后替换 qiezi.db 重启）
+app.get('/api/backup/download/:file', (req, res) => {
+  try {
+    const fname = path.basename(req.params.file);
+    if (!fname.startsWith('qiezi-') || !fname.endsWith('.db')) {
+      return res.status(400).json({ success: false, message: '文件名不合法' });
+    }
+    const fpath = path.join(BACKUP_DIR, fname);
+    if (!fs.existsSync(fpath)) {
+      return res.status(404).json({ success: false, message: '备份文件不存在' });
+    }
+    res.download(fpath, fname);
+  } catch (e) {
+    res.status(500).json({ success: false, message: '下载失败' });
+  }
+});
+// 备份恢复（覆盖当前数据库，需立即重启进程）
+app.post('/api/backup/restore/:file', async (req, res) => {
+  try {
+    const fname = path.basename(req.params.file);
+    if (!fname.startsWith('qiezi-') || !fname.endsWith('.db')) {
+      return res.status(400).json({ success: false, message: '文件名不合法' });
+    }
+    const fpath = path.join(BACKUP_DIR, fname);
+    if (!fs.existsSync(fpath)) {
+      return res.status(404).json({ success: false, message: '备份文件不存在' });
+    }
+    // 先做当前状态的备份（防止误恢复后无法回退）
+    await doBackup();
+    // 关闭当前数据库连接
+    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (e) {}
+    // 用备份文件覆盖主 db
+    fs.copyFileSync(fpath, DB_PATH);
+    // 删除可能残留的 -wal/-shm
+    try { fs.unlinkSync(DB_PATH + '-wal'); } catch (e) {}
+    try { fs.unlinkSync(DB_PATH + '-shm'); } catch (e) {}
+    res.json({ success: true, message: '恢复成功，进程即将重启' });
+    // 1 秒后退出，由 pm2/systemd 自动拉起
+    setTimeout(() => process.exit(0), 1000);
+  } catch (e) {
+    console.error('[restore]', e.message);
+    res.status(500).json({ success: false, message: '恢复失败: ' + e.message });
+    // 进程可能处于不一致状态，强制重启
+    setTimeout(() => process.exit(1), 1000);
+  }
+});
+// 备份间隔引用（用于优雅关闭时清理）
+const backupInterval = setInterval(async () => {
   if (!hasTodayBackup()) await doBackup();
 }, 60 * 60 * 1000);
 (async () => { if (!hasTodayBackup()) await doBackup(); })();
 
-// ============================================================
-// 通用 CRUD API（必须放在所有具体路由之后！）
-// ============================================================
-app.get('/api/:module', (req, res) => {
-  res.json(readData(req.params.module));
-});
-app.post('/api/:module', (req, res) => {
-  writeData(req.params.module, req.body);
-  res.json({ success: true });
-});
-app.post('/api/:module/add', (req, res) => {
-  const d = readData(req.params.module);
-  d.push(req.body);
-  writeData(req.params.module, d);
-  res.json({ success: true, id: req.body.id });
-});
-app.delete('/api/:module/:id', (req, res) => {
-  const d = readData(req.params.module);
-  const targetId = String(req.params.id);
-  const deletedItem = d.find(i => String(i.id) === targetId);
-  // 回收站：移到 deleted 模块，30天后自动清理
-  if (deletedItem) {
-    const trash = readData('deleted');
-    trash.push(Object.assign({}, deletedItem, { _module: req.params.module, _deletedAt: new Date().toISOString() }));
-    writeData('deleted', trash);
-  }
-  writeData(req.params.module, d.filter(i => String(i.id) !== targetId));
-  res.json({ success: true, removed: d.length - readData(req.params.module).length });
-});
-
-// 回收站 API
+// 回收站 API（必须在通用 CRUD 之前定义，否则会被 /api/:module 截获）
 app.get('/api/trash', (req, res) => {
-  const trash = readData('deleted');
-  // 清理30天前的
-  const now = Date.now();
-  const valid = trash.filter(t => {
-    if (!t._deletedAt) return false;
-    return (now - new Date(t._deletedAt).getTime()) < 30 * 86400000;
-  });
-  if (valid.length !== trash.length) writeData('deleted', valid);
-  res.json(valid);
+  try {
+    const trash = readData('deleted');
+    // 清理30天前的
+    const now = Date.now();
+    const valid = trash.filter(t => {
+      if (!t._deletedAt) return false;
+      return (now - new Date(t._deletedAt).getTime()) < 30 * 86400000;
+    });
+    if (valid.length !== trash.length) writeData('deleted', valid);
+    res.json(valid);
+  } catch (e) {
+    console.error('[GET /api/trash]', e.message);
+    res.status(500).json({ success: false, message: '读取回收站失败' });
+  }
 });
 app.post('/api/trash/:id/restore', (req, res) => {
-  const trash = readData('deleted');
-  const item = trash.find(t => String(t.id) === String(req.params.id));
-  if (!item) return res.json({ success: false, message: '记录不存在' });
-  const mod = item._module;
-  const restored = Object.assign({}, item);
-  delete restored._module; delete restored._deletedAt;
-  const modData = readData(mod);
-  modData.push(restored);
-  writeData(mod, modData);
-  writeData('deleted', trash.filter(t => String(t.id) !== String(req.params.id)));
-  res.json({ success: true });
+  try {
+    const trash = readData('deleted');
+    const item = trash.find(t => String(t.id) === String(req.params.id));
+    if (!item) return res.json({ success: false, message: '记录不存在' });
+    const mod = item._module;
+    const restored = Object.assign({}, item);
+    delete restored._module; delete restored._deletedAt;
+    const modData = readData(mod);
+    modData.push(restored);
+    writeData(mod, modData);
+    writeData('deleted', trash.filter(t => String(t.id) !== String(req.params.id)));
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[POST /api/trash/restore]', e.message);
+    res.status(500).json({ success: false, message: '恢复失败' });
+  }
 });
 app.delete('/api/trash/:id', (req, res) => {
-  const trash = readData('deleted');
-  writeData('deleted', trash.filter(t => String(t.id) !== String(req.params.id)));
-  res.json({ success: true });
+  try {
+    const trash = readData('deleted');
+    writeData('deleted', trash.filter(t => String(t.id) !== String(req.params.id)));
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[DELETE /api/trash/:id]', e.message);
+    res.status(500).json({ success: false, message: '删除失败' });
+  }
 });
 // 清空回收站
 app.delete('/api/trash', (req, res) => {
-  writeData('deleted', []);
-  res.json({ success: true });
+  try {
+    writeData('deleted', []);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, message: '清空失败' });
+  }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+// ============================================================
+// 通用 CRUD API（必须放在所有具体路由之后！）
+// ============================================================
+// 系统模块：禁止通过通用路由读取/写入，保护回收站等内部数据
+const SYSTEM_MODULES = new Set(['deleted', 'trash', '__proto__', 'constructor', 'prototype']);
+// 已知业务模块白名单（含 v5.6/v5.7 新增）
+const VALID_MODULES = new Set([
+  'finance','sleep','exercise','emotion','diet','body','relation','work','home','travel',
+  'time','growth','spirit','learn','photo','think','diary','inventory','space',
+  'life_milestone','habits','quickNote','dailyQuestion','principles','decisions','fiveWhy',
+  'interview','skill','work_mode','reading','bills','contacts','housework','mindfulness',
+  'belief','character','selfImage','entropy','fragility','northstar','crisis','dyingTest',
+  'annualNarrative','captainManifest','energy','reflection','rootCause','gameTheory',
+  'discipline','review','habit_checkin','plan','growth_stage','journey','wisdom'
+]);
+function isModuleAllowed(m) {
+  if (!m || typeof m !== 'string') return false;
+  if (SYSTEM_MODULES.has(m)) return false;
+  if (m.startsWith('kv_')) return false;
+  return VALID_MODULES.has(m);
+}
+// 未知模块兜底：允许读（返回空数组），但写操作必须显式校验
+function isWriteModuleAllowed(m) {
+  return isModuleAllowed(m);
+}
+
+app.get('/api/:module', (req, res) => {
+  try {
+    res.json(readData(req.params.module));
+  } catch (e) {
+    console.error('[GET /api/:module]', e.message);
+    res.status(500).json({ success: false, message: '读取失败' });
+  }
+});
+app.post('/api/:module', (req, res) => {
+  try {
+    const m = req.params.module;
+    if (!isWriteModuleAllowed(m)) {
+      return res.status(400).json({ success: false, message: '模块名不合法: ' + m });
+    }
+    if (!Array.isArray(req.body)) {
+      return res.status(400).json({ success: false, message: '请求体必须是数组（全量替换语义）' });
+    }
+    writeData(m, req.body);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[POST /api/:module]', e.message);
+    res.status(500).json({ success: false, message: e.message || '保存失败' });
+  }
+});
+app.post('/api/:module/add', (req, res) => {
+  try {
+    const m = req.params.module;
+    if (!isWriteModuleAllowed(m)) {
+      return res.status(400).json({ success: false, message: '模块名不合法: ' + m });
+    }
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return res.status(400).json({ success: false, message: '请求体必须是对象' });
+    }
+    const d = readData(m);
+    const newItem = req.body;
+    if (!newItem.id) newItem.id = genId();
+    d.push(newItem);
+    writeData(m, d);
+    res.json({ success: true, id: newItem.id });
+  } catch (e) {
+    console.error('[POST /api/:module/add]', e.message);
+    res.status(500).json({ success: false, message: e.message || '保存失败' });
+  }
+});
+app.delete('/api/:module/:id', (req, res) => {
+  try {
+    const m = req.params.module;
+    if (SYSTEM_MODULES.has(m)) {
+      return res.status(400).json({ success: false, message: '不能通过此路由删除系统模块' });
+    }
+    const d = readData(m);
+    const targetId = String(req.params.id);
+    const deletedItem = d.find(i => String(i.id) === targetId);
+    // 回收站：移到 deleted 模块，30天后自动清理
+    if (deletedItem) {
+      const trash = readData('deleted');
+      trash.push(Object.assign({}, deletedItem, { _module: m, _deletedAt: new Date().toISOString() }));
+      writeData('deleted', trash);
+    }
+    writeData(m, d.filter(i => String(i.id) !== targetId));
+    res.json({ success: true, removed: d.length - readData(m).length });
+  } catch (e) {
+    console.error('[DELETE /api/:module/:id]', e.message);
+    res.status(500).json({ success: false, message: '删除失败' });
+  }
+});
+
+// 全局错误中间件：兜底所有未捕获异常，统一返回 JSON，不泄露堆栈
+app.use((err, req, res, next) => {
+  console.error('[UNCAUGHT]', err && err.message);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ success: false, message: '服务器内部错误' });
+});
+// 未捕获 Promise 拒绝兜底，避免进程退出
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason && reason.message);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err && err.message);
+});
+
+// 回收站 API 已在通用 CRUD 之前定义，避免被 /api/:module 截获
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🍆 茄子管家 v5.7 运行在 http://localhost:${PORT}`);
 });
+
+// 优雅关闭：收到信号时停止接受新请求，等现有请求结束，关闭数据库
+let isShuttingDown = false;
+function gracefulShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`[gracefulShutdown] 收到 ${signal}，开始关闭...`);
+  // 停止备份定时器
+  try { clearInterval(backupInterval); } catch (e) {}
+  server.close((err) => {
+    if (err) console.error('[gracefulShutdown] server.close 错误:', err.message);
+    else console.log('[gracefulShutdown] HTTP 服务已停止');
+    try {
+      // WAL checkpoint 后关闭数据库，避免数据丢失
+      db.pragma('wal_checkpoint(TRUNCATE)');
+      db.close();
+      console.log('[gracefulShutdown] 数据库已关闭');
+    } catch (e) {
+      console.error('[gracefulShutdown] 数据库关闭错误:', e.message);
+    }
+    process.exit(0);
+  });
+  // 兜底：5 秒后强制退出，避免卡死
+  setTimeout(() => {
+    console.error('[gracefulShutdown] 超时强制退出');
+    process.exit(1);
+  }, 5000).unref();
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

@@ -200,6 +200,8 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <!-- ====== 瞭望Tab: 认知引擎 + 深度闭环 + 成长轴 ====== -->
 <div class="pg" id="pgInsight">
 
+<div id="insightSummary"></div>
+
 <div class="tool-section">
 <div class="ts-title">🧠 认知引擎 <span class="ts-sub">鬼谷子视角</span></div>
 <div class="tool-grid">
@@ -313,6 +315,8 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <!-- ====== 船长Tab: 船长工具 ====== -->
 <div class="pg" id="pgMe">
 
+<div id="meHeader"></div>
+
 <div class="tool-section">
 <div class="ts-title">🧭 船长工具 <span class="ts-sub">你是这艘船的船长</span></div>
 <div class="tool-grid">
@@ -354,7 +358,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <!-- 认知引擎专用弹窗 -->
 <div class="modal" id="modal2"><div class="modal-b"><h3 id="modal2Title">认知引擎</h3><div id="modal2Body"></div><div class="row" id="modal2Actions"><button class="cn" onclick="closeModal2()">关闭</button></div></div></div>
 
-<div class="bar"><div class="tab act" onclick="switchTab('home')"><span class="ic">🧭</span>航海</div><div class="tab" onclick="switchTab('record')"><span class="ic">📖</span>日志</div><div class="tab" onclick="switchTab('insight')"><span class="ic">🔭</span>瞭望</div><div class="tab" onclick="switchTab('me')"><span class="ic">⚓</span>船长</div></div>
+<div class="bar"><div class="tab act" data-tab="home" onclick="switchTab('home')"><span class="ic">🧭</span>航海</div><div class="tab" data-tab="record" onclick="switchTab('record')"><span class="ic">📖</span>日志</div><div class="tab" data-tab="insight" onclick="switchTab('insight')"><span class="ic">🔭</span>瞭望</div><div class="tab" data-tab="me" onclick="switchTab('me')"><span class="ic">⚓</span>船长</div></div>
 </div>
 
 <script>
@@ -657,8 +661,8 @@ return'rgba('+r+','+g+','+b+','+a+')';
 function switchTab(t){
 document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('act'); });
 document.querySelectorAll('.pg').forEach(function(el){ el.classList.remove('act'); });
-var map = {home:'首页', record:'日志', insight:'洞察', me:'我'};
-document.querySelectorAll('.tab').forEach(function(el){ if(el.textContent.trim().includes(map[t])) el.classList.add('act'); });
+// 用 data-tab 属性精确匹配，避免文本变化导致高亮失效
+document.querySelectorAll('.tab').forEach(function(el){ if(el.getAttribute('data-tab')===t) el.classList.add('act'); });
 var targetId = 'pg' + t.charAt(0).toUpperCase() + t.slice(1);
 var pg = document.getElementById(targetId);
 if(pg) pg.classList.add('act');
@@ -791,12 +795,78 @@ function renderDetail(id){
     } else if(id==='learn'){
       l=(item.subject||'')+' · '+(item.content||'学习记录');
       if(item.duration) l+=' · '+item.duration+'分钟';
+      if(item.understanding) l+=' · 理解'+item.understanding;
     } else if(id==='inventory'){
       l=(item.name||'物品')+' × '+(item.quantity||1);
       if(item.location) l+=' · '+item.location;
     } else if(id==='space'){
       l=(item.name||'空间')+' · '+(item.area||'');
       if(item.content) l+=' · '+item.content;
+    } else if(id==='body'){
+      // 身体：优先显示症状/体重/血压
+      var bodyParts=[];
+      if(item.symptom) bodyParts.push(item.symptom);
+      if(item.weight) bodyParts.push('体重'+item.weight+'kg');
+      if(item.bloodPressure) bodyParts.push('血压'+item.bloodPressure);
+      if(item.area) bodyParts.push(item.area);
+      if(item.severity) bodyParts.push('严重度'+item.severity+'/5');
+      l=bodyParts.length?bodyParts.join(' · '):(item.content||'身体记录');
+      if(item.content && bodyParts.length) l+=' · '+item.content;
+    } else if(id==='relation'){
+      var relParts=[];
+      if(item.person) relParts.push(item.person);
+      if(item.role) relParts.push(item.role);
+      if(item.interaction) relParts.push(item.interaction);
+      if(item.favorType && item.favorType!=='无') relParts.push(item.favorType);
+      l=relParts.length?relParts.join(' · '):(item.content||'关系记录');
+      if(item.feel) l+=' · 感受'+item.feel+'/10';
+      if(item.cost) l+=' · ¥'+item.cost;
+      if(item.topic) l+=' · '+String(item.topic).substring(0,30);
+    } else if(id==='work'){
+      var workParts=[];
+      if(item.role) workParts.push(item.role);
+      if(item.task) workParts.push(String(item.task).substring(0,30));
+      l=workParts.length?workParts.join(' · '):(item.content||'工作记录');
+      if(item.focusLevel) l+=' · 专注'+item.focusLevel+'/5';
+      if(item.income) l+=' · ¥'+item.income;
+      if(item.meaning) l+=' · 价值'+item.meaning;
+    } else if(id==='home'){
+      var homeParts=[];
+      if(item.space) homeParts.push(item.space);
+      if(item.action) homeParts.push(item.action);
+      if(item.items) homeParts.push(item.items);
+      l=homeParts.length?homeParts.join(' · '):(item.content||'居住记录');
+      if(item.cost) l+=' · ¥'+item.cost;
+      if(item.security) l+=' · 安全感'+item.security;
+    } else if(id==='travel'){
+      var trvParts=[];
+      if(item.purpose) trvParts.push(item.purpose);
+      if(item.transport) trvParts.push(item.transport);
+      if(item.from||item.to) trvParts.push((item.from||'?')+'→'+(item.to||'?'));
+      l=trvParts.length?trvParts.join(' · '):(item.content||'出行记录');
+      if(item.cost) l+=' · ¥'+item.cost;
+      if(item.comfort) l+=' · 舒适'+item.comfort;
+    } else if(id==='time'){
+      var timeParts=[];
+      if(item.category) timeParts.push(item.category);
+      if(item.duration) timeParts.push(item.duration+'分钟');
+      l=timeParts.length?timeParts.join(' · '):(item.content||'时间记录');
+      if(item.value) l+=' · '+item.value;
+      if(item.content) l+=' · '+String(item.content).substring(0,30);
+    } else if(id==='growth'){
+      var growParts=[];
+      if(item.skill) growParts.push(item.skill);
+      if(item.method) growParts.push(item.method);
+      if(item.duration) growParts.push(item.duration+'分钟');
+      l=growParts.length?growParts.join(' · '):(item.content||'成长记录');
+      if(item.progress) l+=' · 进步:'+String(item.progress).substring(0,30);
+    } else if(id==='spirit'){
+      var spiParts=[];
+      if(item.mood) spiParts.push(item.mood);
+      if(item.practice) spiParts.push(item.practice);
+      if(item.duration) spiParts.push(item.duration+'分钟');
+      l=spiParts.length?spiParts.join(' · '):(item.content||'精神记录');
+      if(item.belief) l+=' · '+String(item.belief).substring(0,30);
     } else {
       l=item.content||item.name||item.title||'记录';
       if(item.amount) l+=' ¥'+item.amount;
@@ -1062,7 +1132,7 @@ var REQUIRED_KEYS = {
   think:['content'], learn:['subject'], photo:['title'],
   inventory:['name'], space:['name'],
   work:['task'], home:['space'], travel:['from'],
-  body:['symptom'], relation:['person'], time:['duration','category'],
+  body:[], relation:['person'], time:['duration','category'],
   growth:['skill'], spirit:['mood']
 };
 function isFieldRequired(sceneId, fieldKey){
@@ -1275,6 +1345,11 @@ async function saveRecord(){
         return;
       }
     }
+    // body 模块特殊：至少填 symptom/weight/bloodPressure 其一
+    if(curScene === 'body'){
+      var hasAny = formData.symptom || formData.weight || formData.bloodPressure;
+      if(!hasAny){ alert('请至少填写症状/体重/血压其一'); return; }
+    }
   }
   // 走认知引擎 API（带反思/关联/风险反馈）
   try {
@@ -1325,12 +1400,24 @@ async function saveRecord(){
 }
 
 async function delRec(sceneId,id){
-  if(!confirm('确定删除？')) return;
-  var data=Array.isArray(dataCache[sceneId])?dataCache[sceneId]:[];
-  dataCache[sceneId]=data.filter(function(x){ return String(x.id)!==String(id); });
-  await apiSave(sceneId,dataCache[sceneId]);
-  renderDetail(sceneId);
-  renderHome();
+  if(!confirm('确定删除？可在回收站30天内恢复')) return;
+  try {
+    var r = await fetch('/api/'+sceneId+'/'+id, { method: 'DELETE' });
+    var d = await r.json();
+    if(!d.success){ alert('删除失败：'+(d.message||'')); return; }
+    // 同步本地缓存
+    var data=Array.isArray(dataCache[sceneId])?dataCache[sceneId]:[];
+    dataCache[sceneId]=data.filter(function(x){ return String(x.id)!==String(id); });
+    renderDetail(sceneId);
+    renderHome();
+  } catch(e) {
+    // 网络失败时回退本地
+    var data2=Array.isArray(dataCache[sceneId])?dataCache[sceneId]:[];
+    dataCache[sceneId]=data2.filter(function(x){ return String(x.id)!==String(id); });
+    renderDetail(sceneId);
+    renderHome();
+    alert('网络异常，已离线删除');
+  }
 }
 
 function closeModal(){ document.getElementById('modal').classList.remove('act'); editId=null; }
@@ -3266,7 +3353,8 @@ function renderRecord(){
 }
 
 function renderInsight(){
-  var c=document.getElementById('pgInsight');
+  var c=document.getElementById('insightSummary');
+  if(!c) return;
   var summary='';
   if(insightsCache && insightsCache.growth){
     var g=insightsCache.growth;
@@ -3283,19 +3371,20 @@ function renderInsight(){
     }
   }
   if(!summary) summary='<div class="empty"><span class="ic">🔮</span>继续记录，系统会生成洞察</div>';
-  var existing=c.innerHTML;
-  c.innerHTML=summary+existing;
+  // 只更新 summary 容器，不再拼接到整个 innerHTML（修复累积渲染 bug）
+  c.innerHTML=summary;
   loadCognitiveCounts();
 }
 
 function renderMe(){
-  var c = document.getElementById('pgMe');
+  var c = document.getElementById('meHeader');
+  if(!c) return;
   var total = 0;
   SCENES.forEach(function(s){ total += (dataCache[s.id]||[]).length; });
   CORE_MODULES.forEach(function(m){ total += (dataCache[m.id]||[]).length; });
   var header='<div style="background:rgba(99,102,241,0.08);border-radius:14px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(99,102,241,0.15);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;color:#1A1A2E;">📊 船长日志</span><span style="font-size:12px;color:#6366F1;font-weight:700;">共 '+total+' 条记录</span></div></div>';
-  var existing=c.innerHTML;
-  c.innerHTML=header+existing;
+  // 只更新 header 容器，不再拼接到整个 innerHTML（修复累积渲染 bug）
+  c.innerHTML=header;
   loadCognitiveCounts();
 }
 
