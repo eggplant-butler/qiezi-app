@@ -3919,6 +3919,117 @@ const backupInterval = setInterval(async () => {
 }, 60 * 60 * 1000);
 (async () => { if (!hasTodayBackup()) await doBackup(); })();
 
+// ============================================================
+// 服务器运维：WAL checkpoint + 数据库 VACUUM + 日志清理
+// ============================================================
+// WAL checkpoint：每小时将 WAL 日志合并到主库，避免 -wal 文件无限增长
+// VACUUM：每天凌晨 3 点重建数据库文件，回收碎片空间
+// PM2 日志清理：每天检查 PM2 日志大小，超过 10MB 自动轮转
+function walCheckpoint() {
+  try {
+    db.pragma('wal_checkpoint(PASSIVE)');
+    console.log('[walCheckpoint] OK');
+  } catch (e) {
+    console.error('[walCheckpoint]', e.message);
+  }
+}
+function vacuumDb() {
+  try {
+    db.exec('VACUUM');
+    console.log('[vacuumDb] OK');
+  } catch (e) {
+    console.error('[vacuumDb]', e.message);
+  }
+}
+function cleanupPm2Logs() {
+  try {
+    const os = require('os');
+    const pm2LogDir = path.join(os.homedir(), '.pm2', 'logs');
+    if (!fs.existsSync(pm2LogDir)) return;
+    const files = fs.readdirSync(pm2LogDir);
+    for (const f of files) {
+      try {
+        const fp = path.join(pm2LogDir, f);
+        const st = fs.statSync(fp);
+        if (st.size > 10 * 1024 * 1024) {
+          // 超过 10MB，截断保留最后 1000 行
+          const content = fs.readFileSync(fp, 'utf-8').split('\n');
+          const tail = content.slice(-1000).join('\n');
+          fs.writeFileSync(fp, tail);
+          console.log('[cleanupPm2Logs] 截断', f, '从', st.size, '到', tail.length);
+        }
+      } catch (e) {}
+    }
+  } catch (e) {
+    console.error('[cleanupPm2Logs]', e.message);
+  }
+}
+// WAL checkpoint 每小时
+const walInterval = setInterval(walCheckpoint, 60 * 60 * 1000);
+// VACUUM + PM2日志清理 每天 03:00
+function runDailyMaintenance() {
+  vacuumDb();
+  cleanupPm2Logs();
+}
+const dailyInterval = setInterval(() => {
+  const now = new Date();
+  if (now.getHours() === 3 && now.getMinutes() < 5) {
+    runDailyMaintenance();
+  }
+}, 5 * 60 * 1000);
+// 启动时先做一次 WAL checkpoint
+setTimeout(walCheckpoint, 5000);
+// 提供 API 让用户手动触发运维
+app.post('/api/maintenance', (req, res) => {
+  try {
+    walCheckpoint();
+    cleanupPm2Logs();
+    const dbSize = fs.existsSync(DB_PATH) ? fs.statSync(DB_PATH).size : 0;
+    const walSize = fs.existsSync(DB_PATH + '-wal') ? fs.statSync(DB_PATH + '-wal').size : 0;
+    const backupCount = fs.existsSync(BACKUP_DIR) ? fs.readdirSync(BACKUP_DIR).filter(f => f.endsWith('.db')).length : 0;
+    res.json({
+      success: true,
+      dbSize: dbSize,
+      walSize: walSize,
+      backupCount: backupCount,
+      message: '运维完成：WAL已checkpoint, PM2日志已清理'
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: '运维失败: ' + e.message });
+  }
+});
+app.post('/api/maintenance/vacuum', (req, res) => {
+  try {
+    vacuumDb();
+    res.json({ success: true, message: 'VACUUM 完成，数据库已压缩' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+// 数据库状态查询
+app.get('/api/maintenance/status', (req, res) => {
+  try {
+    const dbSize = fs.existsSync(DB_PATH) ? fs.statSync(DB_PATH).size : 0;
+    const walSize = fs.existsSync(DB_PATH + '-wal') ? fs.statSync(DB_PATH + '-wal').size : 0;
+    const shmSize = fs.existsSync(DB_PATH + '-shm') ? fs.statSync(DB_PATH + '-shm').size : 0;
+    const backupCount = fs.existsSync(BACKUP_DIR) ? fs.readdirSync(BACKUP_DIR).filter(f => f.endsWith('.db')).length : 0;
+    const backupSize = fs.existsSync(BACKUP_DIR) ? fs.readdirSync(BACKUP_DIR).reduce((s, f) => {
+      try { return s + fs.statSync(path.join(BACKUP_DIR, f)).size; } catch (e) { return s; }
+    }, 0) : 0;
+    res.json({
+      success: true,
+      dbSize: dbSize,
+      walSize: walSize,
+      shmSize: shmSize,
+      backupCount: backupCount,
+      backupSize: backupSize,
+      totalSize: dbSize + walSize + shmSize + backupSize
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // 回收站 API（必须在通用 CRUD 之前定义，否则会被 /api/:module 截获）
 app.get('/api/trash', (req, res) => {
   try {
@@ -4099,7 +4210,7 @@ function gracefulShutdown(signal) {
   isShuttingDown = true;
   console.log(`[gracefulShutdown] 收到 ${signal}，开始关闭...`);
   // 停止备份定时器
-  try { clearInterval(backupInterval); } catch (e) {}
+  try { clearInterval(backupInterval); clearInterval(walInterval); clearInterval(dailyInterval); } catch (e) {}
   server.close((err) => {
     if (err) console.error('[gracefulShutdown] server.close 错误:', err.message);
     else console.log('[gracefulShutdown] HTTP 服务已停止');

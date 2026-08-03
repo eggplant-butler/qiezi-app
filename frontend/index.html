@@ -119,11 +119,23 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .milestone-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;font-size:13px;color:#374151;font-weight:500}
 .milestone-item .ic{font-size:20px}
 .scene-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-.scene-card{background:#FFFFFF;border-radius:12px;padding:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s}
+.scene-card{background:#FFFFFF;border-radius:12px;padding:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s;position:relative;overflow:hidden}
 .scene-card:active{transform:scale(0.95)}
 .scene-card .s-ic{font-size:18px}
 .scene-card .s-nm{font-size:12px;color:#1A1A2E;font-weight:600;margin-top:2px}
 .scene-card .s-cnt{font-size:10px;color:#9CA3AF;margin-top:2px}
+.scene-card .s-today{position:absolute;top:8px;right:8px;font-size:9px;color:#fff;background:var(--c-primary);border-radius:8px;padding:1px 6px;min-width:14px;text-align:center}
+.rec-toolbar{margin-bottom:12px}
+.rec-search{width:100%;padding:10px 14px;border:1px solid #E5E7EB;border-radius:20px;font-size:13px;background:#F9FAFB;box-sizing:border-box}
+.rec-search:focus{outline:none;border-color:var(--c-primary);background:#fff}
+.rec-today{background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.08));border-radius:14px;padding:10px 14px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#4B5563}
+.rec-today .rt-item{display:flex;align-items:center;gap:3px}
+.rec-today .rt-num{font-weight:700;color:var(--c-primary)}
+.rec-today .rt-empty{color:#9CA3AF;font-size:11px}
+.rec-group{margin-bottom:18px}
+.rec-group .rg-title{font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:8px;padding-left:2px;display:flex;align-items:center;gap:8px}
+.rec-group .rg-sub{font-size:10px;color:#9CA3AF;font-weight:400}
+.rec-group.hidden{display:none}
 .tool-section{background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .tool-section .ts-title{font-size:13px;font-weight:600;color:#1A1A2E;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
 .tool-section .ts-sub{font-size:10px;color:#9CA3AF}
@@ -194,7 +206,33 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 
 <!-- ====== 日志Tab: 场景记录 ====== -->
 <div class="pg" id="pgRecord">
-<div class="scene-grid" id="sceneGrid"></div>
+
+<div class="rec-toolbar">
+<input class="rec-search" id="recSearch" placeholder="🔍 搜索模块名..." oninput="filterScenes(this.value)">
+</div>
+
+<div class="rec-today" id="recToday"></div>
+
+<div class="rec-group" data-cat="life">
+<div class="rg-title">🌱 生活基础 <span class="rg-sub">身体·饮食·睡眠·情绪</span></div>
+<div class="scene-grid rec-grid" id="recLife"></div>
+</div>
+
+<div class="rec-group" data-cat="growth">
+<div class="rg-title">📚 成长认知 <span class="rg-sub">学习·思考·日记·摄影</span></div>
+<div class="scene-grid rec-grid" id="recGrowth"></div>
+</div>
+
+<div class="rec-group" data-cat="action">
+<div class="rg-title">💼 行动场景 <span class="rg-sub">工作·居住·出行·时间·关系</span></div>
+<div class="scene-grid rec-grid" id="recAction"></div>
+</div>
+
+<div class="rec-group" data-cat="asset">
+<div class="rg-title">📦 资产管理 <span class="rg-sub">财务·库存·空间</span></div>
+<div class="scene-grid rec-grid" id="recAsset"></div>
+</div>
+
 </div>
 
 <!-- ====== 瞭望Tab: 认知引擎 + 深度闭环 + 成长轴 ====== -->
@@ -3425,16 +3463,78 @@ async function openSeasonal(){
   }
 }
 
+// 日志Tab：按生活域分组 + 今日统计 + 搜索
+var RECORD_GROUPS = {
+  life:    {ids:['body','diet','sleep','emotion'], title:'生活基础', icon:'🌱', sub:'身体·饮食·睡眠·情绪'},
+  growth:  {ids:['learn','think','diary','photo'], title:'成长认知', icon:'📚', sub:'学习·思考·日记·摄影'},
+  action:  {ids:['work','home','travel','time','relation'], title:'行动场景', icon:'💼', sub:'工作·居住·出行·时间·关系'},
+  asset:   {ids:['finance','inventory','space'], title:'资产管理', icon:'📦', sub:'财务·库存·空间'}
+};
+// 模块元信息（统一来源，避免 SCENES/CORE_MODULES 分裂）
+var MODULE_META = {
+  body:{name:'身体',icon:'💪'}, diet:{name:'饮食',icon:'🥗'}, sleep:{name:'睡眠',icon:'😴'}, emotion:{name:'情绪',icon:'😊'},
+  learn:{name:'学习',icon:'📚'}, think:{name:'思考',icon:'🧠'}, diary:{name:'日记',icon:'📖'}, photo:{name:'摄影',icon:'📷'},
+  work:{name:'工作',icon:'💼'}, home:{name:'居住',icon:'🏠'}, travel:{name:'出行',icon:'🛵'}, time:{name:'时间',icon:'⏰'}, relation:{name:'关系',icon:'👥'},
+  finance:{name:'财务',icon:'💰'}, inventory:{name:'库存',icon:'📦'}, space:{name:'空间',icon:'🏚️'},
+  exercise:{name:'锻炼',icon:'🏃'}, growth:{name:'成长',icon:'🌱'}, spirit:{name:'精神',icon:'🧘'}
+};
+
 function renderRecord(){
-  var c=document.getElementById('sceneGrid');
-  var allMods = [];
-  var seen = {};
-  SCENES.forEach(function(s){ if(!seen[s.id]){ allMods.push(s); seen[s.id]=1; } });
-  CORE_MODULES.forEach(function(m){ if(!seen[m.id]){ allMods.push({id:m.id, name:m.label, icon:m.icon, brief:''}); seen[m.id]=1; } });
-  c.innerHTML=allMods.map(function(s){
-    var cnt=(dataCache[s.id]||[]).length;
-    return '<div class="scene-card" onclick="openScene(\''+s.id+'\')"><div class="s-ic">'+(s.icon||'📄')+'</div><div class="s-nm">'+(s.name||s.label||s.id)+'</div><div class="s-cnt">'+cnt+'条</div></div>';
-  }).join('');
+  // 今日统计
+  renderRecToday();
+  // 分组渲染
+  Object.keys(RECORD_GROUPS).forEach(function(cat){
+    var g = RECORD_GROUPS[cat];
+    var container = document.getElementById('rec' + cat.charAt(0).toUpperCase() + cat.slice(1));
+    if(!container) return;
+    container.innerHTML = g.ids.map(function(mid){
+      return renderSceneCard(mid);
+    }).join('');
+  });
+}
+function renderSceneCard(mid){
+  var meta = MODULE_META[mid] || {name:mid, icon:'📄'};
+  var cnt = (dataCache[mid]||[]).length;
+  var todayCnt = countTodayRecords(mid);
+  var todayBadge = todayCnt > 0 ? '<div class="s-today">'+todayCnt+'</div>' : '';
+  return '<div class="scene-card" data-name="'+meta.name+'" onclick="openScene(\''+mid+'\')"><div class="s-ic">'+meta.icon+'</div><div class="s-nm">'+meta.name+'</div><div class="s-cnt">'+cnt+'条</div>'+todayBadge+'</div>';
+}
+function countTodayRecords(mid){
+  var data = dataCache[mid] || [];
+  var today = new Date().toISOString().split('T')[0];
+  return data.filter(function(r){ return (r.date||r.created||'').indexOf(today) === 0; }).length;
+}
+function renderRecToday(){
+  var c = document.getElementById('recToday');
+  if(!c) return;
+  var today = new Date().toISOString().split('T')[0];
+  var parts = [];
+  var totalToday = 0;
+  Object.keys(MODULE_META).forEach(function(mid){
+    var n = countTodayRecords(mid);
+    if(n > 0){
+      totalToday += n;
+      parts.push('<span class="rt-item">'+MODULE_META[mid].icon+' '+MODULE_META[mid].name+' <span class="rt-num">'+n+'</span></span>');
+    }
+  });
+  if(totalToday === 0){
+    c.innerHTML = '<span class="rt-empty">今日还没记录，点下面任一模块开始</span>';
+  } else {
+    c.innerHTML = '<span class="rt-item">📝 今日</span>' + parts.join('<span style="color:#D1D5DB">·</span>') + '<span class="rt-item">共 <span class="rt-num">'+totalToday+'</span> 条</span>';
+  }
+}
+function filterScenes(q){
+  q = (q||'').trim().toLowerCase();
+  document.querySelectorAll('.rec-group').forEach(function(g){
+    var anyVisible = false;
+    g.querySelectorAll('.scene-card').forEach(function(card){
+      var name = (card.getAttribute('data-name')||'').toLowerCase();
+      var match = !q || name.indexOf(q) !== -1;
+      card.style.display = match ? '' : 'none';
+      if(match) anyVisible = true;
+    });
+    g.classList.toggle('hidden', !anyVisible);
+  });
 }
 
 function renderInsight(){
