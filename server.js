@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = 3000;
 
@@ -123,6 +126,18 @@ function deleteRecord(mid, id) {
   return info.changes > 0;
 }
 
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(compression());
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/api/health')
+});
+app.use('/api/', apiLimiter);
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -132,7 +147,7 @@ if (fs.existsSync(path.join(__dirname, 'frontend'))) {
 }
 
 // ============ 修复：health 和 insights 必须在通用路由前 ============
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '5.7' }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '6.0.0' }));
 
 // ============ 今日之问 API ============
 const QUESTION_POOL = [
@@ -4200,7 +4215,7 @@ process.on('uncaughtException', (err) => {
 // 回收站 API 已在通用 CRUD 之前定义，避免被 /api/:module 截获
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🍆 茄子管家 v5.7 运行在 http://localhost:${PORT}`);
+  console.log(`🍆 茄子管家 v6.0 运行在 http://localhost:${PORT}`);
 });
 
 // 优雅关闭：收到信号时停止接受新请求，等现有请求结束，关闭数据库
