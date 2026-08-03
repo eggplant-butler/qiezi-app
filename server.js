@@ -4002,7 +4002,12 @@ function isWriteModuleAllowed(m) {
 
 app.get('/api/:module', (req, res) => {
   try {
-    res.json(readData(req.params.module));
+    const m = req.params.module;
+    // 系统模块不通过通用路由读取（health/trash/backup 等有专门路由）
+    if (SYSTEM_MODULES.has(m)) {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
+    res.json(readData(m));
   } catch (e) {
     console.error('[GET /api/:module]', e.message);
     res.status(500).json({ success: false, message: '读取失败' });
