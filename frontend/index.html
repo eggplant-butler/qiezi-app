@@ -546,9 +546,25 @@ function logout() {
 }
 
 async function initApp() {
-  var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit'];
-  for(var i=0; i<mods.length; i++) await apiFetch(mods[i]);
-  await fetchInsights();
+  // 首屏聚合加载：一次请求拉取全部 19 个模块 + insights 并发，替代串行 19 次请求
+  try {
+    const [bootResp, insResp] = await Promise.all([
+      fetch('/api/bootstrap'),
+      fetch('/api/insights')
+    ]);
+    const boot = await bootResp.json();
+    // 将聚合数据填入 dataCache
+    for (var m in boot) {
+      if (Array.isArray(boot[m])) dataCache[m] = boot[m];
+    }
+    // insights 并发拉取
+    try { insightsCache = await insResp.json(); } catch(e) { insightsCache = null; }
+  } catch(e) {
+    // 聚合接口失败时降级为逐模块串行（兜底）
+    var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit'];
+    for(var i=0; i<mods.length; i++) await apiFetch(mods[i]);
+    await fetchInsights();
+  }
   renderHome();
   renderInsight();
   loadDailyQuestion();

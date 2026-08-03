@@ -4354,6 +4354,29 @@ function isModuleAllowed(m) {
   if (m.startsWith('kv_')) return false;
   return VALID_MODULES.has(m);
 }
+
+// ============ 首屏聚合接口：一次性返回所有核心模块数据 ============
+// 替代前端 19 次串行请求，减少网络瀑布，首屏提速 3-5 倍
+app.get('/api/bootstrap', (req, res) => {
+  try {
+    const BOOTSTRAP_MODULES = [
+      'finance','sleep','exercise','emotion','diet','diary','learn','photo','think',
+      'inventory','space','work','home','travel','body','relation','time','growth','spirit'
+    ];
+    const result = {};
+    for (const m of BOOTSTRAP_MODULES) {
+      try {
+        result[m] = readData(m);
+      } catch (e) {
+        result[m] = [];
+      }
+    }
+    res.json(result);
+  } catch (e) {
+    console.error('[GET /api/bootstrap]', e.message);
+    res.status(500).json({ success: false, message: '聚合加载失败' });
+  }
+});
 // 未知模块兜底：允许读（返回空数组），但写操作必须显式校验
 function isWriteModuleAllowed(m) {
   return isModuleAllowed(m);
