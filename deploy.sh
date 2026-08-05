@@ -1,15 +1,20 @@
 #!/bin/bash
 # ============================================================
-# 茄子管家 安全部署脚本 v6.4
+# 茄子管家 安全部署脚本 v6.4.1
 # 核心原则：永不触碰 data/ 和 backups/ 目录，保护 .env
 # 用法：cd ~/qiezi-app && bash deploy.sh
+# v6.4.1 修复：所有网络步骤加超时，npm 用国内镜像兜底，避免卡死
 # ============================================================
-set -e
-
+# 不用 set -e，改为关键步骤手动检查（避免某步失败直接退出让人以为卡住）
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$APP_DIR"
 
-echo "🍆 ===== 茄子管家安全部署 v6.4 ====="
+# 全局超时：部署总时长上限 300 秒（5分钟），超时自动退出并打印诊断
+( sleep 300 && echo "❌ 部署总时长超 5 分钟，已强制终止。请把上方输出贴给我" && kill -TERM $$ 2>/dev/null ) &
+WATCHDOG_PID=$!
+
+echo "🍆 ===== 茄子管家安全部署 v6.4.1 ====="
+echo "⏱️  开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
 # ---------- 第一步：数据保护（最重要）----------
@@ -54,8 +59,9 @@ echo ""
 # ---------- 第三步：部署前自动备份（安全网）----------
 echo "[3/6] 💾 部署前全量备份（DB + 密码 + 密钥）..."
 # 直接用 SQLite backup，不 require server.js（避免启动整个服务器卡住）
+# 加 timeout 30 秒兜底，避免 better-sqlite3 异常卡住
 if [ -f data/qiezi.db ]; then
-  node -e "
+  timeout 30 node -e "
     const Database=require('better-sqlite3');
     const fs=require('fs');
     const zlib=require('zlib');
@@ -76,7 +82,7 @@ if [ -f data/qiezi.db ]; then
       db.close();
       process.exit(0);
     }).catch(e=>{console.error('      备份失败:',e.message);db.close();process.exit(1);});
-  " 2>&1 || echo "      ⚠️ 备份失败，继续部署（不影响）"
+  " 2>&1 || echo "      ⚠️ 备份失败或超时，继续部署（不影响）"
 else
   echo "      跳过（无 data/qiezi.db）"
 fi
@@ -122,31 +128,50 @@ try_download frontend/sw.js \
 echo "      ✅ 代码文件已更新"
 echo ""
 
-# ---------- 第五步：安装依赖 ----------
+# ---------- 第五步：安装依赖（最易卡住：npm install 国内访问慢）----------
 echo "[5/6] 📦 安装/更新 npm 依赖..."
-npm install --no-audit --no-fund --silent 2>&1 | tail -3 || true
-echo "      ✅ 依赖就绪"
+echo "      使用淘宝镜像 + 60秒超时，避免卡死..."
+# 优先用淘宝镜像，超时60秒，失败自动回退官方源
+NPM_TIMEOUT=60
+NPM_REGISTRY="https://registry.npmmirror.com"
+NPM_FALLBACK="https://registry.npmjs.org"
+
+# 检测 node_modules 是否已存在（已安装过则跳过，只做增量更新）
+if [ -d node_modules ] && [ -d node_modules/express ]; then
+  echo "      ℹ️  node_modules 已存在，仅做增量更新..."
+  timeout $NPM_TIMEOUT npm install --no-audit --no-fund --registry="$NPM_REGISTRY" 2>&1 | tail -3 || \
+    timeout $NPM_TIMEOUT npm install --no-audit --no-fund --registry="$NPM_FALLBACK" 2>&1 | tail -3 || \
+    echo "      ⚠️ npm 增量更新失败，但 node_modules 已存在，继续部署"
+else
+  echo "      ℹ️  首次安装依赖..."
+  timeout 120 npm install --no-audit --no-fund --registry="$NPM_REGISTRY" 2>&1 | tail -5 || \
+    timeout 120 npm install --no-audit --no-fund --registry="$NPM_FALLBACK" 2>&1 | tail -5 || \
+    echo "      ⚠️ npm 安装失败，继续部署（服务可能启动失败，请手动 npm install）"
+fi
+echo "      ✅ 依赖步骤完成"
 echo ""
 
 # ---------- 第六步：配置日志轮转 & 重启服务 ----------
 echo "[6/6] 🔄 配置日志轮转 & 重启 PM2 服务..."
-pm2 install pm2-logrotate 2>/dev/null || true
+# pm2 install 加超时，避免卡住
+timeout 30 pm2 install pm2-logrotate 2>/dev/null || echo "      ⚠️ pm2-logrotate 安装跳过（可能已安装）"
 pm2 set pm2-logrotate:max_size 10M 2>/dev/null || true
 pm2 set pm2-logrotate:retain 10 2>/dev/null || true
 pm2 set pm2-logrotate:compress true 2>/dev/null || true
 pm2 set pm2-logrotate:dateFormat YYYY-MM-DD 2>/dev/null || true
 echo "      ✅ 日志轮转策略已配置 (10MB/文件, 保留10天, 压缩)"
 
-pm2 restart eggplant 2>&1 | tail -3 || true
+pm2 restart eggplant 2>&1 | tail -3 || pm2 start ecosystem.config.js 2>&1 | tail -3 || echo "      ⚠️ PM2 重启失败，请手动 pm2 restart eggplant"
 
 sleep 4
-VERSION=$(curl -s http://localhost:3000/api/health 2>/dev/null | grep -oE '"version":"[^"]+"' | cut -d'"' -f4)
+VERSION=$(curl -s --max-time 5 http://localhost:3000/api/health 2>/dev/null | grep -oE '"version":"[^"]+"' | cut -d'"' -f4)
 if [ -n "$VERSION" ]; then
   echo ""
   echo "✅ ===== 部署完成！版本：v$VERSION ====="
 else
   echo ""
-  echo "⚠️  服务启动中，请稍后执行：curl http://localhost:3000/api/health"
+  echo "⚠️  服务可能还在启动中，请稍后执行：curl http://localhost:3000/api/health"
+  echo "    若持续失败，请执行：pm2 logs eggplant --lines 30 查看错误"
 fi
 
 # 最终数据 + 配置确认
@@ -174,3 +199,9 @@ echo "   ✅ CORS 白名单收紧（只允许本机/内网/公网IP）"
 echo "   ✅ 日志敏感字段脱敏（密码/token/secret）"
 echo "   ✅ 备份格式 v2：DB + 密码 + 密钥 打包 .pack.gz"
 echo "   ✅ 部署前自动双快照（.env + auth.json + 全量备份）"
+
+# 关闭看门狗
+kill $WATCHDOG_PID 2>/dev/null
+echo ""
+echo "⏱️  结束时间: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "🍆 ===== 部署流程结束 ====="
