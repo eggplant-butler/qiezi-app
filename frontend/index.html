@@ -12,7 +12,7 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <!-- 版本指纹：deploy.sh 校验 + 前端自检（版本不匹配时强制刷新） -->
-<meta name="app-version" content="qiezi-v6.5.7">
+<meta name="app-version" content="qiezi-v6.5.8">
 <style>
 /* ========== 深夜书房 设计系统 v6.5.1 ==========
    暗色优先（默认）：暖灰底+米白字+琥珀强调
@@ -285,6 +285,19 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 <div id="app">
 <div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="toggleTheme()" title="切换主题">🌓</button><button onclick="togglePrivacy()" title="隐私模式">👁️</button><button onclick="openDrawer()" title="设置">⚙️</button></div></div>
 <div class="pg act" id="pgHome">
+<!-- v6.5.8 骨架屏：数据加载前显示占位，消除白屏闪烁 -->
+<div id="homeSkeleton">
+  <div class="greet"><div class="d"><span class="skeleton" style="display:inline-block;width:120px;height:14px"></span></div><div class="t"><span class="skeleton" style="display:inline-block;width:180px;height:18px"></span></div></div>
+  <div style="background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-bottom:20px"><span class="skeleton" style="display:inline-block;width:60%;height:16px"></span></div>
+  <div class="section-label">📊 今日概览</div>
+  <div class="overview"><div class="overview-card"><div class="num"><span class="skeleton" style="display:inline-block;width:36px;height:22px"></span></div><div class="label"><span class="skeleton" style="display:inline-block;width:48px;height:10px"></span></div></div><div class="overview-card"><div class="num"><span class="skeleton" style="display:inline-block;width:36px;height:22px"></span></div><div class="label"><span class="skeleton" style="display:inline-block;width:48px;height:10px"></span></div></div><div class="overview-card"><div class="num"><span class="skeleton" style="display:inline-block;width:36px;height:22px"></span></div><div class="label"><span class="skeleton" style="display:inline-block;width:48px;height:10px"></span></div></div></div>
+  <div class="section-label">✍️ 快速记录</div>
+  <div style="background:var(--c-surface);border-radius:16px;padding:12px 16px;margin-bottom:20px"><span class="skeleton" style="display:inline-block;width:70%;height:18px"></span></div>
+  <div class="section-label">🎯 当前焦点</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px"><div style="background:var(--c-surface);border-radius:14px;padding:16px"><span class="skeleton" style="display:inline-block;width:60%;height:14px"></span></div><div style="background:var(--c-surface);border-radius:14px;padding:16px"><span class="skeleton" style="display:inline-block;width:60%;height:14px"></span></div></div>
+</div>
+<!-- 首页真实内容（骨架屏加载完后显示） -->
+<div id="homeContent" style="display:none">
 <div class="greet"><div class="d" id="todayD"></div><div class="t"><span id="greetT">加载中...</span><span class="phase-badge" id="phaseBadge">🌱 萌芽期</span></div></div>
 
 <div id="dailyQuestionArea" style="background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:4px solid var(--c-primary);">
@@ -335,6 +348,7 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
   </div>
   <div id="quickNoteFeedback" style="margin-top:6px;font-size:12px;color:var(--c-fg-2);"></div>
 </div>
+</div><!-- end homeContent -->
 </div>
 
 <!-- ====== 日志Tab: 场景记录 ====== -->
@@ -532,6 +546,7 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
       <div class="dg-title">数据</div>
       <div class="dg-item" onclick="restoreLatest()"><span>⏪</span><span>恢复最近备份</span><span class="dg-arrow">›</span></div>
       <div class="dg-item" onclick="exportData()"><span>💾</span><span>导出备份</span><span class="dg-arrow">›</span></div>
+      <div class="dg-item" onclick="exportCSV()"><span>📊</span><span>导出CSV</span><span class="dg-arrow">›</span></div>
       <div class="dg-item" onclick="openBackupMgr()"><span>📂</span><span>备份管理</span><span class="dg-arrow">›</span></div>
       <div class="dg-item" onclick="openTrash()"><span>♻️</span><span>回收站</span><span class="dg-arrow">›</span></div>
       <div class="dg-item" onclick="openMaintenance()"><span>🛠️</span><span>运维面板</span><span class="dg-arrow">›</span></div>
@@ -650,8 +665,9 @@ function __shouldBlockRefresh(reason) {
   return false;
 }
 
-// ============ 认证：覆盖 fetch 自动注入 token + 401 自动登出 ============
+// ============ 认证：覆盖 fetch 自动注入 token + 401 自动登出 + v6.5.8 离线检测 ============
 var _origFetch = window.fetch;
+var __isOffline = false;
 window.fetch = function(url, opts) {
   opts = opts || {};
   opts.headers = opts.headers || {};
@@ -661,6 +677,20 @@ window.fetch = function(url, opts) {
     }
   }
   return _origFetch(url, opts).then(function(resp) {
+    // v6.5.8 离线检测：SW 返回 __offline 标记时显示提示
+    if (resp.headers.get('content-type') && resp.headers.get('content-type').includes('json')) {
+      var clone = resp.clone();
+      clone.json().then(function(data) {
+        if (data && data.__offline && !__isOffline) {
+          __isOffline = true;
+          showOfflineBanner();
+        }
+        // 网络恢复时自动隐藏
+        if (!data || !data.__offline) {
+          if (__isOffline) { __isOffline = false; hideOfflineBanner(); }
+        }
+      }).catch(function(){});
+    }
     if (resp.status === 401 && typeof url === 'string' && url.startsWith('/api/') && !url.includes('/api/login')) {
       TOKEN = '';
       localStorage.removeItem(TOKEN_KEY);
@@ -676,6 +706,29 @@ window.fetch = function(url, opts) {
     return resp;
   });
 };
+
+// v6.5.8 离线提示条
+function showOfflineBanner() {
+  var existing = document.getElementById('offlineBanner');
+  if (existing) return;
+  var b = document.createElement('div');
+  b.id = 'offlineBanner';
+  b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9998;background:var(--c-warning,#E8A838);color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.15);transition:transform 0.3s;transform:translateY(0);';
+  b.textContent = '📡 当前离线，部分功能不可用';
+  document.body.appendChild(b);
+  // 调整 app 区域顶部间距
+  var app = document.getElementById('app');
+  if (app) app.style.paddingTop = '40px';
+}
+function hideOfflineBanner() {
+  var b = document.getElementById('offlineBanner');
+  if (b) b.remove();
+  var app = document.getElementById('app');
+  if (app) app.style.paddingTop = '';
+}
+// 浏览器原生 online/offline 事件也监听
+window.addEventListener('offline', function() { __isOffline = true; showOfflineBanner(); });
+window.addEventListener('online', function() { __isOffline = false; hideOfflineBanner(); });
 
 var SCENES = [
 {id:'work',name:'我的工作',icon:'💼',brief:'职业·收入·意义'},
@@ -785,6 +838,9 @@ function logout() {
 }
 
 async function initApp() {
+  // v6.5.8 首屏优化：先显示骨架屏，数据到达后切换为真实内容
+  var skeleton = document.getElementById('homeSkeleton');
+  var content = document.getElementById('homeContent');
   // 首屏聚合加载：一次请求拉取全部 19 个模块 + insights 并发，替代串行 19 次请求
   try {
     const [bootResp, insResp] = await Promise.all([
@@ -804,6 +860,9 @@ async function initApp() {
     for(var i=0; i<mods.length; i++) await apiFetch(mods[i]);
     await fetchInsights();
   }
+  // v6.5.8：数据就绪，隐藏骨架屏，显示真实内容
+  if (skeleton) skeleton.style.display = 'none';
+  if (content) content.style.display = 'block';
   renderHome();
   renderInsight();
   loadDailyQuestion();
@@ -4560,6 +4619,29 @@ function exportData(){
   a.href=URL.createObjectURL(new Blob([JSON.stringify(all,null,2)],{type:'application/json'}));
   a.download='qiezi_backup_'+TODAY+'.json';
   a.click();
+}
+// v6.5.8 导出 CSV：把所有模块数据合并为一个 CSV 文件，可用 Excel 打开
+function exportCSV(){
+  var allModules = SCENES.concat(CORE_MODULES);
+  var rows = [];
+  // 表头
+  rows.push('模块,日期,内容摘要,详情');
+  allModules.forEach(function(mod) {
+    var data = dataCache[mod.id] || [];
+    data.forEach(function(item) {
+      var date = item.date || item.createdAt || '';
+      var summary = (item.content || item.text || item.note || item.description || item.name || '').replace(/"/g, '""');
+      var detail = JSON.stringify(item).replace(/"/g, '""');
+      rows.push('"' + mod.name + '","' + date + '","' + summary + '","' + detail + '"');
+    });
+  });
+  // 添加 BOM 以便 Excel 正确识别 UTF-8
+  var csvContent = '\uFEFF' + rows.join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'qiezi_export_' + TODAY + '.csv';
+  a.click();
+  alert('✅ CSV 已导出（' + (rows.length - 1) + ' 条记录），可用 Excel 打开');
 }
 async function restoreLatest(){
   if(!confirm('⚠️ 确定恢复最近备份？\n当前数据会先做一个快照备份，然后恢复到最近一次备份状态。\n恢复后页面自动刷新。')) return;

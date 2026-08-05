@@ -8,7 +8,7 @@
 // 版本号变更会触发 activate 清理旧缓存
 // ============================================================
 
-const SW_VERSION = 'qiezi-v6.5.7';
+const SW_VERSION = 'qiezi-v6.5.8';
 const SW_CACHE_PREFIX = 'qiezi-sw-';
 const SW_CACHE_CURRENT = SW_CACHE_PREFIX + SW_VERSION;
 
@@ -64,9 +64,22 @@ self.addEventListener('fetch', (event) => {
   // 同源检查：跨域请求直接放行
   if (url.origin !== self.location.origin) return;
 
-  // 策略 1：API 请求 - network-only（数据绝不缓存）
+  // v6.5.8 策略 1：API 请求 - network-first with offline fallback
+  // 离线时返回 JSON 提示（而不是浏览器默认网络错误），让前端能优雅降级
   if (url.pathname.startsWith('/api/')) {
-    return;  // 不调用 event.respondWith，走默认网络请求
+    event.respondWith((async () => {
+      try {
+        const resp = await fetch(req);
+        return resp;
+      } catch (e) {
+        // 网络失败：返回离线 JSON 标记（前端可检测 __offline 字段做降级）
+        return new Response(
+          JSON.stringify({ __offline: true, message: '当前离线，请检查网络' }),
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    })());
+    return;
   }
 
   // 策略 2：HTML 文档 - network-first（保证版本更新即时生效）
