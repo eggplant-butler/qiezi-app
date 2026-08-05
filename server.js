@@ -3802,7 +3802,37 @@ app.post('/api/record/add', (req, res) => {
       } catch (e) { console.error('[linkage] inventory→finance:', e.message); }
     }
   }
-  // 9. 居住记录：花费→财务；购买/丢弃→库存
+  // 9. 学习/成长 → 自动生成思考草稿（v6.8.1 A4）
+  // 触发：understanding ≥ 4-会用 / 4-会用 或有 output，生成 think 草稿让用户深化
+  if ((mid === 'learn' || mid === 'growth') && !editId) {
+    const u = parseInt(String(data.understanding || '0').replace(/[^0-9]/g, ''), 10);
+    if (u >= 4 && !hasLinked('think', mid, linkId)) {
+      try {
+        const thinkList = readData('think');
+        const subj = data.subject || data.skill || data.type || '学习';
+        const out = data.output || data.progress || data.content || '';
+        thinkList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          category: '原则提炼',
+          title: subj + ' - 学习沉淀',
+          content: out || '（待补充：这次学习掌握了什么规律/方法？）',
+          context: '学习触发：' + subj + (data.method ? ' · ' + data.method : ''),
+          reasoning: '',
+          counter: '',
+          action: data.plan || '',
+          principle: '',
+          verify: '',
+          cognitiveLevel: '2-规律',
+          rating: '2',
+          date: linkDate,
+          _linkedModule: mid, _linkedId: linkId, created: new Date().toISOString()
+        });
+        writeData('think', thinkList);
+        linkedModules.push('think');
+      } catch (e) { console.error('[linkage] '+mid+'→think:', e.message); }
+    }
+  }
+  // 10. 居住记录：花费→财务；购买/丢弃→库存
   if (mid === 'home' && !editId) {
     // 6a 花费自动记账
     if (data.cost && parseFloat(data.cost) > 0) {
