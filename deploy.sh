@@ -53,45 +53,32 @@ echo ""
 
 # ---------- 第三步：部署前自动备份（安全网）----------
 echo "[3/6] 💾 部署前全量备份（DB + 密码 + 密钥）..."
-# 用 node 调 server 内的 doBackup 逻辑（如果 server 已就绪），否则手动用 SQLite backup
-if node -e "require('./server.js')" 2>/dev/null && grep -q "doBackup" server.js 2>/dev/null; then
+# 直接用 SQLite backup，不 require server.js（避免启动整个服务器卡住）
+if [ -f data/qiezi.db ]; then
   node -e "
-    process.env.DEPLOY_MODE='1';
-    const svc = require('./server.js');
-    // 若 server 导出了 doBackup 则直接用；否则用脚本兜底
-    if (typeof svc === 'object' && svc.doBackup) {
-      svc.doBackup().then(r=>{console.log('      备份完成:', r.file, '('+r.size+'B, '+r.format+')'); process.exit(0);})
-        .catch(e=>{console.error('备份失败，走兜底:', e.message); process.exit(2);});
-    } else { process.exit(2); }
-  " 2>&1 || {
-    # 兜底：手动 SQLite backup
-    if [ -f data/qiezi.db ]; then
-      node -e "
-        const Database=require('better-sqlite3');
-        const path=require('path');
-        const fs=require('fs');
-        const zlib=require('zlib');
-        const db=new Database('$APP_DIR/data/qiezi.db');
-        db.pragma('wal_checkpoint(TRUNCATE)');
-        const tmp='$BK_DIR/_deploy_tmp_$TS.db';
-        db.backup(tmp).then(()=>{
-          const dbBuf=fs.readFileSync(tmp);
-          fs.unlinkSync(tmp);
-          const files={};
-          files['qiezi.db']=dbBuf.toString('base64');
-          if(fs.existsSync('$APP_DIR/data/auth.json')) files['auth.json']=fs.readFileSync('$APP_DIR/data/auth.json').toString('base64');
-          if(fs.existsSync('$APP_DIR/.env')) files['.env']=fs.readFileSync('$APP_DIR/.env').toString('base64');
-          const pack={version:1,created:new Date().toISOString(),files};
-          const gz=zlib.gzipSync(JSON.stringify(pack),{level:6});
-          fs.writeFileSync('$BK_DIR/qiezi-predeploy-$TS.pack.gz', gz);
-          console.log('      兜底备份完成: qiezi-predeploy-$TS.pack.gz ('+gz.length+'B)');
-          db.close();
-        }).catch(e=>{console.error('兜底备份失败:',e.message);process.exit(1);});
-      " 2>&1 || true
-    fi
-  }
+    const Database=require('better-sqlite3');
+    const fs=require('fs');
+    const zlib=require('zlib');
+    const db=new Database('data/qiezi.db');
+    db.pragma('wal_checkpoint(TRUNCATE)');
+    const tmp='backups/_deploy_tmp_$TS.db';
+    db.backup(tmp).then(()=>{
+      const dbBuf=fs.readFileSync(tmp);
+      fs.unlinkSync(tmp);
+      const files={};
+      files['qiezi.db']=dbBuf.toString('base64');
+      if(fs.existsSync('data/auth.json')) files['auth.json']=fs.readFileSync('data/auth.json').toString('base64');
+      if(fs.existsSync('.env')) files['.env']=fs.readFileSync('.env').toString('base64');
+      const pack={version:1,created:new Date().toISOString(),files};
+      const gz=zlib.gzipSync(JSON.stringify(pack),{level:6});
+      fs.writeFileSync('backups/qiezi-predeploy-$TS.pack.gz', gz);
+      console.log('      ✅ 备份完成: qiezi-predeploy-$TS.pack.gz ('+gz.length+'B)');
+      db.close();
+      process.exit(0);
+    }).catch(e=>{console.error('      备份失败:',e.message);db.close();process.exit(1);});
+  " 2>&1 || echo "      ⚠️ 备份失败，继续部署（不影响）"
 else
-  echo "      跳过（server.js 未就绪或无 doBackup）"
+  echo "      跳过（无 data/qiezi.db）"
 fi
 echo ""
 
