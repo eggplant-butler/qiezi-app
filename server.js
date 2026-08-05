@@ -1811,6 +1811,67 @@ const ENG = {
     return { rating, mood, moodLabel, reason, factors: factors, base: base, delta: delta };
   },
 
+  // 睡眠异常健康提醒：仅 mid=sleep 触发，返回 { level, title, tips[] } 或 null
+  healthTip(mid, data, hist) {
+    if (mid !== 'sleep') return null;
+    const hours = parseFloat(data.hours || data.duration || 0);
+    const quality = data.quality || '';
+    const nightWakes = parseInt(data.nightWakes) || 0;
+    const dream = data.dream || '';
+
+    // 连续睡眠不足判定（近3天<6h）
+    const recentSleep = hist.filter(x => x.mid === 'sleep').slice(0, 3);
+    const consecutiveLow = recentSleep.length >= 2 && recentSleep.every(x => parseFloat(x.data?.hours || x.data?.duration || 99) < 6);
+
+    const tips = [];
+    let level = null; // 'crit' | 'warn' | 'info'
+    let title = '';
+
+    // 严重不足 <5h
+    if (hours > 0 && hours < 5) {
+      level = 'crit';
+      title = '睡眠严重不足';
+      tips.push('今日避免重要决策和高强度脑力工作，认知能力已显著下降');
+      tips.push('午间补觉20-30分钟（勿超1h，避免进入深睡）');
+      tips.push('今晚23点前入睡，争取7.5h恢复');
+    } else if (hours > 0 && hours < 6) {
+      level = 'warn';
+      title = '睡眠不足';
+      tips.push('若开车/操作机械需格外谨慎，反应速度已下降');
+      tips.push('咖啡因控制在上午，避免下午摄入影响今晚睡眠');
+    } else if (hours >= 10) {
+      level = 'info';
+      title = '睡眠偏多';
+      tips.push('过长的睡眠可能是身体疲劳或情绪低落的信号，留意近期状态');
+    }
+
+    // 质量叠加
+    if (quality === '很差' || quality === '差') {
+      if (!level) { level = 'warn'; title = '睡眠质量差'; }
+      tips.push('检查睡眠环境：遮光、噪音、温度(18-22℃)、床垫');
+      tips.push('睡前1h远离屏幕蓝光，尝试热水泡脚或冥想5分钟');
+    }
+    if (dream === '有噩梦') {
+      if (!level) { level = 'info'; title = '噩梦记录'; }
+      tips.push('噩梦常与压力相关，记录后白日复盘触发源，避免积压');
+    }
+    if (nightWakes >= 3) {
+      if (!level) { level = 'warn'; title = '频繁夜醒'; }
+      tips.push('夜醒≥3次需关注：可能睡前饮水过多、呼吸暂停、或焦虑');
+      tips.push('若持续1周以上，建议就医排查睡眠呼吸暂停');
+    }
+
+    // 连续不足升级
+    if (consecutiveLow && level !== 'crit') {
+      level = 'crit';
+      title = (title ? title + ' · ' : '') + '连续睡眠不足';
+      tips.unshift('已连续2天以上睡眠<6h，认知与情绪风险累积，今晚必须早睡');
+    }
+
+    if (!level) return null;
+    return { level, title, tips, consecutiveLow };
+  },
+
   // 构造统一历史格式
   buildHistory() {
     // 合并后：learn 数据会镜像到 growth；body/medical 会镜像到 health
@@ -4073,6 +4134,8 @@ app.post('/api/record/add', (req, res) => {
   const dailySummary = ENG.daily(hist);
   // 生理→情绪预测（仅新增记录时触发，避免编辑时重复打扰）
   const emotionSuggestion = !editId ? ENG.predict(mid, data, hist) : null;
+  // 睡眠异常健康提醒（仅新增睡眠记录时触发）
+  const healthTip = !editId ? ENG.healthTip(mid, data, hist) : null;
 
   let budget = null;
   if (mid === 'finance' && data.type === '支出') {
@@ -4106,6 +4169,7 @@ app.post('/api/record/add', (req, res) => {
     dailySummary,
     budget,
     emotionSuggestion,
+    healthTip,
     linkedModules: linkedModules.length ? linkedModules : undefined
   });
 });

@@ -2941,6 +2941,19 @@ function showCognitiveFeedback(res){
     parts.push('<div id="emotionPredCard" style="background:linear-gradient(135deg,rgba(99,102,241,0.10),rgba(168,85,247,0.10));border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #8B5CF6;"><div style="font-size:11px;color:#8B5CF6;margin-bottom:6px;font-weight:700;">🔮 情绪预测预填</div><div style="font-size:14px;color:var(--c-fg);line-height:1.7;">今日还没记情绪。基于你的生理数据，预测情绪：<strong style="font-size:16px;">'+escapeHtml(s.mood)+'</strong>（评分 <strong>'+s.rating+'/10</strong>，基线 '+s.base+' '+escapeHtml(deltaTxt)+'）<br><span style="font-size:12px;color:var(--c-fg-3);">'+escapeHtml(s.reason)+'</span></div><div style="display:flex;gap:8px;margin-top:10px;"><button onclick="acceptEmotionPrediction()" style="flex:1;padding:9px;border:none;border-radius:8px;background:linear-gradient(135deg,#8B5CF6,#A855F7);color:#fff;font-weight:600;font-size:13px;cursor:pointer;">✓ 接受，去记录</button><button onclick="dismissEmotionPrediction()" style="flex:1;padding:9px;border:1px solid var(--c-shadow);border-radius:8px;background:transparent;color:var(--c-fg-2);font-size:13px;cursor:pointer;">忽略</button></div></div>');
   }
   if (res.reflection) parts.push('<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
+  // 睡眠异常健康提醒卡
+  if (res.healthTip) {
+    var ht = res.healthTip;
+    var htColor = ht.level === 'crit' ? '#EF4444' : ht.level === 'warn' ? '#F59E0B' : '#3B82F6';
+    var htBg = ht.level === 'crit' ? 'rgba(239,68,68,0.08)' : ht.level === 'warn' ? 'rgba(245,158,11,0.08)' : 'rgba(59,130,246,0.08)';
+    var htIcon = ht.level === 'crit' ? '🚨' : ht.level === 'warn' ? '⚠️' : '💡';
+    var htHtml = '<div style="background:'+htBg+';border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid '+htColor+';">';
+    htHtml += '<div style="font-size:12px;color:'+htColor+';margin-bottom:8px;font-weight:700;">'+htIcon+' 健康提醒 · '+escapeHtml(ht.title)+'</div>';
+    htHtml += '<ul style="margin:0;padding-left:18px;font-size:12px;color:var(--c-fg);line-height:1.8;">';
+    ht.tips.forEach(function(t){ htHtml += '<li>'+escapeHtml(t)+'</li>'; });
+    htHtml += '</ul></div>';
+    parts.push(htHtml);
+  }
   if (res.dailySummary) parts.push('<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">📊 '+escapeHtml(res.dailySummary)+'</div>');
   if (res.correlations && res.correlations.length > 0) {
     var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">🔗 关联发现</div>';

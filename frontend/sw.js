@@ -8,7 +8,7 @@
 // 版本号变更会触发 activate 清理旧缓存
 // ============================================================
 
-const SW_VERSION = 'qiezi-v6.9.2';
+const SW_VERSION = 'qiezi-v6.9.3';
 const SW_CACHE_PREFIX = 'qiezi-sw-';
 const SW_CACHE_CURRENT = SW_CACHE_PREFIX + SW_VERSION;
 
