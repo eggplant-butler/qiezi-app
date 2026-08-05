@@ -138,38 +138,51 @@ try_download_verified() {
 
 GH_URL="https://raw.githubusercontent.com/eggplant-butler/qiezi-app/main"
 CDN_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main"
-# GitHub API 备用：git ls-remote 失败时用 API（无 token 有 60次/小时限制，够用）
+
+# 先 purge jsDelivr 缓存（国内访问 GitHub raw 经常超时，jsDelivr 是最稳定的源，但有 CDN 缓存）
+echo "      🧹 清理 jsDelivr CDN 缓存..."
+for f in server.js package.json frontend/index.html frontend/sw.js; do
+  curl -fsSL --max-time 20 "https://purge.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/$f" -o /dev/null 2>&1 || true
+done
+sleep 2  # 等 CDN 边缘节点同步
+echo "      ✅ CDN 缓存已清理"
+
+# 尝试拿最新 commit（用于 jsDelivr @commit 路径，绕过 CDN 缓存）
 LATEST_COMMIT=$(git ls-remote https://github.com/eggplant-butler/qiezi-app.git HEAD 2>/dev/null | awk '{print $1}')
 if [ -z "$LATEST_COMMIT" ]; then
-  LATEST_COMMIT=$(curl -fsSL --connect-timeout 10 "https://api.github.com/repos/eggplant-butler/qiezi-app/commits/main" 2>/dev/null | grep -oE '"sha":"[a-f0-9]+"' | head -1 | cut -d'"' -f4)
+  LATEST_COMMIT=$(curl -fsSL --connect-timeout 10 --max-time 20 "https://api.github.com/repos/eggplant-butler/qiezi-app/commits/main" 2>/dev/null | grep -oE '"sha":"[a-f0-9]+"' | head -1 | cut -d'"' -f4)
 fi
 if [ -n "$LATEST_COMMIT" ]; then
   echo "      📌 最新 commit: ${LATEST_COMMIT:0:7}"
-  CDN_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@${LATEST_COMMIT}"
+  CDN_COMMIT_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@${LATEST_COMMIT}"
 else
-  echo "      ⚠️  无法获取最新 commit，将使用 @main + GitHub raw 双源"
+  echo "      ⚠️  无法获取最新 commit，仅用 @main（已 purge，应该是最新的）"
+  CDN_COMMIT_URL="$CDN_URL"
 fi
 
-# 每个文件 3 个下载源：GitHub raw → jsDelivr @commit → jsDelivr @main
+# 下载源顺序（针对国内网络优化）：
+# 1. jsDelivr @main（已 purge，国内访问快）
+# 2. jsDelivr @commit（绕过缓存，最可靠）
+# 3. GitHub raw（国内可能超时，作为最后备用）
 try_download_verified server.js "v6.4" \
-  "$GH_URL/server.js" \
   "$CDN_URL/server.js" \
-  "https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/server.js" || { echo "❌ server.js 下载失败"; exit 1; }
+  "$CDN_COMMIT_URL/server.js" \
+  "$GH_URL/server.js" || { echo "❌ server.js 下载失败"; exit 1; }
 try_download_verified package.json "qiezi" \
-  "$GH_URL/package.json" \
   "$CDN_URL/package.json" \
-  "https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/package.json" || { echo "❌ package.json 下载失败"; exit 1; }
+  "$CDN_COMMIT_URL/package.json" \
+  "$GH_URL/package.json" || { echo "❌ package.json 下载失败"; exit 1; }
 
 mkdir -p frontend
 try_download_verified frontend/index.html "engDashboard" \
-  "$GH_URL/frontend/index.html" \
   "$CDN_URL/frontend/index.html" \
-  "https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/frontend/index.html" || { echo "❌ frontend/index.html 下载失败"; exit 1; }
+  "$CDN_COMMIT_URL/frontend/index.html" \
+  "$GH_URL/frontend/index.html" || { echo "❌ frontend/index.html 下载失败"; exit 1; }
 # sw.js 必须成功（SW 旧版本会缓存旧 HTML，导致前端永远看不到新功能）
 try_download_verified frontend/sw.js "qiezi-v6.4" \
-  "$GH_URL/frontend/sw.js" \
   "$CDN_URL/frontend/sw.js" \
-  "https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/frontend/sw.js" || { echo "❌ frontend/sw.js 下载失败（关键文件，必须成功）"; exit 1; }
+  "$CDN_COMMIT_URL/frontend/sw.js" \
+  "$GH_URL/frontend/sw.js" || { echo "❌ frontend/sw.js 下载失败（关键文件，必须成功）"; exit 1; }
 
 echo "      ✅ 代码文件已更新 + 内容校验通过（含 sw.js）"
 echo ""
