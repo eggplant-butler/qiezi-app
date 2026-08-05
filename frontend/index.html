@@ -331,7 +331,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 </div>
 
 <div class="tool-section">
-<div class="ts-title">🧬 v6.3 高级引擎 <span class="ts-sub">因果·基线·节点·季节</span></div>
+<div class="ts-title">🧬 v6.4 高级引擎 <span class="ts-sub">因果·基线·节点·季节</span></div>
 <div class="tool-grid">
 <div class="tool-item" onclick="openCausal()">
 <div class="t-ic">🔗</div><div class="t-nm">因果推断</div><div class="t-cnt">新</div>
@@ -379,7 +379,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div class="tool-section">
 <div class="ts-title">👤 个人中心</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="color:#6B7280">版本：v6.3 船长版</div>
+<div style="color:#6B7280">版本：v6.4 船长版</div>
 <div style="color:#2563EB;cursor:pointer;" onclick="restoreLatest()">⏪ 恢复最近备份</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="exportData()">💾 导出备份</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="openBackupMgr()">📂 备份管理</div>
@@ -464,7 +464,7 @@ var CORE_MODULES = [
 {id:'diet',label:'饮食',icon:'🥗'},{id:'diary',label:'日记',icon:'📖'},
 {id:'learn',label:'学习复盘',icon:'📚'},{id:'photo',label:'摄影',icon:'📷'},
 {id:'think',label:'认知思考',icon:'🧠'},{id:'inventory',label:'库存',icon:'📦'},
-{id:'space',label:'空间物品',icon:'🏠'}
+{id:'space',label:'空间物品',icon:'🏠'},{id:'pet',label:'宠物',icon:'🐾'}
 ];
 
 async function apiFetch(m) {
@@ -561,7 +561,7 @@ async function initApp() {
     try { insightsCache = await insResp.json(); } catch(e) { insightsCache = null; }
   } catch(e) {
     // 聚合接口失败时降级为逐模块串行（兜底）
-    var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit'];
+    var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit','pet'];
     for(var i=0; i<mods.length; i++) await apiFetch(mods[i]);
     await fetchInsights();
   }
@@ -1034,6 +1034,18 @@ function renderDetail(id){
       if(item.duration) spiParts.push(item.duration+'分钟');
       l=spiParts.length?spiParts.join(' · '):(item.content||'精神记录');
       if(item.belief) l+=' · '+String(item.belief).substring(0,30);
+    } else if(id==='pet'){
+      var petParts=[];
+      if(item.petName) petParts.push(item.petName);
+      if(item.type) petParts.push(item.type);
+      if(item.sceneType) petParts.push(item.sceneType);
+      if(item.action) petParts.push(item.action);
+      if(item.mood) petParts.push(item.mood);
+      l=petParts.length?petParts.join(' · '):(item.content||'宠物记录');
+      if(item.cost) l+=' · ¥'+item.cost;
+      if(item.food) l+=' · '+item.food;
+      if(item.healthNote) l+=' · '+item.healthNote;
+      if(item.vetNote) l+=' · 就医:'+item.vetNote;
     } else {
       l=item.content||item.name||item.title||'记录';
       if(item.amount) l+=' ¥'+item.amount;
@@ -1313,6 +1325,28 @@ var MODAL_FORMS = {
       {key:'content', label:'总结', type:'textarea', placeholder:'今日精神总结...'},
       {key:'date', label:'日期', type:'date'}
     ]
+  },
+  pet: {
+    title: '宠物记录',
+    fields: [
+      {key:'petName', label:'宠物名字', type:'text', placeholder:'如：小橘'},
+      {key:'type', label:'宠物类型', type:'select', options:['猫','狗','兔','鸟','鱼','龟','仓鼠','蜥蜴','刺猬','其他']},
+      {key:'sceneType', label:'场景类型', type:'select', options:['日常照料','健康医疗','行为训练','外出活动','特殊事件']},
+      {key:'action', label:'本次行为', type:'select', options:[
+        '喂食','换水/补水','铲屎/换砂','梳毛','剪指甲','洗澡','刷牙','清理耳朵',
+        '遛弯','玩耍','互动陪伴','训练指令','社会化训练',
+        '健康检查','量体温','称体重','喂药','涂药','打疫苗','驱虫','绝育/手术','就医看病',
+        '美容造型','寄养/托管','接送出行','拍照记录',
+        '领养/接回家','丢失/找回','走失预警','生病观察','去世/告别','其他'
+      ]},
+      {key:'mood', label:'宠物状态', type:'select', options:['活泼好动','正常','安静','嗜睡','焦虑','害怕','异常','生病','受伤','产后','老年迟缓']},
+      {key:'food', label:'食物/用量', type:'text', placeholder:'如：猫粮50g / 零食 / 罐头1个'},
+      {key:'cost', label:'花费(¥)', type:'number', placeholder:'0.00'},
+      {key:'healthNote', label:'健康备注', type:'text', placeholder:'如：精神好/有眼屎/拉稀/伤口愈合中'},
+      {key:'vetNote', label:'就医备注', type:'text', placeholder:'医院/诊断/用药/复诊时间'},
+      {key:'content', label:'记录内容', type:'textarea', placeholder:'今天和宠物的互动、趣事或观察...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
   }
 };
 
@@ -1327,7 +1361,22 @@ function getLastValues(sceneId){
   try { return JSON.parse(localStorage.getItem('fv_'+sceneId) || '{}'); } catch(e){ return {}; }
 }
 function saveLastValues(sceneId, data){
-  try { localStorage.setItem('fv_'+sceneId, JSON.stringify(data)); } catch(e){}
+  // 只记忆适合作为下次默认值的字段（select/time/date），
+  // 不记忆 text/textarea/number 内容字段，避免保存后填写框残留上次内容
+  var config = getFormConfig(sceneId);
+  var filtered = {};
+  if(config){
+    config.fields.forEach(function(f){
+      var v = data[f.key];
+      if(v === undefined || v === null || v === '') return;
+      if(f.type === 'select' || f.type === 'time' || f.type === 'date'){
+        filtered[f.key] = v;
+      }
+    });
+  } else {
+    if(data.date) filtered.date = data.date;
+  }
+  try { localStorage.setItem('fv_'+sceneId, JSON.stringify(filtered)); } catch(e){}
 }
 // 快捷标签：text 字段最近5次输入
 function getRecentTexts(sceneId, key){
@@ -1352,7 +1401,7 @@ var REQUIRED_KEYS = {
   inventory:['name'], space:['name'],
   work:['task'], home:['space'], travel:['from'],
   body:[], relation:['person'], time:['duration','category'],
-  growth:['skill'], spirit:['mood']
+  growth:['skill'], spirit:['mood'], pet:['petName','action']
 };
 function isFieldRequired(sceneId, fieldKey){
   var arr = REQUIRED_KEYS[sceneId] || [];
@@ -1658,7 +1707,7 @@ async function openTrash(){
     }
     var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">共 '+list.length+' 条 · 30天后自动清理</div>';
     list.forEach(function(t){
-      var modName = {finance:'财务',sleep:'睡眠',exercise:'锻炼',emotion:'情绪',diet:'饮食',diary:'日记',learn:'学习',photo:'摄影',think:'思考',work:'工作',home:'居住',travel:'出行',body:'身体',relation:'关系',time:'时间',growth:'成长',spirit:'精神'}[t._module] || t._module;
+      var modName = {finance:'财务',sleep:'睡眠',exercise:'锻炼',emotion:'情绪',diet:'饮食',diary:'日记',learn:'学习',photo:'摄影',think:'思考',work:'工作',home:'居住',travel:'出行',body:'身体',relation:'关系',time:'时间',growth:'成长',spirit:'精神',pet:'宠物'}[t._module] || t._module;
       var title = t.content || t.name || t.title || t.symptom || t.person || '记录';
       var delDate = (t._deletedAt||'').split('T')[0];
       html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #F59E0B">';
@@ -3561,7 +3610,7 @@ async function openSeasonal(){
 
 // 日志Tab：按生活域分组 + 今日统计 + 搜索
 var RECORD_GROUPS = {
-  life:    {ids:['body','diet','sleep','emotion'], title:'生活基础', icon:'🌱', sub:'身体·饮食·睡眠·情绪'},
+  life:    {ids:['body','diet','sleep','emotion','pet'], title:'生活基础', icon:'🌱', sub:'身体·饮食·睡眠·情绪·宠物'},
   growth:  {ids:['learn','think','diary','photo'], title:'成长认知', icon:'📚', sub:'学习·思考·日记·摄影'},
   action:  {ids:['work','home','travel','time','relation'], title:'行动场景', icon:'💼', sub:'工作·居住·出行·时间·关系'},
   asset:   {ids:['finance','inventory','space'], title:'资产管理', icon:'📦', sub:'财务·库存·空间'}
@@ -3572,7 +3621,8 @@ var MODULE_META = {
   learn:{name:'学习',icon:'📚'}, think:{name:'思考',icon:'🧠'}, diary:{name:'日记',icon:'📖'}, photo:{name:'摄影',icon:'📷'},
   work:{name:'工作',icon:'💼'}, home:{name:'居住',icon:'🏠'}, travel:{name:'出行',icon:'🛵'}, time:{name:'时间',icon:'⏰'}, relation:{name:'关系',icon:'👥'},
   finance:{name:'财务',icon:'💰'}, inventory:{name:'库存',icon:'📦'}, space:{name:'空间',icon:'🏚️'},
-  exercise:{name:'锻炼',icon:'🏃'}, growth:{name:'成长',icon:'🌱'}, spirit:{name:'精神',icon:'🧘'}
+  exercise:{name:'锻炼',icon:'🏃'}, growth:{name:'成长',icon:'🌱'}, spirit:{name:'精神',icon:'🧘'},
+  pet:{name:'宠物',icon:'🐾'}
 };
 
 function renderRecord(){

@@ -3,10 +3,12 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const pino = require('pino');
+require('dotenv').config();
 const app = express();
 const PORT = 3000;
 // 信任一层反向代理（腾讯云/PM2 前置代理会转发 X-Forwarded-For）。
@@ -17,7 +19,7 @@ app.set('trust proxy', 1);
 // 生产环境输出 JSON，便于 PM2/grep 分析；本地开发可用 LOG_PRETTY=1 美化
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  base: { service: 'qiezi-app', version: '6.3.0' },
+  base: { service: 'qiezi-app', version: '6.4.0' },
   timestamp: pino.stdTimeFunctions.isoTime,
   transport: process.env.LOG_PRETTY === '1' ? {
     target: 'pino-pretty',
@@ -150,34 +152,82 @@ function deleteRecord(mid, id) {
 }
 
 // ============ 认证层：JWT（crypto 原生实现，无额外依赖）============
+// 优先级：.env 文件（P1） > 进程环境变量（P2） > data/auth.json（向后兼容，自动迁移）
 const AUTH_FILE = path.join(DATA_DIR, 'auth.json');
+const ENV_FILE = path.join(__dirname, '.env');
 let AUTH_SECRET, PASSWORD_HASH, PASSWORD_SALT;
 
+function writeEnvFile(entries) {
+  try {
+    let content = '';
+    if (fs.existsSync(ENV_FILE)) {
+      content = fs.readFileSync(ENV_FILE, 'utf8');
+    }
+    const lines = content ? content.split('\n') : [];
+    for (const [k, v] of Object.entries(entries)) {
+      const idx = lines.findIndex(l => l.startsWith(k + '='));
+      const safeVal = String(v).replace(/'/g, "'\\''");
+      const newLine = `${k}='${safeVal}'`;
+      if (idx >= 0) lines[idx] = newLine;
+      else lines.push(newLine);
+    }
+    fs.writeFileSync(ENV_FILE, lines.filter(l => l !== undefined).join('\n').replace(/\n*$/, '\n'));
+    try { fs.chmodSync(ENV_FILE, 0o600); } catch (e) {}
+  } catch (e) {
+    console.warn('[auth] 写入 .env 失败:', e.message);
+  }
+}
+function loadFromEnv() {
+  if (process.env.PASSWORD_HASH && process.env.PASSWORD_SALT && process.env.AUTH_SECRET) {
+    PASSWORD_HASH = process.env.PASSWORD_HASH;
+    PASSWORD_SALT = process.env.PASSWORD_SALT;
+    AUTH_SECRET = process.env.AUTH_SECRET;
+    return true;
+  }
+  return false;
+}
 function initAuth() {
+  if (loadFromEnv()) {
+    console.log('[auth] ✅ 从环境变量加载（.env / 进程 env）');
+    return;
+  }
   if (fs.existsSync(AUTH_FILE)) {
     try {
       const cfg = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf8'));
       PASSWORD_HASH = cfg.hash;
       PASSWORD_SALT = cfg.salt;
       AUTH_SECRET = cfg.secret;
-      console.log('[auth] ✅ 认证配置已加载');
+      // 向后兼容：自动迁移到 .env（迁移完成后 auth.json 仍保留，兜底用）
+      writeEnvFile({
+        PASSWORD_HASH: PASSWORD_HASH,
+        PASSWORD_SALT: PASSWORD_SALT,
+        AUTH_SECRET: AUTH_SECRET
+      });
+      console.log('[auth] ✅ 从 auth.json 加载，已自动迁移到 .env');
+      return;
     } catch (e) {
-      console.error('[auth] 配置损坏，重新初始化:', e.message);
-      createAuthConfig('eggplant');
+      console.error('[auth] auth.json 配置损坏，重新初始化:', e.message);
     }
-  } else {
-    createAuthConfig('eggplant');
-    console.log('[auth] ✅ 首次初始化，默认密码: eggplant（请尽快在个人中心修改）');
   }
+  createAuthConfig('eggplant');
+  console.log('[auth] ✅ 首次初始化，默认密码: eggplant（请尽快在个人中心修改）');
 }
 function createAuthConfig(password) {
   PASSWORD_SALT = crypto.randomBytes(16).toString('hex');
   AUTH_SECRET = crypto.randomBytes(32).toString('hex');
   PASSWORD_HASH = crypto.scryptSync(password, PASSWORD_SALT, 64).toString('hex');
-  fs.writeFileSync(AUTH_FILE, JSON.stringify({
-    hash: PASSWORD_HASH, salt: PASSWORD_SALT, secret: AUTH_SECRET,
-    created: new Date().toISOString()
-  }, null, 2));
+  // 双写：.env 为主，auth.json 向后兼容兜底
+  writeEnvFile({
+    PASSWORD_HASH: PASSWORD_HASH,
+    PASSWORD_SALT: PASSWORD_SALT,
+    AUTH_SECRET: AUTH_SECRET
+  });
+  try {
+    fs.writeFileSync(AUTH_FILE, JSON.stringify({
+      hash: PASSWORD_HASH, salt: PASSWORD_SALT, secret: AUTH_SECRET,
+      created: new Date().toISOString(), migrated: true
+    }, null, 2));
+  } catch (e) { /* auth.json 写入失败不致命，有 .env 就够 */ }
 }
 function signToken(payload) {
   const body = Buffer.from(JSON.stringify(Object.assign({}, payload, {
@@ -229,13 +279,43 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-app.use(cors());
+app.use(cors({
+  origin: (origin, cb) => {
+    // 允许的来源：本机/内网 + 公网 IP + 常用本地开发端口
+    const allowed = [
+      /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/,
+      /^https?:\/\/49\.235\.185\.200(:\d+)?$/,
+      /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
+      /^https?:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/,
+      /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/
+    ];
+    if (!origin || allowed.some(r => r.test(origin))) return cb(null, true);
+    // 不在白名单但非浏览器请求（origin 缺失或自定义UA）→ 放行，nginx/防火墙兜底
+    cb(null, true);
+  },
+  credentials: true,
+  maxAge: 86400
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // ============ API 请求日志中间件 ============
 // 仅记录 /api/ 请求，输出结构化字段：method/path/status/durationMs/ip
 // 注意：req.path 在 mount 中间件（如 app.use('/api/', requireAuth)）执行后会被改写，
 // 因此必须在中间件入口先捕获原始路径，避免 finish 回调里取到剥离前缀后的路径。
+const REDACT_KEYS = new Set(['password','currentPassword','newPassword','token','authorization','secret','salt','hash']);
+function redactSensitive(obj, depth = 0) {
+  if (depth > 3 || obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(v => redactSensitive(v, depth + 1));
+  const out = {};
+  for (const k in obj) {
+    if (REDACT_KEYS.has(k.toLowerCase()) || REDACT_KEYS.has(k)) {
+      out[k] = '[REDACTED]';
+    } else {
+      out[k] = redactSensitive(obj[k], depth + 1);
+    }
+  }
+  return out;
+}
 app.use((req, res, next) => {
   const start = Date.now();
   const origPath = req.path;
@@ -244,13 +324,18 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const dur = Date.now() - start;
     const level = res.statusCode >= 500 ? 'error' : (res.statusCode >= 400 ? 'warn' : 'info');
+    const extra = {};
+    if (req.body && typeof req.body === 'object' && Object.keys(req.body).length) {
+      extra.body = redactSensitive(req.body);
+    }
     logger[level]({
       method: req.method,
       path: origPath,
       url: origUrl,
       status: res.statusCode,
       durationMs: dur,
-      ip: req.ip
+      ip: req.ip,
+      ...extra
     }, 'req');
   });
   next();
@@ -293,13 +378,13 @@ app.get('/api/health', (req, res) => {
     const backupHealthy = latestBackup ? latestBackup.mtime > oneDayAgo : false;
     res.json({
       status: 'ok',
-      version: '6.3.0',
+      version: '6.4.0',
       db: { connected: true, size: dbSize },
       disk: { freeBytes: diskFree },
       backup: { count: backups.length, healthy: backupHealthy, latest: latestBackup ? latestBackup.name : null }
     });
   } catch (e) {
-    res.status(503).json({ status: 'error', version: '6.3.0', message: e.message });
+    res.status(503).json({ status: 'error', version: '6.4.0', message: e.message });
   }
 });
 
@@ -3992,22 +4077,146 @@ app.get('/api/eng/seasonal', (req, res) => {
 
 // ============================================================
 // 备份 API：备份目录放在项目根目录，与 data/ 隔离，防止误删 data 时连带清空备份
+// 备份格式 v2：.pack.gz（gzip 压缩的 JSON 包，含 qiezi.db + auth.json + .env 快照）
+// 向后兼容 v1：.db 格式（只含 SQLite DB，auth.json 不含在内）
 // ============================================================
 const BACKUP_DIR = path.join(__dirname, 'backups');
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 // 旧备份目录（data/backups/），用于兼容迁移
 const OLD_BACKUP_DIR = path.join(DATA_DIR, 'backups');
+const PACK_GZ_EXT = '.pack.gz';
+const OLD_DB_EXT = '.db';
+const BACKUP_PACK_VERSION = 1;
+
+function isBackupFile(f) {
+  return f.startsWith('qiezi-') && (f.endsWith(PACK_GZ_EXT) || f.endsWith(OLD_DB_EXT));
+}
+function isNewFormat(f) { return f.endsWith(PACK_GZ_EXT); }
+
+// 读取备份包文件并解析，返回 { version, created, files: { qiezi.db: Buffer, auth.json: Buffer, '.env': Buffer } }
+function unpackBackup(fpath) {
+  const fname = path.basename(fpath);
+  if (isNewFormat(fname)) {
+    const raw = fs.readFileSync(fpath);
+    const json = JSON.parse(zlib.gunzipSync(raw).toString('utf8'));
+    const files = {};
+    for (const [name, b64] of Object.entries(json.files || {})) {
+      files[name] = Buffer.from(b64, 'base64');
+    }
+    return { version: json.version, created: json.created, files };
+  } else {
+    // v1 旧格式：只包含 DB
+    return {
+      version: 0,
+      created: fs.statSync(fpath).mtimeMs,
+      files: { 'qiezi.db': fs.readFileSync(fpath) }
+    };
+  }
+}
+
+// 恢复备份文件到指定目录：写入 qiezi.db + auth.json（如果有）+ .env（如果有）
+function restoreBackupToDisk(fpath, targetDir) {
+  const pack = unpackBackup(fpath);
+  if (!pack.files['qiezi.db']) throw new Error('备份文件不包含 qiezi.db，损坏');
+  if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+  fs.writeFileSync(path.join(targetDir, 'qiezi.db'), pack.files['qiezi.db']);
+  if (pack.files['auth.json']) {
+    fs.writeFileSync(path.join(targetDir, 'auth.json'), pack.files['auth.json']);
+  }
+  if (pack.files['.env']) {
+    const envPath = path.join(targetDir, '..', '.env');
+    try { fs.writeFileSync(envPath, pack.files['.env']); } catch (e) {}
+  }
+  return pack;
+}
+
+// 备份完整性校验：尝试打开 DB + 解析 pack 结构
+function verifyBackup(fpath) {
+  const fname = path.basename(fpath);
+  try {
+    const pack = unpackBackup(fpath);
+    const dbBuf = pack.files['qiezi.db'];
+    if (!dbBuf || dbBuf.length < 100) return { ok: false, reason: 'DB size too small' };
+    const tmpDb = path.join(BACKUP_DIR, `_verify_${Date.now()}_${Math.random().toString(36).slice(2,6)}.db`);
+    try {
+      fs.writeFileSync(tmpDb, dbBuf);
+      const vdb = new (require('better-sqlite3'))(tmpDb, { readonly: true });
+      vdb.prepare('SELECT COUNT(*) as c FROM records').get();
+      vdb.close();
+      return { ok: true, dbSize: dbBuf.length, hasAuth: !!pack.files['auth.json'], hasEnv: !!pack.files['.env'] };
+    } finally {
+      try { fs.unlinkSync(tmpDb); } catch (e) {}
+    }
+  } catch (e) {
+    return { ok: false, reason: e.message };
+  }
+}
+
+// 主备份函数：创建 pack.gz 格式，含 DB + auth.json + .env
+async function doBackup() {
+  try {
+    const now = new Date();
+    const fname = formatBackupFileName(now);
+    const dst = path.join(BACKUP_DIR, fname);
+
+    // 1. SQLite 官方 API 备份 DB（WAL checkpoint 后备份，比 cp 安全）
+    const tmpDb = path.join(BACKUP_DIR, `_backup_${Date.now()}.db`);
+    try { db.pragma('wal_checkpoint(TRUNCATE)'); } catch (e) {}
+    try { fs.unlinkSync(tmpDb); } catch (e) {}
+    await db.backup(tmpDb);
+    const dbBuffer = fs.readFileSync(tmpDb);
+    try { fs.unlinkSync(tmpDb); } catch (e) {}
+    if (dbBuffer.length < 100) throw new Error('DB backup too small (<100B), abort');
+
+    // 2. 收集额外文件（auth.json, .env）
+    const fileBuffers = {};
+    fileBuffers['qiezi.db'] = dbBuffer;
+    if (fs.existsSync(AUTH_FILE)) {
+      fileBuffers['auth.json'] = fs.readFileSync(AUTH_FILE);
+    }
+    if (fs.existsSync(ENV_FILE)) {
+      try { fileBuffers['.env'] = fs.readFileSync(ENV_FILE); } catch (e) {}
+    }
+
+    // 3. 打包成 JSON → gzip → 写入 .pack.gz
+    const b64Files = {};
+    for (const [name, buf] of Object.entries(fileBuffers)) {
+      b64Files[name] = buf.toString('base64');
+    }
+    const packObj = {
+      version: BACKUP_PACK_VERSION,
+      created: now.toISOString(),
+      createdMs: now.getTime(),
+      files: b64Files
+    };
+    const gz = zlib.gzipSync(JSON.stringify(packObj), { level: 6 });
+    fs.writeFileSync(dst, gz);
+
+    const size = fs.statSync(dst).size;
+    // 4. 清理旧备份
+    try { cleanupOldBackups(); } catch (e) {}
+    return { ok: true, file: fname, size, format: 'pack.gz' };
+  } catch (e) {
+    throw new Error('doBackup 失败: ' + e.message);
+  }
+}
 
 // 统一列出所有备份：扫描新目录 + 旧目录，合并去重，按时间倒序
 function listAllBackups() {
   const all = new Map();
   const scanDir = (dir, label) => {
     try {
-      const files = fs.readdirSync(dir).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
+      const files = fs.readdirSync(dir).filter(isBackupFile);
       for (const f of files) {
         if (all.has(f)) continue;
-        const st = fs.statSync(path.join(dir, f));
-        all.set(f, { name: f, size: st.size, mtime: st.mtimeMs, dir, label });
+        try {
+          const st = fs.statSync(path.join(dir, f));
+          all.set(f, {
+            name: f, size: st.size, mtime: st.mtimeMs, dir, label,
+            format: isNewFormat(f) ? 'pack.gz' : 'db',
+            isNew: isNewFormat(f)
+          });
+        } catch (e) {}
       }
     } catch (e) {}
   };
@@ -4020,7 +4229,7 @@ function listAllBackups() {
 (function migrateOldBackups() {
   try {
     if (!fs.existsSync(OLD_BACKUP_DIR)) return;
-    const files = fs.readdirSync(OLD_BACKUP_DIR).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
+    const files = fs.readdirSync(OLD_BACKUP_DIR).filter(isBackupFile);
     let moved = 0;
     for (const f of files) {
       const src = path.join(OLD_BACKUP_DIR, f);
@@ -4037,7 +4246,7 @@ function listAllBackups() {
 
 // 统一查找备份文件（兼容两个目录）
 function findBackupPath(fname) {
-  if (!fname.startsWith('qiezi-') || !fname.endsWith('.db')) return null;
+  if (!isBackupFile(fname)) return null;
   const newPath = path.join(BACKUP_DIR, fname);
   if (fs.existsSync(newPath)) return newPath;
   const oldPath = path.join(OLD_BACKUP_DIR, fname);
@@ -4060,10 +4269,10 @@ function findBackupPath(fname) {
       try {
         try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (e) {}
         if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-        fs.copyFileSync(path.join(latest.dir, latest.name), DB_PATH);
+        restoreBackupToDisk(path.join(latest.dir, latest.name), DATA_DIR);
         try { fs.unlinkSync(DB_PATH + '-wal'); } catch (e) {}
         try { fs.unlinkSync(DB_PATH + '-shm'); } catch (e) {}
-        console.log(`[dataGuardian] ✅ 已从备份恢复: ${latest.name}`);
+        console.log(`[dataGuardian] ✅ 已从备份恢复: ${latest.name}（含 auth.json）`);
         setTimeout(() => process.exit(0), 500);
       } catch (e) {
         console.error('[dataGuardian] ❌ 自动恢复失败:', e.message);
@@ -4072,12 +4281,14 @@ function findBackupPath(fname) {
       console.warn('[dataGuardian] ⚠️  数据库为空且无可用备份，请检查是否误删了 data/ 目录');
     }
   }
-  console.log(`[dataGuardian] DB=${dbSize}B, 备份=${availableBackups.length}份${availableBackups[0] ? ', 最近=' + availableBackups[0].name : ''}`);
+  const hasNewFormat = availableBackups.some(b => b.isNew);
+  console.log(`[dataGuardian] DB=${dbSize}B, 备份=${availableBackups.length}份${hasNewFormat ? '（含新格式）' : ''}${availableBackups[0] ? ', 最近=' + availableBackups[0].name : ''}`);
 })();
+
 function pad(n) { return String(n).padStart(2, '0'); }
 // 统一用本地时间命名，hasTodayBackup 也用本地时间，避免 UTC 时区错位
 function formatBackupFileName(d) {
-  return `qiezi-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.db`;
+  return `qiezi-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}${PACK_GZ_EXT}`;
 }
 function getTodayLocalStr() {
   const d = new Date();
@@ -4097,19 +4308,17 @@ function scheduleAutoBackup() {
   setImmediate(async () => {
     try {
       const r = await doBackup();
-      if (r.ok) console.log(`[autoBackup] ✅ 写入触发备份: ${r.file} (${r.size}B)`);
+      if (r.ok) console.log(`[autoBackup] ✅ 写入触发备份: ${r.file} (${r.size}B, ${r.format})`);
     } catch (e) { console.warn('[autoBackup]', e.message); }
   });
 }
 function cleanupOldBackups() {
   const now = Date.now();
   const cut30d = now - 30 * 86400 * 1000;
-  const cut7d = now - 7 * 86400 * 1000;
-  const cut24h = now - 86400 * 1000;
   try {
     const processDir = (dir) => {
       try {
-        const files = fs.readdirSync(dir).filter(f => f.startsWith('qiezi-') && f.endsWith('.db'));
+        const files = fs.readdirSync(dir).filter(isBackupFile);
         const withStat = files.map(f => {
           try {
             const st = fs.statSync(path.join(dir, f));
@@ -4148,7 +4357,7 @@ function hasTodayBackup() {
   const todayStr = getTodayLocalStr();
   const check = (dir) => {
     try {
-      return fs.readdirSync(dir).filter(f => f.startsWith('qiezi-' + todayStr) && f.endsWith('.db')).length > 0;
+      return fs.readdirSync(dir).filter(f => f.startsWith('qiezi-' + todayStr) && isBackupFile(f)).length > 0;
     } catch (e) { return false; }
   };
   return check(BACKUP_DIR) || check(OLD_BACKUP_DIR);
@@ -4161,7 +4370,8 @@ app.get('/api/backup/list', (req, res) => {
       size: b.size,
       mtime: b.mtime,
       mtimeStr: new Date(b.mtime).toISOString(),
-      source: b.label
+      source: b.label,
+      format: b.format
     }));
     res.json({ success: true, count: list.length, backups: list });
   } catch (e) {
@@ -4180,18 +4390,27 @@ app.get('/api/backup/download/:file', (req, res) => {
   }
 });
 // 备份恢复：兼容两个目录 + 恢复前先快照当前状态
+// 恢复内容：DB + auth.json + .env（如果 pack 里有）
 app.post('/api/backup/restore/:file', async (req, res) => {
   try {
     const fname = path.basename(req.params.file);
     const fpath = findBackupPath(fname);
     if (!fpath) return res.status(404).json({ success: false, message: '备份文件不存在' });
-    await doBackup();
+    await doBackup();  // 先快照当前状态，防恢复错了回不来
     try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (e) {}
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.copyFileSync(fpath, DB_PATH);
+    const pack = restoreBackupToDisk(fpath, DATA_DIR);
     try { fs.unlinkSync(DB_PATH + '-wal'); } catch (e) {}
     try { fs.unlinkSync(DB_PATH + '-shm'); } catch (e) {}
-    res.json({ success: true, message: '恢复成功，进程即将重启' });
+    res.json({
+      success: true,
+      message: `恢复成功（含${pack.files['auth.json'] ? '密码配置' : 'DB数据'}），进程即将重启`,
+      restored: {
+        hasDb: !!pack.files['qiezi.db'],
+        hasAuth: !!pack.files['auth.json'],
+        hasEnv: !!pack.files['.env']
+      }
+    });
     setTimeout(() => process.exit(0), 1000);
   } catch (e) {
     console.error('[restore]', e.message);
@@ -4208,15 +4427,36 @@ app.post('/api/backup/restore-latest', async (req, res) => {
     await doBackup();
     try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (e) {}
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.copyFileSync(path.join(latest.dir, latest.name), DB_PATH);
+    const pack = restoreBackupToDisk(path.join(latest.dir, latest.name), DATA_DIR);
     try { fs.unlinkSync(DB_PATH + '-wal'); } catch (e) {}
     try { fs.unlinkSync(DB_PATH + '-shm'); } catch (e) {}
-    res.json({ success: true, message: `已恢复最近备份：${latest.name}，进程即将重启`, file: latest.name });
+    res.json({
+      success: true,
+      message: `已恢复最近备份：${latest.name}（含${pack.files['auth.json'] ? '密码配置' : 'DB数据'}），进程即将重启`,
+      file: latest.name,
+      restored: {
+        hasDb: !!pack.files['qiezi.db'],
+        hasAuth: !!pack.files['auth.json'],
+        hasEnv: !!pack.files['.env']
+      }
+    });
     setTimeout(() => process.exit(0), 1000);
   } catch (e) {
     console.error('[restore-latest]', e.message);
     res.status(500).json({ success: false, message: '恢复失败: ' + e.message });
     setTimeout(() => process.exit(1), 1000);
+  }
+});
+// 手动验证备份完整性
+app.post('/api/backup/verify/:file', (req, res) => {
+  try {
+    const fname = path.basename(req.params.file);
+    const fpath = findBackupPath(fname);
+    if (!fpath) return res.status(404).json({ success: false, message: '备份文件不存在' });
+    const r = verifyBackup(fpath);
+    res.json({ success: r.ok, ...r, file: fname });
+  } catch (e) {
+    res.status(500).json({ success: false, message: '校验失败: ' + e.message });
   }
 });
 // 定时兜底备份：每小时检查 + 启动立即检查
@@ -4399,7 +4639,7 @@ const SYSTEM_MODULES = new Set(['deleted', 'trash', '__proto__', 'constructor', 
 // 已知业务模块白名单（含 v5.6/v5.7 新增）
 const VALID_MODULES = new Set([
   'finance','sleep','exercise','emotion','diet','body','relation','work','home','travel',
-  'time','growth','spirit','learn','photo','think','diary','inventory','space',
+  'time','growth','spirit','learn','photo','think','diary','inventory','space','pet',
   'life_milestone','habits','quickNote','dailyQuestion','principles','decisions','fiveWhy',
   'interview','skill','work_mode','reading','bills','contacts','housework','mindfulness',
   'belief','character','selfImage','entropy','fragility','northstar','crisis','dyingTest',
@@ -4435,6 +4675,7 @@ const MODULE_ALLOWED_FIELDS = {
   diary: ['content','date','mood','tags'],
   inventory: ['name','quantity','location','note'],
   space: ['name','type','note'],
+  pet: ['petName','type','sceneType','action','mood','food','cost','healthNote','vetNote','content','date'],
   life_milestone: ['title','date','description','category'],
   habits: ['name','frequency','goal','note'],
   quickNote: ['content','date'],
@@ -4514,7 +4755,7 @@ app.get('/api/bootstrap', (req, res) => {
   try {
     const BOOTSTRAP_MODULES = [
       'finance','sleep','exercise','emotion','diet','diary','learn','photo','think',
-      'inventory','space','work','home','travel','body','relation','time','growth','spirit'
+      'inventory','space','work','home','travel','body','relation','time','growth','spirit','pet'
     ];
     const result = {};
     for (const m of BOOTSTRAP_MODULES) {
