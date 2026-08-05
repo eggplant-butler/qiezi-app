@@ -1713,7 +1713,7 @@ const ENG = {
   // 生理→情绪预测：基于今日生理信号预测情绪，供前端预填
   // 返回 { rating, mood, moodLabel, reason, factors, base, delta } 或 null
   predict(mid, data, hist) {
-    const physioMods = ['sleep', 'exercise', 'diet', 'body', 'health'];
+    const physioMods = ['sleep', 'exercise', 'diet', 'body', 'health', 'finance'];
     if (physioMods.indexOf(mid) === -1) return null;
 
     const today = new Date().toISOString().split('T')[0];
@@ -1772,6 +1772,25 @@ const ENG = {
       const sev = parseInt(bodyRec.data?.severity || 0);
       if (sev >= 4) { delta -= 2; factors.push('body_severe'); reasonParts.push(`身体不适(严重度${sev})`); }
       else if (sev >= 2) { delta -= 1; factors.push('body_mild'); reasonParts.push(`身体不适(严重度${sev})`); }
+    }
+
+    // 财务情绪影响：大额支出或小额高频消费
+    if (mid === 'finance') {
+      const amt = parseFloat(data.amount || 0);
+      const isExpense = data.type === '支出' || data.type === 'expense';
+      if (isExpense && amt > 0) {
+        // 单笔大额：>500 显著负向，>200 中度负向
+        if (amt >= 500) { delta -= 2; factors.push('finance_large'); reasonParts.push(`大额支出¥${amt.toFixed(0)}`); }
+        else if (amt >= 200) { delta -= 1; factors.push('finance_medium'); reasonParts.push(`支出¥${amt.toFixed(0)}`); }
+        // 近3笔小额(¥<50)占比高 → 短视消费倾向，微负向
+        const recentFin = hist.filter(x => x.mid === 'finance').slice(0, 3);
+        const smallCount = recentFin.filter(x => {
+          const a = parseFloat(x.data?.amount || 0);
+          const exp = x.data?.type === '支出' || x.data?.type === 'expense';
+          return exp && a > 0 && a < 50;
+        }).length;
+        if (smallCount >= 2) { delta -= 1; factors.push('finance_small高频'); reasonParts.push('近3笔多为小额消费'); }
+      }
     }
 
     // 无信号或净影响为零则不建议
@@ -3952,6 +3971,35 @@ app.post('/api/record/add', (req, res) => {
         writeData('think', thinkList);
         linkedModules.push('think');
       } catch (e) { console.error('[linkage] '+mid+'→think:', e.message); }
+    }
+  }
+  // 9b. 日记 → 自动生成思考草稿（v6.9.1 B2-b）
+  // 触发：日记内容字数 ≥ 30，生成"事件复盘"草稿引导深化（避免日记停留在记录层）
+  if (mid === 'diary' && !editId) {
+    const dc = (data.content || '').toString();
+    if (dc.length >= 30 && !hasLinked('think', 'diary', linkId)) {
+      try {
+        const thinkList = readData('think');
+        const hl = (data.highlight || '').toString();
+        thinkList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          category: '事件复盘',
+          title: dc.slice(0, 24) + (dc.length > 24 ? '...' : ''),
+          content: hl ? '今日亮点：' + hl + '\n\n日记原文：' + dc : '日记原文：' + dc,
+          context: '日记触发：' + (data.mood ? '情绪 ' + data.mood + ' · ' : '') + dc.slice(0, 40),
+          reasoning: '',
+          counter: '',
+          action: '',
+          principle: '',
+          verify: '',
+          cognitiveLevel: '1-表象',
+          rating: '1',
+          date: linkDate,
+          _linkedModule: 'diary', _linkedId: linkId, created: new Date().toISOString()
+        });
+        writeData('think', thinkList);
+        linkedModules.push('think');
+      } catch (e) { console.error('[linkage] diary→think:', e.message); }
     }
   }
   // 10. 居住记录：花费→财务；购买/丢弃→库存
