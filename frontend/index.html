@@ -173,19 +173,19 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 .dg-item.danger{color:var(--c-danger)}
 
 /* ====== 阶段3 动效 ====== */
-/* 卡片交错入场（每个子项延迟 30ms） */
-.stagger > *{opacity:0;transform:translateY(8px);animation:staggerIn var(--dur-base) var(--ease-out) forwards}
-.stagger > *:nth-child(1){animation-delay:0.02s}
-.stagger > *:nth-child(2){animation-delay:0.06s}
-.stagger > *:nth-child(3){animation-delay:0.10s}
-.stagger > *:nth-child(4){animation-delay:0.14s}
-.stagger > *:nth-child(5){animation-delay:0.18s}
-.stagger > *:nth-child(6){animation-delay:0.22s}
-.stagger > *:nth-child(7){animation-delay:0.26s}
-.stagger > *:nth-child(8){animation-delay:0.30s}
+/* 卡片交错入场（每个子项延迟 15ms，更快） */
+.stagger > *{opacity:0;transform:translateY(6px);animation:staggerIn var(--dur-fast) var(--ease-out) forwards}
+.stagger > *:nth-child(1){animation-delay:0.01s}
+.stagger > *:nth-child(2){animation-delay:0.03s}
+.stagger > *:nth-child(3){animation-delay:0.05s}
+.stagger > *:nth-child(4){animation-delay:0.07s}
+.stagger > *:nth-child(5){animation-delay:0.09s}
+.stagger > *:nth-child(6){animation-delay:0.11s}
+.stagger > *:nth-child(7){animation-delay:0.13s}
+.stagger > *:nth-child(8){animation-delay:0.15s}
 @keyframes staggerIn{to{opacity:1;transform:translateY(0)}}
-/* 主题切换全局过渡 */
-*{transition-property:background-color,border-color,color,box-shadow;transition-duration:0.3s;transition-timing-function:var(--ease-out)}
+/* 主题切换全局过渡（缩短到 200ms，更快） */
+*{transition-property:background-color,border-color,color,box-shadow;transition-duration:0.2s;transition-timing-function:var(--ease-out)}
 /* 避免过渡影响 transform 动画 */
 .tab,.tab .ic,.tool-item,.quick-module,.focus-card,.scene-card,.dg-item,.modal-b{transition-property:background-color,border-color,color,box-shadow,transform}
 
@@ -4173,6 +4173,19 @@ function renderEngDashboard(){
     }
   }
 
+  // 品格雷达图（阶段4）
+  if(s.characterRadar && s.characterRadar.current){
+    var cr = s.characterRadar;
+    var crAvg = cr.average !== undefined ? cr.average.toFixed(1) : '-';
+    html += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-size:12px;font-weight:600;color:var(--c-fg-2);">⬢ 品格雷达</span><span style="font-size:14px;font-weight:700;color:var(--c-primary);">'+crAvg+'/10</span></div>';
+    html += '<div id="radarCharacter"></div>';
+    if(cr.interpretation){
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-top:6px;line-height:1.5;white-space:pre-line">'+String(cr.interpretation).substring(0,120)+'</div>';
+    }
+    html += '</div>';
+  }
+
   // 反熵增
   if(s.entropy){
     var ent = s.entropy;
@@ -4194,12 +4207,16 @@ function renderEngDashboard(){
     var af = s.antifragile;
     var afAvg = af.average || af.avg || af.score || '-';
     var afWeakest = af.weakest || af.shortboard || null;
+    var afDims = af.dimensions || af.scores || [];
     html += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:12px;font-weight:600;color:var(--c-fg-2);">🛡️ 反脆弱</span><span style="font-size:14px;font-weight:700;color:#2563EB;">'+afAvg+'</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-size:12px;font-weight:600;color:var(--c-fg-2);">🛡️ 反脆弱</span><span style="font-size:14px;font-weight:700;color:var(--c-primary);">'+afAvg+'</span></div>';
+    if(afDims && afDims.length){
+      html += '<div id="afBars"></div>';
+    }
     if(afWeakest){
       var weakName = afWeakest.name || afWeakest.dimension || '短板';
       var weakScore = afWeakest.score !== undefined ? afWeakest.score : '';
-      html += '<div style="font-size:11px;color:var(--c-fg-2);">短板：'+String(weakName)+(weakScore!==''?' ('+weakScore+'/10)':'')+'</div>';
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-top:6px;">短板：'+String(weakName)+(weakScore!==''?' ('+weakScore+'/10)':'')+'</div>';
     }
     html += '</div>';
   }
@@ -4210,7 +4227,8 @@ function renderEngDashboard(){
     var trTrend = tr.trend || tr.direction || '-';
     var trChange = tr.change !== undefined ? tr.change : (tr.delta !== undefined ? tr.delta : '');
     html += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;font-weight:600;color:var(--c-fg-2);">📈 30天轨迹</span><span style="font-size:12px;color:'+(trTrend==='up'?'#10B981':(trTrend==='down'?'#EF4444':'#6B7280'))+';font-weight:600;">'+(trTrend==='up'?'↑上升':(trTrend==='down'?'↓下降':'→平稳'))+(trChange!==''?' '+trChange:'')+'</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:12px;font-weight:600;color:var(--c-fg-2);">📈 30天轨迹</span><span style="font-size:12px;color:'+(trTrend==='up'?'var(--c-success)':(trTrend==='down'?'var(--c-danger)':'var(--c-fg-3)'))+';font-weight:600;">'+(trTrend==='up'?'↑上升':(trTrend==='down'?'↓下降':'→平稳'))+(trChange!==''?' '+trChange:'')+'</span></div>';
+    html += '<div id="trajLine"></div>';
     html += '</div>';
   }
 
@@ -4265,6 +4283,125 @@ function renderEngDashboard(){
   // 标题栏（总是显示）
   var header = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px;"><div style="font-size:11px;font-weight:700;color:var(--c-fg-3);letter-spacing:0.5px;">🧠 认知仪表盘'+(engDashboardCache && engDashboardCache.sampleSize !== undefined ? ' · '+engDashboardCache.sampleSize+'条样本' : '')+'</div><button onclick="loadEngDashboard(true)" style="font-size:10px;color:var(--c-primary);background:transparent;border:1px solid rgba(44,62,92,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;">↻ 刷新</button></div>';
   el.innerHTML = header + html;
+
+  // 阶段4：图表可视化（SVG，异步渲染避免阻塞）
+  setTimeout(function(){
+    // 品格雷达图
+    if(s.characterRadar && s.characterRadar.current){
+      renderRadarChart('radarCharacter', s.characterRadar);
+    }
+    // 30天轨迹迷你折线
+    if(s.trajectory && s.trajectory.samples){
+      renderMiniLine('trajLine', s.trajectory.samples);
+    }
+    // 反脆弱条形图
+    if(s.antifragile && s.antifragile.dimensions){
+      renderBarChart('afBars', s.antifragile.dimensions);
+    }
+  }, 50);
+}
+
+// ============ 阶段4：SVG 图表可视化 ============
+function renderRadarChart(containerId, data){
+  var el = document.getElementById(containerId);
+  if(!el || !data.current) return;
+  var dims = data.evolution || [];
+  if(!dims.length) return;
+  var labels = dims.map(function(d){ return d.label || d.dim; });
+  var values = dims.map(function(d){ return d.current || 0; });
+  var prevValues = dims.map(function(d){ return d.previous; });
+  var hasPrev = prevValues.some(function(v){ return v !== null && v !== undefined; });
+
+  var size = 220, cx = size/2, cy = size/2, R = 80;
+  var n = values.length;
+  var angle = function(i){ return -Math.PI/2 + i * 2 * Math.PI / n; };
+  var point = function(v, i){ return [cx + R * v/10 * Math.cos(angle(i)), cy + R * v/10 * Math.sin(angle(i))]; };
+
+  // 网格（4层）
+  var grid = '';
+  for(var layer = 1; layer <= 4; layer++){
+    var r = R * layer / 4;
+    var pts = '';
+    for(var i = 0; i < n; i++) pts += (cx + r * Math.cos(angle(i))) + ',' + (cy + r * Math.sin(angle(i))) + ' ';
+    grid += '<polygon points="'+pts.trim()+'" fill="none" stroke="var(--c-border)" stroke-width="0.5"/>';
+  }
+  // 轴线
+  var axes = '';
+  for(var i = 0; i < n; i++){
+    var ex = cx + R * Math.cos(angle(i));
+    var ey = cy + R * Math.sin(angle(i));
+    axes += '<line x1="'+cx+'" y1="'+cy+'" x2="'+ex+'" y2="'+ey+'" stroke="var(--c-border)" stroke-width="0.5"/>';
+  }
+  // 标签
+  var labelText = '';
+  for(var i = 0; i < n; i++){
+    var lx = cx + (R + 16) * Math.cos(angle(i));
+    var ly = cy + (R + 16) * Math.sin(angle(i));
+    labelText += '<text x="'+lx+'" y="'+ly+'" text-anchor="middle" dominant-baseline="middle" fill="var(--c-fg-2)" style="font-size:10px;font-family:sans-serif">'+labels[i]+'</text>';
+  }
+  // 前次数据（虚线）
+  var prevPoly = '';
+  if(hasPrev){
+    var ppts = '';
+    for(var i = 0; i < n; i++){
+      var v = prevValues[i] || 0;
+      var p = point(v, i);
+      ppts += p[0] + ',' + p[1] + ' ';
+    }
+    prevPoly = '<polygon points="'+ppts.trim()+'" fill="none" stroke="var(--c-fg-muted)" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>';
+  }
+  // 当前数据（填充）
+  var cpts = '';
+  for(var i = 0; i < n; i++){
+    var p = point(values[i], i);
+    cpts += p[0] + ',' + p[1] + ' ';
+  }
+  var curPoly = '<polygon points="'+cpts.trim()+'" fill="var(--c-primary)" fill-opacity="0.2" stroke="var(--c-primary)" stroke-width="1.5"/>';
+  // 数据点
+  var dots = '';
+  for(var i = 0; i < n; i++){
+    var p = point(values[i], i);
+    dots += '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="2.5" fill="var(--c-primary)"/>';
+  }
+
+  el.innerHTML = '<svg viewBox="0 0 '+size+' '+size+'" style="display:block;margin:0 auto">'+grid+axes+prevPoly+curPoly+dots+labelText+'</svg>';
+}
+
+function renderMiniLine(containerId, samples){
+  var el = document.getElementById(containerId);
+  if(!el || !samples || !samples.length) return;
+  var w = 260, h = 50, pad = 6;
+  var vals = samples.map(function(s){ return s.value || s.score || s.count || 0; });
+  var max = Math.max.apply(null, vals);
+  var min = Math.min.apply(null, vals);
+  var range = max - min || 1;
+  var stepX = (w - pad*2) / (vals.length - 1 || 1);
+  var pts = '';
+  for(var i = 0; i < vals.length; i++){
+    var x = pad + i * stepX;
+    var y = h - pad - (vals[i] - min) / range * (h - pad*2);
+    pts += (i === 0 ? 'M' : 'L') + x + ',' + y + ' ';
+  }
+  // 填充区域
+  var area = pts + 'L'+(w-pad)+','+(h-pad)+' L'+pad+','+(h-pad)+' Z';
+  el.innerHTML = '<svg viewBox="0 0 '+w+' '+h+'" style="display:block;width:100%;height:50px"><path d="'+area+'" fill="var(--c-primary)" fill-opacity="0.1"/><path d="'+pts+'" fill="none" stroke="var(--c-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function renderBarChart(containerId, dimensions){
+  var el = document.getElementById(containerId);
+  if(!el || !dimensions || !dimensions.length) return;
+  var html = '';
+  dimensions.forEach(function(d){
+    var name = d.name || d.label || d.dim || '';
+    var score = d.score !== undefined ? d.score : (d.value || 0);
+    var pct = Math.min(100, Math.max(0, score * 10));
+    var color = score >= 7 ? 'var(--c-success)' : (score >= 4 ? 'var(--c-primary)' : 'var(--c-danger)');
+    html += '<div style="margin-bottom:8px">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--c-fg-2)">'+name+'</span><span style="color:var(--c-fg);font-weight:600">'+score+'/10</span></div>';
+    html += '<div style="height:5px;background:var(--c-surface-2);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:3px;transition:width 0.6s var(--ease-out)"></div></div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
 }
 
 // ============ v6.4.2 行动闭环 ============
