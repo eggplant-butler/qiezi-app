@@ -3946,7 +3946,8 @@ async function loadEngDashboard(force){
   if(!el) return;
   el.innerHTML = '<div style="padding:12px;text-align:center;color:#9CA3AF;font-size:12px;">🔄 加载认知仪表盘...</div>';
   try {
-    var res = await apiFetch('/api/eng/dashboard');
+    var resp = await fetch('/api/eng/dashboard');
+    var res = await resp.json();
     if(res && res.sections){
       engDashboardCache = res;
       renderEngDashboard();
@@ -4091,15 +4092,16 @@ async function suggestionToTodo(encodedText, module){
   var text = decodeURIComponent(encodedText);
   if(!confirm('将此建议转为待办任务？\n\n"' + text.substring(0, 50) + '"')) return;
   try {
-    var res = await apiFetch('/api/suggestion/to-todo', {
+    var resp = await fetch('/api/suggestion/to-todo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text, module: module || null, priority: '中-重要' })
     });
+    var res = await resp.json();
     if(res && res.success){
       alert('✅ 已加入待办：' + text.substring(0, 30) + '...');
       // 刷新 todo 数据缓存
-      apiFetch('/api/todo').then(function(d){ dataCache.todo = d || []; }).catch(function(){});
+      fetch('/api/todo').then(function(r){return r.json();}).then(function(d){ dataCache.todo = d || []; }).catch(function(){});
     } else {
       alert(res && res.duplicate ? 'ℹ️ ' + (res.message || '已转过') : '❌ ' + (res && res.message || '失败'));
     }
@@ -4111,11 +4113,12 @@ async function suggestionToTodo(encodedText, module){
 // todo 状态切换（在 todo 详情页提供快速切换按钮）
 async function setTodoStatus(id, status){
   try {
-    var res = await apiFetch('/api/todo/' + id + '/status', {
+    var resp = await fetch('/api/todo/' + id + '/status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: status })
     });
+    var res = await resp.json();
     if(res && res.success){
       // 本地更新缓存
       var list = dataCache.todo || [];
@@ -4266,9 +4269,10 @@ async function loadMaintenanceStatus(){
   if(!c) return;
   var html = '<div style="padding:16px;">';
 
-  // 数据库状态卡片
+  // 数据库状态卡片（直接用 fetch，绕开 apiFetch 的参数限制）
   try {
-    var res = await apiFetch('/api/maintenance/status');
+    var resp = await fetch('/api/maintenance/status', { headers: authHeaders() });
+    var res = await resp.json();
     if(res && res.success){
       var fmt = function(b){ return (b/1024).toFixed(1) + ' KB'; };
       html += '<div style="background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:12px;">';
@@ -4311,7 +4315,8 @@ async function loadMaintenanceStatus(){
 async function runMaintenance(){
   if(!confirm('执行一键运维？\n（WAL合并 + PM2日志清理，约需几秒）')) return;
   try {
-    var res = await apiFetch('/api/maintenance', { method: 'POST' });
+    var resp = await fetch('/api/maintenance', { method: 'POST' });
+    var res = await resp.json();
     if(res && res.success){
       alert('✅ ' + (res.message || '运维完成'));
       await loadMaintenanceStatus();
@@ -4326,7 +4331,8 @@ async function runMaintenance(){
 async function runVacuum(){
   if(!confirm('执行 VACUUM？\n数据库较大时可能需要 10-30 秒，期间服务会短暂无响应。')) return;
   try {
-    var res = await apiFetch('/api/maintenance/vacuum', { method: 'POST' });
+    var resp = await fetch('/api/maintenance/vacuum', { method: 'POST' });
+    var res = await resp.json();
     if(res && res.success){
       alert('✅ ' + (res.message || 'VACUUM 完成'));
       await loadMaintenanceStatus();
@@ -4339,7 +4345,8 @@ async function runVacuum(){
 }
 
 async function verifyLatestBackup(){
-  var list = await apiFetch('/api/backup/list');
+  var resp = await fetch('/api/backup/list');
+  var list = await resp.json();
   if(!list || !list.length){
     document.getElementById('verifyList').innerHTML = '<span style="color:#EF4444;">无备份文件</span>';
     return;
@@ -4348,7 +4355,8 @@ async function verifyLatestBackup(){
   var el = document.getElementById('verifyList');
   el.innerHTML = '<span style="color:#6B7280;">🔍 校验中：'+latest.name+'...</span>';
   try {
-    var res = await apiFetch('/api/backup/verify/' + encodeURIComponent(latest.name), { method: 'POST' });
+    var r2 = await fetch('/api/backup/verify/' + encodeURIComponent(latest.name), { method: 'POST' });
+    var res = await r2.json();
     if(res && res.success){
       var detail = res.fileCount ? '包含 '+res.fileCount+' 个文件' : '校验通过';
       el.innerHTML = '<span style="color:#10B981;">✅ '+latest.name+'<br>'+detail+'</span>';
