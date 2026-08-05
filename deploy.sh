@@ -90,7 +90,8 @@ echo ""
 
 # ---------- 第四步：下载最新代码（只覆盖代码文件，绝不动数据/配置）----------
 echo "[4/6] 📥 下载最新 server.js / package.json / frontend/* ..."
-# 双下载源：优先 jsDelivr CDN（国内访问快、缓存命中率高），失败回退 GitHub raw
+# 双下载源：优先 GitHub raw（实时同步，无 CDN 缓存陷阱），失败回退 jsDelivr
+# 注意：jsDelivr CDN 有多层缓存，purge 后仍可能返回旧版本，所以 raw 优先
 CURL_OPTS="-fsSL --connect-timeout 15 --max-time 60 --retry 3 --retry-delay 2"
 try_download() {
   local dst="$1"; shift
@@ -105,27 +106,65 @@ try_download() {
   return 1
 }
 
-CDN_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main"
-GH_URL="https://raw.githubusercontent.com/eggplant-butler/qiezi-app/main"
+# 内容校验：检查下载到的文件是否包含版本标记，避免 CDN 缓存返回旧代码
+verify_download() {
+  local dst="$1"; local marker="$2"
+  if [ ! -s "$dst" ]; then return 1; fi
+  if [ -n "$marker" ] && ! grep -q "$marker" "$dst" 2>/dev/null; then
+    echo "      ⚠️  内容校验失败：未找到标记 '$marker'，疑似旧缓存"
+    return 1
+  fi
+  return 0
+}
 
-# 用时间戳参数绕过 CDN 缓存（GitHub raw 不认识参数会忽略，安全）
-TS_CACHE=$(date +%s)
-try_download server.js \
-  "$CDN_URL/server.js?t=$TS_CACHE" \
-  "$GH_URL/server.js?t=$TS_CACHE" || { echo "❌ server.js 下载失败"; exit 1; }
-try_download package.json \
-  "$CDN_URL/package.json?t=$TS_CACHE" \
-  "$GH_URL/package.json?t=$TS_CACHE" || { echo "❌ package.json 下载失败"; exit 1; }
+# 带校验的下载：先试第一个源，校验失败再试第二个
+try_download_verified() {
+  local dst="$1"; local marker="$2"; shift 2
+  for url in "$@"; do
+    echo "      尝试: $url"
+    if curl $CURL_OPTS "$url" -o "$dst"; then
+      if verify_download "$dst" "$marker"; then
+        echo "      ✅ 下载成功 + 内容校验通过"
+        return 0
+      else
+        echo "      ⚠️  下载成功但内容是旧缓存，换源重试"
+      fi
+    else
+      echo "      ⚠️  下载失败，换源"
+    fi
+  done
+  return 1
+}
+
+GH_URL="https://raw.githubusercontent.com/eggplant-butler/qiezi-app/main"
+CDN_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main"
+
+# 用 commit 哈希避免缓存：git ls-remote 拿最新 HEAD（无需 API token，无速率限制）
+LATEST_COMMIT=$(git ls-remote https://github.com/eggplant-butler/qiezi-app.git HEAD 2>/dev/null | awk '{print $1}')
+if [ -n "$LATEST_COMMIT" ]; then
+  echo "      📌 最新 commit: ${LATEST_COMMIT:0:7}"
+  # jsDelivr 支持 @commit 方式绕过 CDN 缓存（@main 有缓存，@具体commit 实时）
+  CDN_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@${LATEST_COMMIT}"
+else
+  echo "      ⚠️  无法获取最新 commit，将使用 @main（可能有 CDN 缓存）"
+fi
+
+try_download_verified server.js "v6.4" \
+  "$GH_URL/server.js" \
+  "$CDN_URL/server.js" || { echo "❌ server.js 下载失败"; exit 1; }
+try_download_verified package.json "qiezi" \
+  "$GH_URL/package.json" \
+  "$CDN_URL/package.json" || { echo "❌ package.json 下载失败"; exit 1; }
 
 mkdir -p frontend
-try_download frontend/index.html \
-  "$CDN_URL/frontend/index.html?t=$TS_CACHE" \
-  "$GH_URL/frontend/index.html?t=$TS_CACHE" || { echo "❌ frontend/index.html 下载失败"; exit 1; }
-try_download frontend/sw.js \
-  "$CDN_URL/frontend/sw.js?t=$TS_CACHE" \
-  "$GH_URL/frontend/sw.js?t=$TS_CACHE" || { echo "❌ frontend/sw.js 下载失败（可选，继续）"; }
+try_download_verified frontend/index.html "engDashboard" \
+  "$GH_URL/frontend/index.html" \
+  "$CDN_URL/frontend/index.html" || { echo "❌ frontend/index.html 下载失败"; exit 1; }
+try_download_verified frontend/sw.js "qiezi-v6.4" \
+  "$GH_URL/frontend/sw.js" \
+  "$CDN_URL/frontend/sw.js" || { echo "❌ frontend/sw.js 下载失败（可选，继续）"; }
 
-echo "      ✅ 代码文件已更新"
+echo "      ✅ 代码文件已更新 + 内容校验通过"
 echo ""
 
 # ---------- 第五步：安装依赖（最易卡住：npm install 国内访问慢）----------
