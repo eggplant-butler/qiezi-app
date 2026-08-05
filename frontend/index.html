@@ -464,7 +464,8 @@ var CORE_MODULES = [
 {id:'diet',label:'饮食',icon:'🥗'},{id:'diary',label:'日记',icon:'📖'},
 {id:'learn',label:'学习复盘',icon:'📚'},{id:'photo',label:'摄影',icon:'📷'},
 {id:'think',label:'认知思考',icon:'🧠'},{id:'inventory',label:'库存',icon:'📦'},
-{id:'space',label:'空间物品',icon:'🏠'},{id:'pet',label:'宠物',icon:'🐾'}
+{id:'space',label:'空间物品',icon:'🏠'},{id:'pet',label:'宠物',icon:'🐾'},
+{id:'medical',label:'医疗',icon:'🏥'},{id:'todo',label:'待办',icon:'📋'}
 ];
 
 async function apiFetch(m) {
@@ -561,7 +562,7 @@ async function initApp() {
     try { insightsCache = await insResp.json(); } catch(e) { insightsCache = null; }
   } catch(e) {
     // 聚合接口失败时降级为逐模块串行（兜底）
-    var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit','pet'];
+    var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo'];
     for(var i=0; i<mods.length; i++) await apiFetch(mods[i]);
     await fetchInsights();
   }
@@ -808,6 +809,7 @@ else if(t==='home') renderHome();
 }
 
 var budgetCache = null;
+var petDashCache = null;
 
 function openScene(id){
   curScene=id;
@@ -820,6 +822,9 @@ function openScene(id){
   // 如果是财务场景，先加载预算数据
   if(id === 'finance'){
     fetch('/api/budget').then(function(r){ return r.json(); }).then(function(d){ budgetCache = d; renderDetail(id); }).catch(function(){ budgetCache = null; renderDetail(id); });
+  } else if(id === 'pet'){
+    // 宠物仪表盘：加载跨模块联动数据（花费+物资+就医）
+    fetch('/api/pet-dashboard').then(function(r){ return r.json(); }).then(function(d){ petDashCache = d; renderDetail(id); }).catch(function(){ petDashCache = null; renderDetail(id); });
   } else {
     renderDetail(id);
   }
@@ -897,6 +902,60 @@ function renderDetail(id){
         extraHtml += '<div style="margin-top:6px;font-size:12px;color:#EF4444;font-weight:700;">⚠️ 超支！已超出 ¥'+Math.abs(remaining).toFixed(2)+'</div>';
       }
     }
+    extraHtml += '</div>';
+  }
+  // 宠物仪表盘：跨模块联动面板（花费汇总 + 物资状态 + 就医记录）
+  if(id === 'pet' && petDashCache && petDashCache.totalRecords !== undefined){
+    var pd = petDashCache;
+    extraHtml += '<div style="background:#FFFFFF;border-radius:14px;padding:12px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);">';
+    extraHtml += '<div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:8px;">🐾 宠物仪表盘 · 跨模块联动</div>';
+    // 花费统计
+    extraHtml += '<div style="display:flex;gap:12px;margin-bottom:8px;">';
+    extraHtml += '<div style="flex:1;background:#F0FDF4;border-radius:8px;padding:8px 10px;"><div style="font-size:11px;color:#6B7280;">本月花费</div><div style="font-size:16px;font-weight:700;color:#16A34A;">¥'+pd.monthCost.toFixed(0)+'</div></div>';
+    extraHtml += '<div style="flex:1;background:#FFF7ED;border-radius:8px;padding:8px 10px;"><div style="font-size:11px;color:#6B7280;">累计花费</div><div style="font-size:16px;font-weight:700;color:#EA580C;">¥'+pd.totalCost.toFixed(0)+'</div></div>';
+    extraHtml += '<div style="flex:1;background:#EFF6FF;border-radius:8px;padding:8px 10px;"><div style="font-size:11px;color:#6B7280;">记录数</div><div style="font-size:16px;font-weight:700;color:#2563EB;">'+pd.totalRecords+'条</div></div>';
+    extraHtml += '</div>';
+    // 宠物概览
+    if(pd.petSummary && pd.petSummary.length > 0){
+      extraHtml += '<div style="margin-bottom:8px;">';
+      pd.petSummary.forEach(function(p){
+        extraHtml += '<div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 0;">';
+        extraHtml += '<span style="font-weight:600;color:#1A1A2E;">'+escapeHtml(p.name)+'</span>';
+        if(p.type) extraHtml += '<span style="color:#9CA3AF;">'+escapeHtml(p.type)+'</span>';
+        extraHtml += '<span style="color:#6B7280;">'+p.count+'条</span>';
+        if(p.cost > 0) extraHtml += '<span style="color:#EA580C;">¥'+p.cost.toFixed(0)+'</span>';
+        if(p.lastAction) extraHtml += '<span style="color:#9CA3AF;margin-left:auto;">最近:'+escapeHtml(p.lastAction)+'</span>';
+        extraHtml += '</div>';
+      });
+      extraHtml += '</div>';
+    }
+    // 物资状态（从库存联动）
+    if(pd.supplies && pd.supplies.length > 0){
+      extraHtml += '<div style="font-size:11px;color:#6B7280;margin-top:6px;margin-bottom:4px;">📦 关联物资（来自库存）</div>';
+      pd.supplies.forEach(function(s){
+        var bg = s.lowStock ? '#FEF2F2' : '#F9FAFB';
+        var color = s.lowStock ? '#EF4444' : '#6B7280';
+        extraHtml += '<div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 8px;background:'+bg+';border-radius:6px;margin-bottom:3px;">';
+        extraHtml += '<span style="color:#1A1A2E;font-weight:500;">'+escapeHtml(s.name||'')+'</span>';
+        extraHtml += '<span style="color:'+color+';">x'+(s.quantity||0)+'</span>';
+        if(s.lowStock) extraHtml += '<span style="color:#EF4444;font-weight:600;">⚠️需补货</span>';
+        if(s.condition) extraHtml += '<span style="color:#9CA3AF;margin-left:auto;">'+escapeHtml(s.condition)+'</span>';
+        extraHtml += '</div>';
+      });
+    }
+    // 最近就医
+    if(pd.recentVetVisits && pd.recentVetVisits.length > 0){
+      extraHtml += '<div style="font-size:11px;color:#6B7280;margin-top:8px;margin-bottom:4px;">🏥 最近就医</div>';
+      pd.recentVetVisits.forEach(function(v){
+        extraHtml += '<div style="font-size:12px;padding:3px 8px;background:#F9FAFB;border-radius:6px;margin-bottom:3px;">';
+        extraHtml += '<span style="color:#1A1A2E;">'+(v.date||'')+'</span> · ';
+        extraHtml += '<span style="color:#6B7280;">'+escapeHtml(v.petName||'')+' '+escapeHtml(v.action||'')+'</span>';
+        if(v.vetNote) extraHtml += '<span style="color:#9CA3AF;"> · '+escapeHtml(v.vetNote)+'</span>';
+        extraHtml += '</div>';
+      });
+    }
+    // 联动提示
+    extraHtml += '<div style="font-size:11px;color:#9CA3AF;margin-top:8px;padding-top:6px;border-top:1px dashed #E5E7EB;">💡 填写花费时自动同步到财务记账</div>';
     extraHtml += '</div>';
   }
   if(!data.length){ c.innerHTML=extraHtml+'<div class="empty"><span class="ic">📭</span>还没有记录，点 + 添加</div>'; return; }
@@ -1046,6 +1105,23 @@ function renderDetail(id){
       if(item.food) l+=' · '+item.food;
       if(item.healthNote) l+=' · '+item.healthNote;
       if(item.vetNote) l+=' · 就医:'+item.vetNote;
+    } else if(id==='medical'){
+      var medParts=[];
+      if(item.type) medParts.push(item.type);
+      if(item.hospital) medParts.push(item.hospital);
+      if(item.department) medParts.push(item.department);
+      if(item.symptom) medParts.push(item.symptom);
+      l=medParts.length?medParts.join(' · '):(item.content||'就医记录');
+      if(item.diagnosis) l+=' → '+item.diagnosis;
+      if(item.cost) l+=' · ¥'+item.cost;
+      if(item.nextVisit) l+=' · 复诊:'+item.nextVisit;
+    } else if(id==='todo'){
+      var todoParts=[];
+      if(item.priority) todoParts.push(item.priority);
+      if(item.status) todoParts.push(item.status);
+      if(item.category) todoParts.push(item.category);
+      l=todoParts.length?todoParts.join(' · '):(item.content||'待办');
+      if(item.dueDate) l+=' · 截止:'+item.dueDate;
     } else {
       l=item.content||item.name||item.title||'记录';
       if(item.amount) l+=' ¥'+item.amount;
@@ -1341,11 +1417,40 @@ var MODAL_FORMS = {
       ]},
       {key:'mood', label:'宠物状态', type:'select', options:['活泼好动','正常','安静','嗜睡','焦虑','害怕','异常','生病','受伤','产后','老年迟缓']},
       {key:'food', label:'食物/用量', type:'text', placeholder:'如：猫粮50g / 零食 / 罐头1个'},
-      {key:'cost', label:'花费(¥)', type:'number', placeholder:'0.00'},
+      {key:'cost', label:'花费(¥)', type:'number', placeholder:'0.00（自动同步到财务）'},
       {key:'healthNote', label:'健康备注', type:'text', placeholder:'如：精神好/有眼屎/拉稀/伤口愈合中'},
       {key:'vetNote', label:'就医备注', type:'text', placeholder:'医院/诊断/用药/复诊时间'},
       {key:'content', label:'记录内容', type:'textarea', placeholder:'今天和宠物的互动、趣事或观察...'},
       {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  medical: {
+    title: '医疗记录',
+    fields: [
+      {key:'type', label:'就医类型', type:'select', options:['门诊','急诊','体检','牙科','眼科','皮肤科','中医','心理咨询','复诊','疫苗','手术','其他']},
+      {key:'hospital', label:'医院/诊所', type:'text', placeholder:'如：市第一人民医院'},
+      {key:'department', label:'科室', type:'text', placeholder:'如：内科/骨科'},
+      {key:'doctor', label:'医生', type:'text', placeholder:'医生姓名（可选）'},
+      {key:'symptom', label:'症状', type:'text', placeholder:'如：发烧3天/咳嗽/腹痛'},
+      {key:'diagnosis', label:'诊断结果', type:'text', placeholder:'如：上呼吸道感染'},
+      {key:'prescription', label:'处方/用药', type:'textarea', placeholder:'医生开的药和用量'},
+      {key:'cost', label:'花费(¥)', type:'number', placeholder:'0.00（自动同步到财务）'},
+      {key:'paymentMethod', label:'支付方式', type:'select', options:['','医保','微信','支付宝','现金','银行卡','其他']},
+      {key:'nextVisit', label:'下次复诊', type:'date'},
+      {key:'content', label:'备注', type:'textarea', placeholder:'医嘱/注意事项/恢复情况...'},
+      {key:'date', label:'就诊日期', type:'date'}
+    ]
+  },
+  todo: {
+    title: '待办事项',
+    fields: [
+      {key:'title', label:'事项', type:'text', placeholder:'如：给猫打疫苗'},
+      {key:'category', label:'分类', type:'select', options:['生活','工作','健康','宠物','家庭','财务','学习','出行','其他']},
+      {key:'priority', label:'优先级', type:'select', options:['高-紧急','中-重要','低-有空做']},
+      {key:'status', label:'状态', type:'select', options:['待办','进行中','已完成','已取消']},
+      {key:'dueDate', label:'截止日期', type:'date'},
+      {key:'content', label:'详情', type:'textarea', placeholder:'详细说明（可选）'},
+      {key:'date', label:'创建日期', type:'date'}
     ]
   }
 };
@@ -1401,7 +1506,8 @@ var REQUIRED_KEYS = {
   inventory:['name'], space:['name'],
   work:['task'], home:['space'], travel:['from'],
   body:[], relation:['person'], time:['duration','category'],
-  growth:['skill'], spirit:['mood'], pet:['petName','action']
+  growth:['skill'], spirit:['mood'], pet:['petName','action'],
+  medical:['type','symptom'], todo:['title','status']
 };
 function isFieldRequired(sceneId, fieldKey){
   var arr = REQUIRED_KEYS[sceneId] || [];
@@ -1707,7 +1813,7 @@ async function openTrash(){
     }
     var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">共 '+list.length+' 条 · 30天后自动清理</div>';
     list.forEach(function(t){
-      var modName = {finance:'财务',sleep:'睡眠',exercise:'锻炼',emotion:'情绪',diet:'饮食',diary:'日记',learn:'学习',photo:'摄影',think:'思考',work:'工作',home:'居住',travel:'出行',body:'身体',relation:'关系',time:'时间',growth:'成长',spirit:'精神',pet:'宠物'}[t._module] || t._module;
+      var modName = {finance:'财务',sleep:'睡眠',exercise:'锻炼',emotion:'情绪',diet:'饮食',diary:'日记',learn:'学习',photo:'摄影',think:'思考',work:'工作',home:'居住',travel:'出行',body:'身体',relation:'关系',time:'时间',growth:'成长',spirit:'精神',pet:'宠物',medical:'医疗',todo:'待办'}[t._module] || t._module;
       var title = t.content || t.name || t.title || t.symptom || t.person || '记录';
       var delDate = (t._deletedAt||'').split('T')[0];
       html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #F59E0B">';
@@ -3610,9 +3716,9 @@ async function openSeasonal(){
 
 // 日志Tab：按生活域分组 + 今日统计 + 搜索
 var RECORD_GROUPS = {
-  life:    {ids:['body','diet','sleep','emotion','pet'], title:'生活基础', icon:'🌱', sub:'身体·饮食·睡眠·情绪·宠物'},
+  life:    {ids:['body','diet','sleep','emotion','pet','medical'], title:'生活基础', icon:'🌱', sub:'身体·饮食·睡眠·情绪·宠物·医疗'},
   growth:  {ids:['learn','think','diary','photo'], title:'成长认知', icon:'📚', sub:'学习·思考·日记·摄影'},
-  action:  {ids:['work','home','travel','time','relation'], title:'行动场景', icon:'💼', sub:'工作·居住·出行·时间·关系'},
+  action:  {ids:['work','home','travel','time','relation','todo'], title:'行动场景', icon:'💼', sub:'工作·居住·出行·时间·关系·待办'},
   asset:   {ids:['finance','inventory','space'], title:'资产管理', icon:'📦', sub:'财务·库存·空间'}
 };
 // 模块元信息（统一来源，避免 SCENES/CORE_MODULES 分裂）
@@ -3622,7 +3728,8 @@ var MODULE_META = {
   work:{name:'工作',icon:'💼'}, home:{name:'居住',icon:'🏠'}, travel:{name:'出行',icon:'🛵'}, time:{name:'时间',icon:'⏰'}, relation:{name:'关系',icon:'👥'},
   finance:{name:'财务',icon:'💰'}, inventory:{name:'库存',icon:'📦'}, space:{name:'空间',icon:'🏚️'},
   exercise:{name:'锻炼',icon:'🏃'}, growth:{name:'成长',icon:'🌱'}, spirit:{name:'精神',icon:'🧘'},
-  pet:{name:'宠物',icon:'🐾'}
+  pet:{name:'宠物',icon:'🐾'},
+  medical:{name:'医疗',icon:'🏥'}, todo:{name:'待办',icon:'📋'}
 };
 
 function renderRecord(){

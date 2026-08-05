@@ -3406,6 +3406,48 @@ app.post('/api/record/add', (req, res) => {
   }
   writeData(mid, list);
 
+  // === 跨模块联动引擎 ===
+  // 1. 宠物花费 → 自动创建财务支出记录
+  if (mid === 'pet' && !editId && data.cost && parseFloat(data.cost) > 0) {
+    try {
+      const finList = readData('finance');
+      const finItem = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        type: '支出',
+        amount: parseFloat(data.cost),
+        category: '宠物',
+        content: (data.petName || '宠物') + ' - ' + (data.action || '花费'),
+        paymentMethod: '',
+        date: data.date || new Date().toISOString().split('T')[0],
+        _linkedModule: 'pet',
+        _linkedId: item.id,
+        created: new Date().toISOString()
+      };
+      finList.push(finItem);
+      writeData('finance', finList);
+    } catch (e) { console.error('[linkage] pet→finance:', e.message); }
+  }
+  // 2. 医疗花费 → 自动创建财务支出记录
+  if (mid === 'medical' && !editId && data.cost && parseFloat(data.cost) > 0) {
+    try {
+      const finList = readData('finance');
+      const finItem = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        type: '支出',
+        amount: parseFloat(data.cost),
+        category: '医疗',
+        content: (data.hospital || data.symptom || '就医') + ' - ' + (data.type || ''),
+        paymentMethod: data.paymentMethod || '',
+        date: data.date || new Date().toISOString().split('T')[0],
+        _linkedModule: 'medical',
+        _linkedId: item.id,
+        created: new Date().toISOString()
+      };
+      finList.push(finItem);
+      writeData('finance', finList);
+    } catch (e) { console.error('[linkage] medical→finance:', e.message); }
+  }
+
   // 生成认知反馈
   const hist = ENG.buildHistory();
   const reflection = ENG.reflect(mid, data, hist);
@@ -4639,7 +4681,7 @@ const SYSTEM_MODULES = new Set(['deleted', 'trash', '__proto__', 'constructor', 
 // 已知业务模块白名单（含 v5.6/v5.7 新增）
 const VALID_MODULES = new Set([
   'finance','sleep','exercise','emotion','diet','body','relation','work','home','travel',
-  'time','growth','spirit','learn','photo','think','diary','inventory','space','pet',
+  'time','growth','spirit','learn','photo','think','diary','inventory','space','pet','medical','todo',
   'life_milestone','habits','quickNote','dailyQuestion','principles','decisions','fiveWhy',
   'interview','skill','work_mode','reading','bills','contacts','housework','mindfulness',
   'belief','character','selfImage','entropy','fragility','northstar','crisis','dyingTest',
@@ -4676,6 +4718,8 @@ const MODULE_ALLOWED_FIELDS = {
   inventory: ['name','quantity','location','note'],
   space: ['name','type','note'],
   pet: ['petName','type','sceneType','action','mood','food','cost','healthNote','vetNote','content','date'],
+  medical: ['type','hospital','department','doctor','symptom','diagnosis','prescription','cost','paymentMethod','nextVisit','content','date'],
+  todo: ['title','category','priority','status','dueDate','completed','content','date'],
   life_milestone: ['title','date','description','category'],
   habits: ['name','frequency','goal','note'],
   quickNote: ['content','date'],
@@ -4755,7 +4799,7 @@ app.get('/api/bootstrap', (req, res) => {
   try {
     const BOOTSTRAP_MODULES = [
       'finance','sleep','exercise','emotion','diet','diary','learn','photo','think',
-      'inventory','space','work','home','travel','body','relation','time','growth','spirit','pet'
+      'inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo'
     ];
     const result = {};
     for (const m of BOOTSTRAP_MODULES) {
@@ -4769,6 +4813,87 @@ app.get('/api/bootstrap', (req, res) => {
   } catch (e) {
     console.error('[GET /api/bootstrap]', e.message);
     res.status(500).json({ success: false, message: '聚合加载失败' });
+  }
+});
+
+// ============ 跨模块联动仪表盘 ============
+// 宠物仪表盘：聚合宠物记录 + 财务花费 + 库存物资
+app.get('/api/pet-dashboard', (req, res) => {
+  try {
+    const petRecords = readData('pet');
+    const financeRecords = readData('finance');
+    const inventoryRecords = readData('inventory');
+
+    // 本月宠物花费（含联动自动创建的财务记录 + pet 自身 cost 字段）
+    const now = new Date();
+    const monthPrefix = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    let monthCost = 0;
+    let totalCost = 0;
+    for (const r of petRecords) {
+      const c = parseFloat(r.cost) || 0;
+      if (c > 0) {
+        totalCost += c;
+        if ((r.date || '').indexOf(monthPrefix) === 0) monthCost += c;
+      }
+    }
+    // 也统计 finance 中 category=宠物 的记录
+    let financePetCost = 0;
+    for (const f of financeRecords) {
+      if ((f.category === '宠物') && (f.type === '支出' || f.type === 'expense')) {
+        financePetCost += parseFloat(f.amount) || 0;
+      }
+    }
+
+    // 宠物物资（从库存中筛选名称包含宠物相关关键词的物品）
+    const petKeywords = ['猫', '狗', '宠物', 'pet', '粮', '砂', '罐头', '零食', '牵引', '窝', '笼', '玩具', '指甲', '梳'];
+    const petSupplies = inventoryRecords.filter(function(item) {
+      const name = (item.name || '').toLowerCase();
+      return petKeywords.some(function(kw) { return name.indexOf(kw) !== -1; });
+    }).map(function(item) {
+      return {
+        name: item.name,
+        quantity: item.quantity,
+        category: item.category,
+        condition: item.condition,
+        purchaseDate: item.purchaseDate,
+        price: item.price,
+        lowStock: (parseInt(item.quantity) || 0) <= 1
+      };
+    });
+    const lowStockItems = petSupplies.filter(function(s) { return s.lowStock; });
+
+    // 最近就医记录
+    const vetVisits = petRecords.filter(function(r) {
+      return r.sceneType === '健康医疗' || (r.action && ['就医看病','打疫苗','驱虫','绝育/手术','健康检查'].indexOf(r.action) !== -1);
+    }).slice(0, 5);
+
+    // 按宠物名分组统计
+    const petMap = {};
+    for (const r of petRecords) {
+      const name = r.petName || '未命名';
+      if (!petMap[name]) petMap[name] = { name: name, type: r.type || '', count: 0, cost: 0, lastAction: '', lastDate: '' };
+      petMap[name].count++;
+      const c = parseFloat(r.cost) || 0;
+      if (c > 0) petMap[name].cost += c;
+      if (!petMap[name].lastDate || (r.date || '') > petMap[name].lastDate) {
+        petMap[name].lastDate = r.date || '';
+        petMap[name].lastAction = r.action || '';
+      }
+    }
+
+    res.json({
+      totalRecords: petRecords.length,
+      monthCost: monthCost,
+      totalCost: totalCost,
+      financePetCost: financePetCost,
+      petSummary: Object.values(petMap),
+      supplies: petSupplies,
+      lowStockAlerts: lowStockItems,
+      recentVetVisits: vetVisits
+    });
+  } catch (e) {
+    console.error('[GET /api/pet-dashboard]', e.message);
+    res.status(500).json({ success: false, message: '宠物仪表盘加载失败' });
   }
 });
 // 未知模块兜底：允许读（返回空数组），但写操作必须显式校验
