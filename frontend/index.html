@@ -12,7 +12,7 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <!-- 版本指纹：deploy.sh 校验 + 前端自检（版本不匹配时强制刷新） -->
-<meta name="app-version" content="qiezi-v6.5.8">
+<meta name="app-version" content="qiezi-v6.5.9">
 <style>
 /* ========== 深夜书房 设计系统 v6.5.1 ==========
    暗色优先（默认）：暖灰底+米白字+琥珀强调
@@ -283,7 +283,7 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 </div>
 </div>
 <div id="app">
-<div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="toggleTheme()" title="切换主题">🌓</button><button onclick="togglePrivacy()" title="隐私模式">👁️</button><button onclick="openDrawer()" title="设置">⚙️</button></div></div>
+<div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><button onclick="openReminderCenter()" title="提醒" style="position:relative"><span>🔔</span><span class="badge" id="remindBadge" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--c-danger,#E85858);color:#fff;font-size:10px;width:16px;height:16px;border-radius:50%;text-align:center;line-height:16px">0</span></button><button onclick="toggleTheme()" title="切换主题">🌓</button><button onclick="togglePrivacy()" title="隐私模式">👁️</button><button onclick="openDrawer()" title="设置">⚙️</button></div></div>
 <div class="pg act" id="pgHome">
 <!-- v6.5.8 骨架屏：数据加载前显示占位，消除白屏闪烁 -->
 <div id="homeSkeleton">
@@ -529,6 +529,36 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 
 </div>
 
+<!-- ====== v6.5.9 提醒中心 ====== -->
+<div class="drawer-mask" id="reminderMask" onclick="closeReminderCenter()"></div>
+<aside class="drawer" id="reminderDrawer">
+  <div class="drawer-hd">
+    <span style="font-size:16px;font-weight:700;color:var(--c-fg);font-family:'Noto Serif SC',serif">🔔 提醒中心</span>
+    <button onclick="closeReminderCenter()" style="background:none;border:none;font-size:20px;color:var(--c-fg-2);cursor:pointer">✕</button>
+  </div>
+  <div style="padding:16px;overflow-y:auto;flex:1">
+    <!-- 新建提醒 -->
+    <div style="background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600;color:var(--c-fg);margin-bottom:10px">➕ 新建提醒</div>
+      <input id="reminderTitle" type="text" placeholder="提醒内容（如：吃药、锻炼、开会）" style="width:100%;background:var(--c-bg);border:1px solid var(--c-border);border-radius:8px;padding:10px 12px;color:var(--c-fg);font-size:14px;margin-bottom:8px;box-sizing:border-box">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input id="reminderDate" type="date" style="flex:1;background:var(--c-bg);border:1px solid var(--c-border);border-radius:8px;padding:10px 12px;color:var(--c-fg);font-size:14px;box-sizing:border-box">
+        <input id="reminderTime" type="time" style="flex:1;background:var(--c-bg);border:1px solid var(--c-border);border-radius:8px;padding:10px 12px;color:var(--c-fg);font-size:14px;box-sizing:border-box">
+      </div>
+      <select id="reminderRepeat" style="width:100%;background:var(--c-bg);border:1px solid var(--c-border);border-radius:8px;padding:10px 12px;color:var(--c-fg);font-size:14px;margin-bottom:10px;box-sizing:border-box">
+        <option value="none">一次性</option>
+        <option value="daily">每天重复</option>
+        <option value="weekly">每周重复</option>
+        <option value="monthly">每月重复</option>
+      </select>
+      <button onclick="addReminder()" style="width:100%;background:var(--c-accent,#E8A838);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer">添加提醒</button>
+    </div>
+    <!-- 提醒列表 -->
+    <div id="reminderList" style="display:flex;flex-direction:column;gap:8px">
+      <div style="text-align:center;color:var(--c-fg-2);font-size:13px;padding:20px">暂无提醒</div>
+    </div>
+  </div>
+</aside>
 <!-- ====== 设置抽屉（从右侧滑入）====== -->
 <div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
 <aside class="drawer" id="drawer">
@@ -866,6 +896,8 @@ async function initApp() {
   renderHome();
   renderInsight();
   loadDailyQuestion();
+  // v6.5.9 启动提醒到期检查
+  startReminderCheck();
 }
 
 async function loadDailyQuestion() {
@@ -4391,6 +4423,9 @@ function renderEngDashboard(){
     html += '</div>';
   }
 
+  // v6.5.9 周对周/月对月数据对比图
+  html += renderTrendComparison();
+
   // 即使没有数据，也至少显示一张说明性卡片，让用户知道功能在正常工作
   if(!html){
     html = '<div style="background:linear-gradient(135deg,#EEF2FF 0%,#E0E7FF 100%);border-radius:14px;padding:14px 16px;margin-bottom:8px;">';
@@ -4417,6 +4452,78 @@ function renderEngDashboard(){
       renderBarChart('afBars', s.antifragile.dimensions);
     }
   }, 50);
+}
+
+// ============ v6.5.9 周对周/月对月数据对比 ============
+function renderTrendComparison() {
+  // 统计本周 vs 上周、本月 vs 上月的记录数
+  var now = new Date();
+  var thisWeekStart = new Date(now); thisWeekStart.setDate(now.getDate() - now.getDay()); thisWeekStart.setHours(0,0,0,0);
+  var lastWeekStart = new Date(thisWeekStart); lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+  var thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  var lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  var lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  var modules = ['finance','sleep','exercise','emotion','diet','diary','learn','todo','health','pet'];
+  var thisWeek = 0, lastWeek = 0, thisMonth = 0, lastMonth = 0;
+
+  for (var i = 0; i < modules.length; i++) {
+    var data = dataCache[modules[i]] || [];
+    for (var j = 0; j < data.length; j++) {
+      var ts = new Date(data[j].created || data[j].date || '').getTime();
+      if (isNaN(ts)) continue;
+      if (ts >= thisWeekStart.getTime()) thisWeek++;
+      else if (ts >= lastWeekStart.getTime()) lastWeek++;
+      if (ts >= thisMonthStart.getTime()) thisMonth++;
+      else if (ts >= lastMonthStart.getTime() && ts <= lastMonthEnd.getTime()) lastMonth++;
+    }
+  }
+
+  // 至少有一些数据才显示
+  if (thisWeek + lastWeek + thisMonth + lastMonth === 0) return '';
+
+  var weekDelta = thisWeek - lastWeek;
+  var monthDelta = thisMonth - lastMonth;
+  var weekPct = lastWeek > 0 ? Math.round((weekDelta / lastWeek) * 100) : (thisWeek > 0 ? 100 : 0);
+  var monthPct = lastMonth > 0 ? Math.round((monthDelta / lastMonth) * 100) : (thisMonth > 0 ? 100 : 0);
+
+  function trendArrow(delta) { return delta > 0 ? '↑' : delta < 0 ? '↓' : '→'; }
+  function trendColor(delta) { return delta > 0 ? 'var(--c-success,#10B981)' : delta < 0 ? 'var(--c-danger,#EF4444)' : 'var(--c-fg-3)'; }
+
+  // 简单柱状对比图（CSS div-based）
+  var maxWeek = Math.max(thisWeek, lastWeek, 1);
+  var maxMonth = Math.max(thisMonth, lastMonth, 1);
+  var weekBarH = 60, monthBarH = 60;
+
+  var html = '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
+  html += '<div style="font-size:12px;font-weight:600;color:var(--c-fg-2);margin-bottom:10px;">📊 数据对比</div>';
+
+  // 周对比
+  html += '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;">';
+  html += '<div style="flex:1;">';
+  html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:4px;">本周 vs 上周</div>';
+  html += '<div style="display:flex;align-items:flex-end;gap:6px;height:' + weekBarH + 'px;">';
+  html += '<div style="flex:1;text-align:center;"><div style="background:var(--c-accent,#E8A838);border-radius:4px 4px 0 0;height:' + Math.max(4, (thisWeek/maxWeek)*weekBarH) + 'px;transition:height 0.3s;"></div><div style="font-size:11px;color:var(--c-fg);margin-top:2px;font-weight:600;">' + thisWeek + '</div><div style="font-size:9px;color:var(--c-fg-3);">本周</div></div>';
+  html += '<div style="flex:1;text-align:center;"><div style="background:var(--c-border,#E5E7EB);border-radius:4px 4px 0 0;height:' + Math.max(4, (lastWeek/maxWeek)*weekBarH) + 'px;transition:height 0.3s;"></div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px;">' + lastWeek + '</div><div style="font-size:9px;color:var(--c-fg-3);">上周</div></div>';
+  html += '</div>';
+  html += '</div>';
+  html += '<div style="text-align:right;"><span style="font-size:18px;font-weight:700;color:' + trendColor(weekDelta) + ';">' + trendArrow(weekDelta) + '</span><span style="font-size:12px;color:' + trendColor(weekDelta) + ';font-weight:600;">' + (weekDelta > 0 ? '+' : '') + weekDelta + '</span><div style="font-size:10px;color:var(--c-fg-3);">' + (weekPct > 0 ? '+' : '') + weekPct + '%</div></div>';
+  html += '</div>';
+
+  // 月对比
+  html += '<div style="display:flex;justify-content:space-between;align-items:flex-end;">';
+  html += '<div style="flex:1;">';
+  html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:4px;">本月 vs 上月</div>';
+  html += '<div style="display:flex;align-items:flex-end;gap:6px;height:' + monthBarH + 'px;">';
+  html += '<div style="flex:1;text-align:center;"><div style="background:var(--c-primary,#2C3E5C);border-radius:4px 4px 0 0;height:' + Math.max(4, (thisMonth/maxMonth)*monthBarH) + 'px;transition:height 0.3s;"></div><div style="font-size:11px;color:var(--c-fg);margin-top:2px;font-weight:600;">' + thisMonth + '</div><div style="font-size:9px;color:var(--c-fg-3);">本月</div></div>';
+  html += '<div style="flex:1;text-align:center;"><div style="background:var(--c-border,#E5E7EB);border-radius:4px 4px 0 0;height:' + Math.max(4, (lastMonth/maxMonth)*monthBarH) + 'px;transition:height 0.3s;"></div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px;">' + lastMonth + '</div><div style="font-size:9px;color:var(--c-fg-3);">上月</div></div>';
+  html += '</div>';
+  html += '</div>';
+  html += '<div style="text-align:right;"><span style="font-size:18px;font-weight:700;color:' + trendColor(monthDelta) + ';">' + trendArrow(monthDelta) + '</span><span style="font-size:12px;color:' + trendColor(monthDelta) + ';font-weight:600;">' + (monthDelta > 0 ? '+' : '') + monthDelta + '</span><div style="font-size:10px;color:var(--c-fg-3);">' + (monthPct > 0 ? '+' : '') + monthPct + '%</div></div>';
+  html += '</div>';
+
+  html += '</div>';
+  return html;
 }
 
 // ============ 阶段4：SVG 图表可视化 ============
@@ -4642,6 +4749,161 @@ function exportCSV(){
   a.download = 'qiezi_export_' + TODAY + '.csv';
   a.click();
   alert('✅ CSV 已导出（' + (rows.length - 1) + ' 条记录），可用 Excel 打开');
+}
+
+// ============ v6.5.9 提醒系统 ============
+var _reminderCheckTimer = null;
+
+function openReminderCenter() {
+  document.getElementById('reminderMask').classList.add('act');
+  document.getElementById('reminderDrawer').classList.add('act');
+  renderReminderList();
+}
+function closeReminderCenter() {
+  document.getElementById('reminderMask').classList.remove('act');
+  document.getElementById('reminderDrawer').classList.remove('act');
+}
+
+function addReminder() {
+  var title = document.getElementById('reminderTitle').value.trim();
+  var date = document.getElementById('reminderDate').value;
+  var time = document.getElementById('reminderTime').value;
+  var repeat = document.getElementById('reminderRepeat').value;
+  if (!title) { alert('请输入提醒内容'); return; }
+  if (!date || !time) { alert('请选择日期和时间'); return; }
+  var datetime = date + 'T' + time + ':00';
+  var reminders = dataCache['reminder'] || [];
+  reminders.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    title: title,
+    datetime: datetime,
+    repeat: repeat,
+    enabled: true,
+    lastTriggered: null,
+    createdAt: new Date().toISOString()
+  });
+  dataCache['reminder'] = reminders;
+  apiFetch('reminder', { method: 'POST', body: JSON.stringify(reminders) });
+  // 清空表单
+  document.getElementById('reminderTitle').value = '';
+  document.getElementById('reminderDate').value = '';
+  document.getElementById('reminderTime').value = '';
+  document.getElementById('reminderRepeat').value = 'none';
+  renderReminderList();
+  startReminderCheck();
+}
+
+function deleteReminder(id) {
+  if (!confirm('删除这条提醒？')) return;
+  var reminders = (dataCache['reminder'] || []).filter(function(r) { return r.id !== id; });
+  dataCache['reminder'] = reminders;
+  apiFetch('reminder', { method: 'POST', body: JSON.stringify(reminders) });
+  renderReminderList();
+}
+
+function toggleReminder(id) {
+  var reminders = dataCache['reminder'] || [];
+  for (var i = 0; i < reminders.length; i++) {
+    if (reminders[i].id === id) {
+      reminders[i].enabled = !reminders[i].enabled;
+      break;
+    }
+  }
+  dataCache['reminder'] = reminders;
+  apiFetch('reminder', { method: 'POST', body: JSON.stringify(reminders) });
+  renderReminderList();
+}
+
+function renderReminderList() {
+  var reminders = dataCache['reminder'] || [];
+  var container = document.getElementById('reminderList');
+  if (reminders.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--c-fg-2);font-size:13px;padding:20px">暂无提醒</div>';
+    return;
+  }
+  // 按时间排序
+  reminders.sort(function(a, b) {
+    return new Date(a.datetime).getTime() - new Date(b.datetime).getTime();
+  });
+  var now = Date.now();
+  container.innerHTML = reminders.map(function(r) {
+    var dt = new Date(r.datetime);
+    var isPast = dt.getTime() < now;
+    var isDue = isPast && r.repeat === 'none' && !r.lastTriggered;
+    var repeatLabel = r.repeat === 'none' ? '一次性' : r.repeat === 'daily' ? '🔁 每天' : r.repeat === 'weekly' ? '🔁 每周' : '🔁 每月';
+    var dateStr = (dt.getMonth() + 1) + '月' + dt.getDate() + '日 ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+    var bg = isDue ? 'background:rgba(232,88,88,0.1);border:1px solid var(--c-danger,#E85858)' : 'background:var(--c-surface)';
+    var opacity = r.enabled === false ? 'opacity:0.45' : '';
+    return '<div style="' + bg + ';' + opacity + ';border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:14px;font-weight:600;color:var(--c-fg);margin-bottom:2px">' + (r.title || '未命名') + '</div>' +
+        '<div style="font-size:12px;color:var(--c-fg-2)">' + dateStr + ' · ' + repeatLabel + (isDue ? ' · 🔴 已到期' : '') + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-shrink:0">' +
+        '<button onclick="toggleReminder(\'' + r.id + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:4px">' + (r.enabled === false ? '🔇' : '🔊') + '</button>' +
+        '<button onclick="deleteReminder(\'' + r.id + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:4px">🗑️</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// 定时检查到期提醒（每 60 秒）
+function startReminderCheck() {
+  if (_reminderCheckTimer) return; // 已启动则不重复
+  _reminderCheckTimer = setInterval(checkDueReminders, 60000);
+  // 首次立即检查
+  setTimeout(checkDueReminders, 3000);
+}
+
+async function checkDueReminders() {
+  var reminders = dataCache['reminder'] || [];
+  if (reminders.length === 0) {
+    updateReminderBadge(0);
+    return;
+  }
+  try {
+    var resp = await fetch('/api/reminders/due');
+    var data = await resp.json();
+    if (data.success) {
+      updateReminderBadge(data.count);
+      // 触发浏览器通知
+      if (data.count > 0 && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          for (var i = 0; i < data.due.length; i++) {
+            var r = data.due[i];
+            new Notification('🔔 茄子管家提醒', { body: r.title || '你有到期提醒', icon: '/icon-192.png' });
+            // 标记已触发
+            markReminderTriggered(r.id);
+          }
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission();
+        }
+      }
+    }
+  } catch(e) { /* 静默失败 */ }
+}
+
+function updateReminderBadge(count) {
+  var badge = document.getElementById('remindBadge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.style.display = 'inline-block';
+    badge.textContent = count > 9 ? '9+' : String(count);
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function markReminderTriggered(id) {
+  var reminders = dataCache['reminder'] || [];
+  for (var i = 0; i < reminders.length; i++) {
+    if (reminders[i].id === id) {
+      reminders[i].lastTriggered = new Date().toISOString();
+      break;
+    }
+  }
+  dataCache['reminder'] = reminders;
+  apiFetch('reminder', { method: 'POST', body: JSON.stringify(reminders) });
 }
 async function restoreLatest(){
   if(!confirm('⚠️ 确定恢复最近备份？\n当前数据会先做一个快照备份，然后恢复到最近一次备份状态。\n恢复后页面自动刷新。')) return;

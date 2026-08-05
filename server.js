@@ -5146,7 +5146,7 @@ const VALID_MODULES = new Set([
   'interview','skill','work_mode','reading','bills','contacts','housework','mindfulness',
   'belief','character','selfImage','entropy','fragility','northstar','crisis','dyingTest',
   'annualNarrative','captainManifest','energy','reflection','rootCause','gameTheory',
-  'discipline','review','habit_checkin','plan','growth_stage','journey','wisdom'
+  'discipline','review','habit_checkin','plan','growth_stage','journey','wisdom','reminder'
 ]);
 function isModuleAllowed(m) {
   if (!m || typeof m !== 'string') return false;
@@ -5254,13 +5254,56 @@ function sanitizeInputData(module, data) {
   return sanitized;
 }
 
+// ============ v6.5.9 提醒系统：到期检查端点 ============
+app.get('/api/reminders/due', (req, res) => {
+  try {
+    const reminders = readData('reminder');
+    const now = Date.now();
+    const due = [];
+    for (const r of reminders) {
+      if (r.enabled === false) continue;
+      const targetTime = new Date(r.datetime || r.date || '').getTime();
+      if (isNaN(targetTime)) continue;
+      // 判断是否到期：目标时间 <= 当前时间 且 未触发 或 重复提醒
+      const lastTriggered = r.lastTriggered ? new Date(r.lastTriggered).getTime() : 0;
+      if (r.repeat && r.repeat !== 'none') {
+        // 重复提醒：计算最近一次应该触发的时间
+        let nextTrigger = targetTime;
+        if (r.repeat === 'daily') {
+          while (nextTrigger < now) nextTrigger += 86400000;
+        } else if (r.repeat === 'weekly') {
+          while (nextTrigger < now) nextTrigger += 7 * 86400000;
+        } else if (r.repeat === 'monthly') {
+          while (nextTrigger < now) {
+            const d = new Date(nextTrigger);
+            d.setMonth(d.getMonth() + 1);
+            nextTrigger = d.getTime();
+          }
+        }
+        // 如果上次触发时间 < 本次应触发时间，则到期
+        if (lastTriggered < nextTrigger - 86400000 && nextTrigger <= now + 60000) {
+          due.push(r);
+        }
+      } else {
+        // 一次性提醒：目标时间已到且未触发过
+        if (targetTime <= now && lastTriggered === 0) {
+          due.push(r);
+        }
+      }
+    }
+    res.json({ success: true, due, count: due.length });
+  } catch (e) {
+    res.status(500).json({ success: false, message: '提醒检查失败' });
+  }
+});
+
 // ============ 首屏聚合接口：一次性返回所有核心模块数据 ============
 // 替代前端 19 次串行请求，减少网络瀑布，首屏提速 3-5 倍
 app.get('/api/bootstrap', (req, res) => {
   try {
     const BOOTSTRAP_MODULES = [
       'finance','sleep','exercise','emotion','diet','diary','learn','photo','think',
-      'inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo','health'
+      'inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo','health','reminder'
     ];
     const result = {};
     for (const m of BOOTSTRAP_MODULES) {
