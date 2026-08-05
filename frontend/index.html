@@ -416,6 +416,38 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 </div>
 
 <script>
+// ============ 前端错误上报（最早注册，捕获所有运行时错误）============
+function reportClientError(payload) {
+  try {
+    if (navigator.sendBeacon) {
+      var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      navigator.sendBeacon('/api/client-error', blob);
+    }
+  } catch (_) {}
+}
+window.addEventListener('error', function(e) {
+  reportClientError({
+    type: 'error',
+    message: e.message,
+    filename: e.filename,
+    lineno: e.lineno,
+    colno: e.colno,
+    stack: e.error && e.error.stack,
+    url: location.href,
+    userAgent: navigator.userAgent
+  });
+});
+window.addEventListener('unhandledrejection', function(e) {
+  var reason = e.reason;
+  reportClientError({
+    type: 'unhandledrejection',
+    message: (reason && (reason.message || String(reason))) || 'unhandledrejection',
+    stack: reason && reason.stack,
+    url: location.href,
+    userAgent: navigator.userAgent
+  });
+});
+
 var TOKEN_KEY = 'qzos_token';
 var TOKEN = localStorage.getItem(TOKEN_KEY) || '';
 var KEY = 'qzos_';

@@ -223,15 +223,55 @@ echo "      ✅ 日志轮转策略已配置 (10MB/文件, 保留10天, 压缩)"
 pm2 restart eggplant 2>&1 | tail -3 || pm2 start ecosystem.config.js 2>&1 | tail -3 || echo "      ⚠️ PM2 重启失败，请手动 pm2 restart eggplant"
 
 sleep 4
-VERSION=$(curl -s --max-time 5 http://localhost:3000/api/health 2>/dev/null | grep -oE '"version":"[^"]+"' | cut -d'"' -f4)
-if [ -n "$VERSION" ]; then
-  echo ""
-  echo "✅ ===== 部署完成！版本：v$VERSION ====="
-else
-  echo ""
-  echo "⚠️  服务可能还在启动中，请稍后执行：curl http://localhost:3000/api/health"
-  echo "    若持续失败，请执行：pm2 logs eggplant --lines 30 查看错误"
+echo ""
+echo "🧪 部署后冒烟测试..."
+# 1. 健康检查
+HEALTH=$(curl -s --max-time 5 http://localhost:3000/api/health 2>/dev/null)
+if [ -z "$HEALTH" ]; then
+  echo "  ❌ /api/health 无响应"
+  echo "  ⚠️  请执行：pm2 logs eggplant --lines 30 查看错误"
+  exit 1
 fi
+VERSION=$(echo "$HEALTH" | grep -oE '"version":"[^"]+"' | cut -d'"' -f4)
+STATUS=$(echo "$HEALTH" | grep -oE '"status":"[^"]+"' | cut -d'"' -f4)
+UPTIME=$(echo "$HEALTH" | grep -oE '"uptimeSec":[0-9]+' | cut -d':' -f2)
+RSS=$(echo "$HEALTH" | grep -oE '"rssBytes":[0-9]+' | cut -d':' -f2)
+DB_CONN=$(echo "$HEALTH" | grep -oE '"connected":(true|false)' | head -1 | cut -d':' -f2)
+RECENTLY=$(echo "$HEALTH" | grep -oE '"recentlyRestarted":(true|false)' | cut -d':' -f2)
+echo "  健康检查: status=$STATUS, version=$VERSION, uptime=${UPTIME}s, rss=$((${RSS:-0}/1024/1024))MB"
+echo "  数据库连接: $DB_CONN"
+if [ "$STATUS" != "ok" ]; then
+  echo "  ❌ 健康检查 status 异常，部署可能未完全成功"
+  exit 1
+fi
+if [ "$DB_CONN" != "true" ]; then
+  echo "  ❌ 数据库未连接，服务不可用"
+  exit 1
+fi
+if [ "$RECENTLY" = "true" ]; then
+  echo "  ⚠️  进程刚重启（uptime<90s），可能是崩溃后被 PM2 拉起，建议查看 pm2 logs eggplant --lines 50"
+fi
+
+# 2. 静态资源检查
+HTML_STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:3000/ 2>/dev/null)
+if [ "$HTML_STATUS" = "200" ]; then
+  echo "  首页: 200 OK ✅"
+else
+  echo "  ⚠️  首页 HTTP $HTML_STATUS（非200，前端可能无法访问）"
+fi
+
+# 3. 关键路由存在性检查（需认证端点返回 401 说明路由已注册）
+for ep in /api/me /api/eng/dashboard /api/maintenance/status; do
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://localhost:3000$ep" 2>/dev/null)
+  if [ "$CODE" = "401" ] || [ "$CODE" = "200" ]; then
+    echo "  路由 $ep: ✅ 存在 ($CODE)"
+  else
+    echo "  路由 $ep: ⚠️  HTTP $CODE"
+  fi
+done
+
+echo ""
+echo "✅ ===== 部署完成！版本：v$VERSION ====="
 
 # 最终数据 + 配置确认
 echo ""

@@ -11,6 +11,7 @@ const pino = require('pino');
 require('dotenv').config();
 const app = express();
 const PORT = 3000;
+const APP_VERSION = require('./package.json').version;
 // 信任一层反向代理（腾讯云/PM2 前置代理会转发 X-Forwarded-For）。
 // 不设置则 express-rate-limit v8 会抛 ERR_ERL_UNEXPECTED_X_FORWARDED_FOR，登录限流失效。
 app.set('trust proxy', 1);
@@ -19,7 +20,7 @@ app.set('trust proxy', 1);
 // 生产环境输出 JSON，便于 PM2/grep 分析；本地开发可用 LOG_PRETTY=1 美化
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  base: { service: 'qiezi-app', version: '6.4.0' },
+  base: { service: 'qiezi-app', version: APP_VERSION },
   timestamp: pino.stdTimeFunctions.isoTime,
   transport: process.env.LOG_PRETTY === '1' ? {
     target: 'pino-pretty',
@@ -435,11 +436,14 @@ if (fs.existsSync(path.join(__dirname, 'frontend'))) {
 }
 
 // ============ 公开路由（无需认证）============
-// 深度健康检查：DB 连通性 + 磁盘空间 + 备份状态
+// 深度健康检查：DB 连通性 + 磁盘空间 + 备份状态 + 进程状态
 app.get('/api/health', (req, res) => {
   try {
     db.prepare('SELECT 1').get();
     const dbSize = fs.statSync(DB_PATH).size;
+    // WAL 文件大小（过大提示需要 checkpoint）
+    let walSize = 0;
+    try { walSize = fs.statSync(DB_PATH + '-wal').size; } catch (e) {}
     let diskFree = null;
     try {
       const stats = fs.statfsSync ? fs.statfsSync(DATA_DIR) : null;
@@ -452,15 +456,44 @@ app.get('/api/health', (req, res) => {
     const latestBackup = backups[0];
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     const backupHealthy = latestBackup ? latestBackup.mtime > oneDayAgo : false;
+    const mem = process.memoryUsage();
+    const uptimeSec = process.uptime();
     res.json({
       status: 'ok',
-      version: '6.4.0',
-      db: { connected: true, size: dbSize },
+      version: APP_VERSION,
+      db: { connected: true, size: dbSize, walSize },
       disk: { freeBytes: diskFree },
-      backup: { count: backups.length, healthy: backupHealthy, latest: latestBackup ? latestBackup.name : null }
+      backup: { count: backups.length, healthy: backupHealthy, latest: latestBackup ? latestBackup.name : null },
+      process: {
+        pid: process.pid,
+        uptimeSec: Math.round(uptimeSec),
+        rssBytes: mem.rss,
+        heapUsedBytes: mem.heapUsed,
+        heapTotalBytes: mem.heapTotalBytes,
+        nodeVersion: process.version,
+        // uptime < 90s 提示刚重启过（可能是崩溃后被 PM2 拉起）
+        recentlyRestarted: uptimeSec < 90
+      }
     });
   } catch (e) {
-    res.status(503).json({ status: 'error', version: '6.4.0', message: e.message });
+    res.status(503).json({ status: 'error', version: APP_VERSION, message: e.message });
+  }
+});
+
+// 前端错误上报：接收浏览器运行时错误（window.onerror / unhandledrejection），写入日志便于排查
+// 公开端点（无需认证）：报错时 token 可能已失效，不能被 requireAuth 拦截
+app.post('/api/client-error', (req, res) => {
+  try {
+    const b = req.body || {};
+    logger.error({
+      type: b.type || 'error',
+      msg: b.message,
+      filename: b.filename, lineno: b.lineno, colno: b.colno,
+      stack: b.stack, url: b.url, ua: b.userAgent
+    }, 'client-error');
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false });
   }
 });
 
