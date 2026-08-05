@@ -3738,7 +3738,71 @@ app.post('/api/record/add', (req, res) => {
       } catch (e) { console.error('[linkage] work→time:', e.message); }
     }
   }
-  // 6. 居住记录：花费→财务；购买/丢弃→库存
+  // 6. 饮食外卖/堂食/零食 → 自动创建财务支出记录（v6.8.0 A1）
+  if (mid === 'diet' && !editId && data.cost && parseFloat(data.cost) > 0
+      && ['外卖','堂食','零食'].indexOf(data.source) !== -1) {
+    if (!hasLinked('finance', 'diet', linkId)) {
+      try {
+        const finList = readData('finance');
+        // source → category 映射：外卖/堂食→餐饮，零食→购物
+        const cat = data.source === '零食' ? '购物' : '餐饮';
+        finList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          type: '支出', amount: parseFloat(data.cost), category: cat,
+          content: (data.source || '餐饮') + ' - ' + (data.meal || '') + ' ' + (data.content || ''),
+          paymentMethod: '', date: linkDate,
+          _linkedModule: 'diet', _linkedId: linkId, created: new Date().toISOString()
+        });
+        writeData('finance', finList);
+        linkedModules.push('finance');
+      } catch (e) { console.error('[linkage] diet→finance:', e.message); }
+    }
+  }
+  // 7. 日记心情 → 自动创建情绪记录（v6.8.0 A2）
+  if (mid === 'diary' && !editId && data.mood) {
+    if (!hasLinked('emotion', 'diary', linkId)) {
+      try {
+        // mood emoji → rating 映射
+        const moodMap = {'😊开心':9,'🥰感恩':9,'😌平静':7,'😐平淡':5,'🤔迷茫':5,'😴疲惫':4,'😔低落':3,'😤烦躁':2};
+        const rating = moodMap[data.mood];
+        if (rating) {
+          const emoList = readData('emotion');
+          emoList.push({
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+            rating: rating, trigger: '日记回填',
+            content: (data.mood + ' · ') + (data.highlight ? String(data.highlight).substring(0, 40) : (data.content ? String(data.content).substring(0, 40) : '今日日记')),
+            physical: data.energy && parseInt(data.energy) <= 3 ? '疲惫' : '',
+            date: linkDate,
+            _linkedModule: 'diary', _linkedId: linkId, created: new Date().toISOString()
+          });
+          writeData('emotion', emoList);
+          linkedModules.push('emotion');
+        }
+      } catch (e) { console.error('[linkage] diary→emotion:', e.message); }
+    }
+  }
+  // 8. 库存补货 → 自动创建财务支出记录（v6.8.0 A3）
+  if (mid === 'inventory' && !editId && data.restockQty && parseFloat(data.restockQty) > 0
+      && data.restockPrice && parseFloat(data.restockPrice) > 0) {
+    if (!hasLinked('finance', 'inventory', linkId)) {
+      try {
+        const finList = readData('finance');
+        // category 映射：书籍→教育，电子产品/衣物/...→购物
+        const cat = data.category === '书籍' ? '教育' : '购物';
+        const totalAmount = parseFloat(data.restockQty) * parseFloat(data.restockPrice);
+        finList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          type: '支出', amount: totalAmount, category: cat,
+          content: '补货 - ' + (data.name || '物品') + ' ×' + data.restockQty,
+          paymentMethod: '', date: linkDate,
+          _linkedModule: 'inventory', _linkedId: linkId, created: new Date().toISOString()
+        });
+        writeData('finance', finList);
+        linkedModules.push('finance');
+      } catch (e) { console.error('[linkage] inventory→finance:', e.message); }
+    }
+  }
+  // 9. 居住记录：花费→财务；购买/丢弃→库存
   if (mid === 'home' && !editId) {
     // 6a 花费自动记账
     if (data.cost && parseFloat(data.cost) > 0) {
