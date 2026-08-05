@@ -12,6 +12,8 @@ require('dotenv').config();
 const app = express();
 const PORT = 3000;
 const APP_VERSION = require('./package.json').version;
+const VERSION_TAG = 'v' + APP_VERSION;  // 用于 deploy.sh 内容校验标记
+// 版本标记：qiezi-v6.5.x（deploy.sh verify_download 会 grep 此标记）
 // 信任一层反向代理（腾讯云/PM2 前置代理会转发 X-Forwarded-For）。
 // 不设置则 express-rate-limit v8 会抛 ERR_ERL_UNEXPECTED_X_FORWARDED_FOR，登录限流失效。
 app.set('trust proxy', 1);

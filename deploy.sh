@@ -13,7 +13,7 @@ cd "$APP_DIR"
 ( sleep 300 && echo "❌ 部署总时长超 5 分钟，已强制终止。请把上方输出贴给我" && kill -TERM $$ 2>/dev/null ) &
 WATCHDOG_PID=$!
 
-echo "🍆 ===== 茄子管家安全部署 v6.4.1 ====="
+echo "🍆 ===== 茄子管家安全部署 v6.4.2 ====="
 echo "⏱️  开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
@@ -163,8 +163,16 @@ fi
 # 下载源顺序（针对国内网络优化）：
 # 1. jsDelivr @main（已 purge，国内访问快）
 # 2. jsDelivr @commit（绕过缓存，最可靠）
+# 版本标记（动态从仓库 package.json 读取，避免脚本与代码版本不同步）
+REMOTE_VERSION=$(curl -fsSL --max-time 10 "$CDN_URL/package.json" 2>/dev/null | grep -oE '"version":"[0-9.]+"' | head -1 | cut -d'"' -f4)
+if [ -z "$REMOTE_VERSION" ]; then
+  REMOTE_VERSION="6.5"  # 兜底
+fi
+VERSION_TAG="v${REMOTE_VERSION%.*}"  # 取主次版本，如 6.5.1 → v6.5
+echo "      🏷️  目标版本标记: $VERSION_TAG"
+
 # 3. GitHub raw（国内可能超时，作为最后备用）
-try_download_verified server.js "v6.4" \
+try_download_verified server.js "$VERSION_TAG" \
   "$CDN_URL/server.js" \
   "$CDN_COMMIT_URL/server.js" \
   "$GH_URL/server.js" || { echo "❌ server.js 下载失败"; exit 1; }
@@ -179,7 +187,7 @@ try_download_verified frontend/index.html "engDashboard" \
   "$CDN_COMMIT_URL/frontend/index.html" \
   "$GH_URL/frontend/index.html" || { echo "❌ frontend/index.html 下载失败"; exit 1; }
 # sw.js 必须成功（SW 旧版本会缓存旧 HTML，导致前端永远看不到新功能）
-try_download_verified frontend/sw.js "qiezi-v6.4" \
+try_download_verified frontend/sw.js "$VERSION_TAG" \
   "$CDN_URL/frontend/sw.js" \
   "$CDN_COMMIT_URL/frontend/sw.js" \
   "$GH_URL/frontend/sw.js" || { echo "❌ frontend/sw.js 下载失败（关键文件，必须成功）"; exit 1; }
