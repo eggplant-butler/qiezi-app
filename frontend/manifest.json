@@ -1,0 +1,26 @@
+{
+  "name": "茄子管家 · 船长版",
+  "short_name": "茄子管家",
+  "description": "个人成长管家：记录·洞察·行动闭环",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#6366F1",
+  "theme_color": "#6366F1",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

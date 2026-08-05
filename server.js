@@ -3534,6 +3534,43 @@ app.get('/api/eng/anti-human-nature', (req, res) => {
   res.json({ ...result, generatedAt: new Date().toISOString(), sampleSize: hist.length });
 });
 
+// ---------- 7. 认知仪表盘（一次聚合所有深度分析，减少前端请求） ----------
+app.get('/api/eng/dashboard', (req, res) => {
+  const result = { generatedAt: new Date().toISOString(), sections: {} };
+  try {
+    const hist = ENG.buildHistory();
+    result.sampleSize = hist.length;
+    // 风险
+    try { result.sections.risks = ENG.risks(hist) || []; } catch (e) { result.sections.risks = []; }
+    // 反熵增
+    try { result.sections.entropy = ENG.entropyMonitor(); } catch (e) { result.sections.entropy = null; }
+    // 反脆弱
+    try { result.sections.antifragile = ENG.antifragile(); } catch (e) { result.sections.antifragile = null; }
+    // 轨迹 30 天
+    try { result.sections.trajectory = ENG.trajectory(hist, 30); } catch (e) { result.sections.trajectory = null; }
+    // 元认知
+    try { result.sections.metacognition = ENG.metacognition(hist); } catch (e) { result.sections.metacognition = null; }
+    // 认知偏差
+    try { result.sections.cognitiveBias = ENG.cognitiveBias(hist); } catch (e) { result.sections.cognitiveBias = null; }
+    // 自我画像
+    try { result.sections.selfPortrait = ENG.selfPortrait(); } catch (e) { result.sections.selfPortrait = null; }
+    // 品格雷达
+    try { result.sections.characterRadar = ENG.characterRadar(); } catch (e) { result.sections.characterRadar = null; }
+    // 能量审计
+    try { result.sections.energyAudit = ENG.energyAudit(); } catch (e) { result.sections.energyAudit = null; }
+    // 自动复盘（本周）
+    try { result.sections.autoReview = ENG.autoReview('week'); } catch (e) { result.sections.autoReview = null; }
+    // 反人性
+    try { result.sections.antiHumanNature = ENG.antiHumanNature(hist); } catch (e) { result.sections.antiHumanNature = null; }
+    // 价值观澄清
+    try { result.sections.valuesClarification = ENG.valuesClarification(hist); } catch (e) { result.sections.valuesClarification = null; }
+  } catch (e) {
+    console.error('[eng/dashboard]', e.message);
+    result.error = e.message;
+  }
+  res.json(result);
+});
+
 // ============================================================
 // 保存记录（带认知反馈）API
 // ============================================================
@@ -3890,6 +3927,86 @@ app.delete('/api/habit/checkin/:hid/:date', (req, res) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const streak = calcStreak(filtered, todayStr);
   res.json({ success: true, removed: checkins.length - filtered.length, streak });
+});
+
+// ============================================================
+// v6.4.2 行动闭环：todo 状态机 + 建议转任务
+// ============================================================
+// 待办状态机：切换 todo 状态（待办/进行中/已完成/已取消）
+app.post('/api/todo/:id/status', (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatus = ['待办', '进行中', '已完成', '已取消'];
+    if (!validStatus.includes(status)) {
+      return res.json({ success: false, message: '无效状态，可选：' + validStatus.join('/') });
+    }
+    const list = readData('todo');
+    const item = list.find(t => String(t.id) === String(req.params.id));
+    if (!item) return res.json({ success: false, message: '待办不存在' });
+    const oldStatus = item.status || '待办';
+    item.status = status;
+    if (status === '已完成' && !item.completedAt) item.completedAt = new Date().toISOString();
+    if (status !== '已完成') { delete item.completedAt; }
+    item.updatedAt = new Date().toISOString();
+    writeData('todo', list);
+    res.json({ success: true, item, oldStatus, newStatus: status });
+  } catch (e) {
+    console.error('[todo/status]', e.message);
+    res.status(500).json({ success: false, message: '状态更新失败' });
+  }
+});
+
+// 待办按状态分组
+app.get('/api/todo/by-status', (req, res) => {
+  try {
+    const list = readData('todo');
+    const groups = { '待办': [], '进行中': [], '已完成': [], '已取消': [] };
+    list.forEach(t => {
+      const s = t.status || '待办';
+      if (groups[s]) groups[s].push(t);
+    });
+    // 待办按优先级排序（高-紧急 > 中-重要 > 低-有空做）
+    const pOrder = { '高-紧急': 0, '中-重要': 1, '低-有空做': 2 };
+    ['待办', '进行中'].forEach(s => {
+      groups[s].sort((a, b) => (pOrder[a.priority] || 3) - (pOrder[b.priority] || 3));
+    });
+    // 已完成按完成时间倒序
+    groups['已完成'].sort((a, b) => (a.completedAt < b.completedAt ? 1 : -1));
+    res.json(groups);
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// 建议 → 任务：把 insights.suggestion 转为 todo 记录
+app.post('/api/suggestion/to-todo', (req, res) => {
+  try {
+    const { text, priority, dueDate, module } = req.body;
+    if (!text) return res.json({ success: false, message: '建议文本不能为空' });
+    const list = readData('todo');
+    // 去重：同文本建议 7 天内不重复创建
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const exists = list.some(t => t.title === text && t.createdAt >= sevenDaysAgo);
+    if (exists) return res.json({ success: false, message: '该建议近7天已转为任务', duplicate: true });
+    const item = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      title: text,
+      category: '生活',
+      priority: ['高-紧急', '中-重要', '低-有空做'].includes(priority) ? priority : '中-重要',
+      status: '待办',
+      dueDate: dueDate || '',
+      content: '由认知引擎建议自动生成' + (module ? '（来源模块：' + module + '）' : ''),
+      date: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+      source: 'suggestion'
+    };
+    list.push(item);
+    writeData('todo', list);
+    res.json({ success: true, item });
+  } catch (e) {
+    console.error('[suggestion/to-todo]', e.message);
+    res.status(500).json({ success: false, message: '转换失败' });
+  }
 });
 
 // ============================================================
