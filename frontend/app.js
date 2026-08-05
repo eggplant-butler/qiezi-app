@@ -640,6 +640,47 @@ function renderDetail(id){
     }
     extraHtml += '</div>';
   }
+  // 库存预警面板：统计低于补货阈值的物品
+  if(id === 'inventory' && data.length > 0){
+    var lowItems = [];
+    data.forEach(function(it){
+      var qty = parseInt(it.quantity) || 0;
+      // 阈值优先用 minStock，否则默认 ≤1 为低库存；忽略已闲置/已丢弃
+      var declutter = it.declutter || '';
+      if (declutter.indexOf('丢弃') !== -1 || declutter.indexOf('捐赠') !== -1 || declutter.indexOf('出售') !== -1) return;
+      var threshold = parseInt(it.minStock);
+      var isLow = isNaN(threshold) ? qty <= 1 : qty <= threshold;
+      if (isLow) {
+        lowItems.push({ name: it.name || '未命名', qty: qty, threshold: isNaN(threshold) ? 1 : threshold, usageFreq: it.usageFreq || '' });
+      }
+    });
+    if (lowItems.length > 0) {
+      // 按使用频率排序：每日 > 每周 > 每月 > 其他
+      var freqOrder = {'每日':0,'每周':1,'每月':2};
+      lowItems.sort(function(a,b){
+        var oa = freqOrder[a.usageFreq] !== undefined ? freqOrder[a.usageFreq] : 9;
+        var ob = freqOrder[b.usageFreq] !== undefined ? freqOrder[b.usageFreq] : 9;
+        return oa - ob;
+      });
+      var urgentCount = lowItems.filter(function(x){ return x.usageFreq === '每日' || x.usageFreq === '每周'; }).length;
+      var alertBg = urgentCount > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)';
+      var alertBorder = urgentCount > 0 ? '#EF4444' : '#F59E0B';
+      var alertTitle = urgentCount > 0 ? '⚠️ 急需补货' : '📦 低库存提醒';
+      extraHtml += '<div style="background:'+alertBg+';border-radius:14px;padding:12px 14px;margin-bottom:14px;border-left:3px solid '+alertBorder+';box-shadow:0 2px 10px rgba(0,0,0,.04);">';
+      extraHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+      extraHtml += '<span style="font-size:13px;font-weight:700;color:'+alertBorder+';">'+alertTitle+' · '+lowItems.length+'件</span>';
+      extraHtml += '<button onclick="openAdd()" style="background:linear-gradient(135deg,#F59E0B,#EA580C);border:none;border-radius:8px;padding:6px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">+ 补货</button>';
+      extraHtml += '</div>';
+      lowItems.forEach(function(it){
+        var freqTag = it.usageFreq ? '<span style="font-size:10px;color:var(--c-fg-3);margin-left:6px;">'+escapeHtml(it.usageFreq)+'</span>' : '';
+        extraHtml += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px dashed rgba(0,0,0,0.05);">';
+        extraHtml += '<span style="color:var(--c-fg);">'+escapeHtml(it.name)+freqTag+'</span>';
+        extraHtml += '<span style="color:'+alertBorder+';font-weight:600;">余 '+it.qty+' / 阈值 '+it.threshold+'</span>';
+        extraHtml += '</div>';
+      });
+      extraHtml += '</div>';
+    }
+  }
   // 宠物仪表盘：跨模块联动面板（花费汇总 + 物资状态 + 就医记录）
   if(id === 'pet' && petDashCache && petDashCache.totalRecords !== undefined){
     var pd = petDashCache;
@@ -1058,6 +1099,7 @@ var MODAL_FORMS = {
       {key:'name', label:'物品名称', type:'text', placeholder:'如：笔记本电脑'},
       {key:'category', label:'分类', type:'select', options:['电子产品','衣物','书籍','厨具','家具','美妆','运动','文具','其他']},
       {key:'quantity', label:'数量', type:'number', placeholder:'1'},
+      {key:'minStock', label:'补货阈值', type:'number', placeholder:'低于此值提醒补货，如 2'},
       {key:'restockQty', label:'本次补货数量', type:'number', placeholder:'补货填此处，自动记账'},
       {key:'restockPrice', label:'本次补货单价(¥)', type:'number', placeholder:'补货单价，自动算总额记账'},
       {key:'price', label:'购入价格(¥)', type:'number', placeholder:'如 5999'},
