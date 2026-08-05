@@ -1,8 +1,9 @@
 #!/bin/bash
 # ============================================================
-# 茄子管家 安全部署脚本 v6.4.1
+# 茄子管家 安全部署脚本 v6.5.7
 # 核心原则：永不触碰 data/ 和 backups/ 目录，保护 .env
 # 用法：cd ~/qiezi-app && bash deploy.sh
+# v6.5.7 修复：@commit 优先下载，移除 purge CDN 步骤（不再卡死）
 # v6.4.1 修复：所有网络步骤加超时，npm 用国内镜像兜底，避免卡死
 # ============================================================
 # 不用 set -e，改为关键步骤手动检查（避免某步失败直接退出让人以为卡住）
@@ -13,7 +14,7 @@ cd "$APP_DIR"
 ( sleep 300 && echo "❌ 部署总时长超 5 分钟，已强制终止。请把上方输出贴给我" && kill -TERM $$ 2>/dev/null ) &
 WATCHDOG_PID=$!
 
-echo "🍆 ===== 茄子管家安全部署 v6.4.2 ====="
+echo "🍆 ===== 茄子管家安全部署 v6.5.7 ====="
 echo "⏱️  开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
@@ -139,14 +140,6 @@ try_download_verified() {
 GH_URL="https://raw.githubusercontent.com/eggplant-butler/qiezi-app/main"
 CDN_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main"
 
-# 先 purge jsDelivr 缓存（国内访问 GitHub raw 经常超时，jsDelivr 是最稳定的源，但有 CDN 缓存）
-echo "      🧹 清理 jsDelivr CDN 缓存..."
-for f in server.js package.json frontend/index.html frontend/sw.js; do
-  curl -fsSL --max-time 20 "https://purge.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/$f" -o /dev/null 2>&1 || true
-done
-sleep 2  # 等 CDN 边缘节点同步
-echo "      ✅ CDN 缓存已清理"
-
 # 尝试拿最新 commit（用于 jsDelivr @commit 路径，绕过 CDN 缓存）
 LATEST_COMMIT=$(git ls-remote https://github.com/eggplant-butler/qiezi-app.git HEAD 2>/dev/null | awk '{print $1}')
 if [ -z "$LATEST_COMMIT" ]; then
@@ -156,40 +149,42 @@ if [ -n "$LATEST_COMMIT" ]; then
   echo "      📌 最新 commit: ${LATEST_COMMIT:0:7}"
   CDN_COMMIT_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@${LATEST_COMMIT}"
 else
-  echo "      ⚠️  无法获取最新 commit，仅用 @main（已 purge，应该是最新的）"
+  echo "      ⚠️  无法获取最新 commit，仅用 @main"
   CDN_COMMIT_URL="$CDN_URL"
 fi
 
-# 下载源顺序（针对国内网络优化）：
-# 1. jsDelivr @main（已 purge，国内访问快）
-# 2. jsDelivr @commit（绕过缓存，最可靠）
+# v6.5.7 修复：@commit 优先（绕过 CDN 缓存），@main 次之，GitHub raw 兜底
+# 之前的 @main 优先策略导致 CDN 缓存返回旧代码，内容校验反复失败卡死
 # 版本标记（动态从仓库 package.json 读取，避免脚本与代码版本不同步）
-REMOTE_VERSION=$(curl -fsSL --max-time 10 "$CDN_URL/package.json" 2>/dev/null | grep -oE '"version":"[0-9.]+"' | head -1 | cut -d'"' -f4)
+REMOTE_VERSION=$(curl -fsSL --max-time 10 "$CDN_COMMIT_URL/package.json" 2>/dev/null | grep -oE '"version":"[0-9.]+"' | head -1 | cut -d'"' -f4)
+if [ -z "$REMOTE_VERSION" ]; then
+  REMOTE_VERSION=$(curl -fsSL --max-time 10 "$CDN_URL/package.json" 2>/dev/null | grep -oE '"version":"[0-9.]+"' | head -1 | cut -d'"' -f4)
+fi
 if [ -z "$REMOTE_VERSION" ]; then
   REMOTE_VERSION="6.5"  # 兜底
 fi
-VERSION_TAG="v${REMOTE_VERSION%.*}"  # 取主次版本，如 6.5.1 → v6.5
+VERSION_TAG="v${REMOTE_VERSION%.*}"  # 取主次版本，如 6.5.7 → v6.5
 echo "      🏷️  目标版本标记: $VERSION_TAG"
 
-# 3. GitHub raw（国内可能超时，作为最后备用）
+# v6.5.7 下载源顺序：@commit 优先 → @main → GitHub raw
 try_download_verified server.js "$VERSION_TAG" \
-  "$CDN_URL/server.js" \
   "$CDN_COMMIT_URL/server.js" \
+  "$CDN_URL/server.js" \
   "$GH_URL/server.js" || { echo "❌ server.js 下载失败"; exit 1; }
 try_download_verified package.json "qiezi" \
-  "$CDN_URL/package.json" \
   "$CDN_COMMIT_URL/package.json" \
+  "$CDN_URL/package.json" \
   "$GH_URL/package.json" || { echo "❌ package.json 下载失败"; exit 1; }
 
 mkdir -p frontend
 try_download_verified frontend/index.html "engDashboard" \
-  "$CDN_URL/frontend/index.html" \
   "$CDN_COMMIT_URL/frontend/index.html" \
+  "$CDN_URL/frontend/index.html" \
   "$GH_URL/frontend/index.html" || { echo "❌ frontend/index.html 下载失败"; exit 1; }
 # sw.js 必须成功（SW 旧版本会缓存旧 HTML，导致前端永远看不到新功能）
 try_download_verified frontend/sw.js "$VERSION_TAG" \
-  "$CDN_URL/frontend/sw.js" \
   "$CDN_COMMIT_URL/frontend/sw.js" \
+  "$CDN_URL/frontend/sw.js" \
   "$GH_URL/frontend/sw.js" || { echo "❌ frontend/sw.js 下载失败（关键文件，必须成功）"; exit 1; }
 
 echo "      ✅ 代码文件已更新 + 内容校验通过（含 sw.js）"
