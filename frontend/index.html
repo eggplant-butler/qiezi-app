@@ -12,7 +12,7 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <!-- 版本指纹：deploy.sh 校验 + 前端自检（版本不匹配时强制刷新） -->
-<meta name="app-version" content="qiezi-v6.6.1">
+<meta name="app-version" content="qiezi-v6.6.2">
 <style>
 /* ========== 深夜书房 设计系统 v6.5.1 ==========
    暗色优先（默认）：暖灰底+米白字+琥珀强调
@@ -82,31 +82,28 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 .skeleton{background:linear-gradient(90deg,var(--c-surface-2) 0%,var(--c-surface) 50%,var(--c-surface-2) 100%);background-size:200% 100%;animation:skeleton-pulse 1.4s ease-in-out infinite;border-radius:var(--r-md)}
 @keyframes skeleton-pulse{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-/* v6.6.0 隐私模式：模糊敏感内容（财务金额、日记内容、情绪记录等） */
+/* v6.6.2 隐私模式：模糊敏感内容（覆盖真实使用的类名） */
 body.privacy-mode .overview-card .num,
-body.privacy-mode .finance-amount,
-body.privacy-mode .diary-content,
-body.privacy-mode .emotion-content,
-body.privacy-mode .log-item .content,
-body.privacy-mode .log-item .note,
-body.privacy-mode .log-item .text,
-body.privacy-mode .quick-note textarea,
-body.privacy-mode .insight-item .detail,
+body.privacy-mode .rec .tt,
 body.privacy-mode .corr-item .detail,
-body.privacy-mode .eng-risk-item,
-body.privacy-mode .self-portrait-text,
-body.privacy-mode .reminder-title {
+body.privacy-mode .corr-item .title,
+body.privacy-mode .suggestion-item,
+body.privacy-mode #quickNoteInput,
+body.privacy-mode #quickNoteFeedback,
+body.privacy-mode #budgetPanel,
+body.privacy-mode #detailContent .rec {
   filter: blur(6px);
   transition: filter 0.2s;
   cursor: default;
 }
-/* 隐私模式下点击模糊区域临时解除（hover/focus 时显示） */
+/* 隐私模式下悬停临时解除（hover 显示原文） */
 body.privacy-mode .overview-card:hover .num,
-body.privacy-mode .log-item:hover .content,
-body.privacy-mode .log-item:hover .note,
-body.privacy-mode .log-item:hover .text,
-body.privacy-mode .diary-content:hover,
-body.privacy-mode .emotion-content:hover {
+body.privacy-mode .rec:hover .tt,
+body.privacy-mode .corr-item:hover .detail,
+body.privacy-mode .corr-item:hover .title,
+body.privacy-mode #quickNoteInput:focus,
+body.privacy-mode #budgetPanel:hover,
+body.privacy-mode #detailContent .rec:hover {
   filter: none;
   transition: filter 0.15s;
 }
@@ -128,29 +125,37 @@ body.privacy-mode .emotion-content:hover {
 #lock .err{color:#EF4444;margin-top:12px;display:none;font-size:13px;text-align:center}
 #app{display:none;max-width:480px;margin:0 auto;padding:18px 16px 90px}
 
-/* v6.6.1 桌面端响应式：宽屏时双栏布局 + 更大字号 */
+/* v6.6.2 桌面端响应式：宽屏时场景卡片多列 + 更大字号 */
 @media(min-width:768px){
-  #app{max-width:680px;padding:24px 20px 100px}
+  #app{max-width:760px;padding:24px 20px 100px}
   .hd h1{font-size:22px}
   .hd-r button{font-size:20px;width:40px;height:40px}
-  .bar{max-width:680px}
-  .bar-tab{flex-direction:column;gap:2px;padding:8px 4px}
-  .bar-tab .label{font-size:11px}
+  .bar{max-width:760px;padding:8px 0 22px}
+  .tab{font-size:12px;padding:10px 0 8px;margin:0 8px}
+  .tab .ic{font-size:24px}
   .overview{grid-template-columns:repeat(3,1fr);gap:10px}
   .overview-card{padding:14px 16px}
   .overview-card .num{font-size:28px}
-  .log-list{grid-template-columns:1fr 1fr;gap:12px}
-  .log-item{padding:16px 18px}
+  .scene-grid{grid-template-columns:repeat(3,1fr);gap:10px}
+  .scene-card{padding:14px 12px}
+  .scene-card .s-ic{font-size:22px}
+  .scene-card .s-nm{font-size:13px}
+  .rec{padding:14px 16px;margin-bottom:10px}
+  .rec .tt{font-size:14px}
   .section-label{font-size:15px;margin:24px 0 12px}
   .greet .t{font-size:20px}
   .greet .d{font-size:15px}
 }
 @media(min-width:1024px){
-  #app{max-width:800px;padding:28px 24px 110px}
+  #app{max-width:920px;padding:28px 24px 110px}
   .hd h1{font-size:24px}
-  .bar{max-width:800px}
-  .bar-tab{padding:10px 6px}
-  .bar-tab .label{font-size:12px}
+  .bar{max-width:920px}
+  .tab{font-size:13px;margin:0 12px}
+  .tab .ic{font-size:26px}
+  .overview{gap:12px}
+  .overview-card .num{font-size:30px}
+  .scene-grid{grid-template-columns:repeat(4,1fr);gap:12px}
+  .scene-card{padding:16px 14px}
 }
 /* v6.5.7 首页信息密度优化：更大间距+呼吸感 */
 .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
