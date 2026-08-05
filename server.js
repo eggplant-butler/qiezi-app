@@ -963,14 +963,34 @@ app.post('/api/reading', (req, res) => {
   const { bookName, author, progress, date, duration, totalPages, currentPage } = req.body;
   if (!bookName) return res.json({ success: false, message: '请输入书名' });
   const readings = readData('reading');
+  const newId = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
   readings.push({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    bookName, author: author || '', progress: progress || 0, date: date || new Date().toISOString().split('T')[0],
+    id: newId, bookName, author: author || '', progress: progress || 0,
+    date: date || new Date().toISOString().split('T')[0],
     duration: parseInt(duration) || 0, totalPages: parseInt(totalPages) || 0, currentPage: parseInt(currentPage) || 0,
     createdAt: new Date().toISOString()
   });
   writeData('reading', readings);
-  res.json({ success: true });
+  // v6.8.2 A6：阅读 → 自动同步成长草稿
+  const linkedModules = [];
+  if (!readData('growth').some(g => g._linkedModule === 'reading' && g._linkedId === newId)) {
+    try {
+      const growthList = readData('growth');
+      growthList.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        type: '学习', skill: '阅读 - ' + bookName,
+        method: '看书', duration: parseInt(duration) || 0,
+        understanding: '', progress: progress || ('读 ' + (currentPage || 0) + '/' + (totalPages || 0) + ' 页'),
+        obstacle: '', plan: '', output: '',
+        content: '《' + bookName + '》' + (author ? ' - ' + author : '') + ' 阅读 ' + (duration || 0) + ' 分钟',
+        date: date || new Date().toISOString().split('T')[0],
+        _linkedModule: 'reading', _linkedId: newId, created: new Date().toISOString()
+      });
+      writeData('growth', growthList);
+      linkedModules.push('growth');
+    } catch (e) { console.error('[linkage] reading→growth:', e.message); }
+  }
+  res.json({ success: true, linkedModules });
 });
 
 app.get('/api/readings', (req, res) => {
@@ -1042,7 +1062,27 @@ app.post('/api/housework/complete', (req, res) => {
   task.lastDone = new Date().toISOString().split('T')[0];
   task.completedAt = new Date().toISOString();
   writeData('housework', chores);
-  res.json({ success: true, message: `✅ ${task.task} 已完成！` });
+  // v6.8.2 A5：完成家务 → 自动追加居住记录
+  const linkedModules = [];
+  const linkId = task.id + '-' + task.lastDone; // 按天去重：同一任务同一天只联动一次
+  if (!readData('home').some(h => h._linkedModule === 'housework' && h._linkedId === linkId)) {
+    try {
+      // task → home.action 映射
+      const actionMap = {'扫地':'打扫','拖地':'打扫','洗碗':'打扫','整理厨房台面':'整理','铺床':'整理','擦桌子':'打扫','换床单':'整理','清理卫生间':'打扫','倒垃圾':'打扫','拖阳台':'打扫','整理衣柜':'整理','擦窗':'打扫'};
+      const action = actionMap[task.task] || '打扫';
+      const homeList = readData('home');
+      homeList.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        space: task.area || '客厅', action: action,
+        items: task.task, security: 3, note: '家务自动记录',
+        date: task.lastDone,
+        _linkedModule: 'housework', _linkedId: linkId, created: new Date().toISOString()
+      });
+      writeData('home', homeList);
+      linkedModules.push('home');
+    } catch (e) { console.error('[linkage] housework→home:', e.message); }
+  }
+  res.json({ success: true, message: `✅ ${task.task} 已完成！`, linkedModules });
 });
 
 app.post('/api/housework/mode', (req, res) => {
