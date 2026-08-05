@@ -8,14 +8,17 @@
 // 版本号变更会触发 activate 清理旧缓存
 // ============================================================
 
-const SW_VERSION = 'qiezi-v6.6.2';
+const SW_VERSION = 'qiezi-v6.7.0';
 const SW_CACHE_PREFIX = 'qiezi-sw-';
 const SW_CACHE_CURRENT = SW_CACHE_PREFIX + SW_VERSION;
 
-// 预缓存清单：仅核心 HTML（首屏必需）
+// 预缓存清单：核心 HTML + 拆分后的 CSS/JS（v6.7.0 拆分文件后必须预缓存）
 const PRECACHE_URLS = [
   './',
-  './index.html'
+  './index.html',
+  './styles.css',
+  './app.js',
+  './sw-register.js'
 ];
 
 // ============ install：预缓存 + 立即激活 + 通知客户端刷新 ============

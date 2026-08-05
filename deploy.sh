@@ -1,8 +1,10 @@
 #!/bin/bash
 # ============================================================
-# 茄子管家 安全部署脚本 v6.5.7
+# 茄子管家 安全部署脚本 v6.7.0
 # 核心原则：永不触碰 data/ 和 backups/ 目录，保护 .env
 # 用法：cd ~/qiezi-app && bash deploy.sh
+# v6.7.0：index.html 拆分为精简 HTML + styles.css + app.js + sw-register.js
+#         每个文件独立下载，避免单文件过大（363KB）导致 CDN 超时
 # v6.5.7 修复：@commit 优先下载，移除 purge CDN 步骤（不再卡死）
 # v6.4.1 修复：所有网络步骤加超时，npm 用国内镜像兜底，避免卡死
 # ============================================================
@@ -14,7 +16,7 @@ cd "$APP_DIR"
 ( sleep 300 && echo "❌ 部署总时长超 5 分钟，已强制终止。请把上方输出贴给我" && kill -TERM $$ 2>/dev/null ) &
 WATCHDOG_PID=$!
 
-echo "🍆 ===== 茄子管家安全部署 v6.5.7 ====="
+echo "🍆 ===== 茄子管家安全部署 v6.7.0 ====="
 echo "⏱️  开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
@@ -177,10 +179,25 @@ try_download_verified package.json "qiezi" \
   "$GH_URL/package.json" || { echo "❌ package.json 下载失败"; exit 1; }
 
 mkdir -p frontend
+# v6.7.0：index.html 已拆分为精简 HTML + 外链 styles.css / app.js / sw-register.js
+# 每个文件都小于 350KB，CDN 下载不会超时；且各自带版本号查询参数，避免缓存
 try_download_verified frontend/index.html "engDashboard" \
   "$CDN_COMMIT_URL/frontend/index.html" \
   "$CDN_URL/frontend/index.html" \
   "$GH_URL/frontend/index.html" || { echo "❌ frontend/index.html 下载失败"; exit 1; }
+# v6.7.0 新增：拆分后的 CSS/JS 外链文件
+try_download_verified frontend/styles.css "深夜书房" \
+  "$CDN_COMMIT_URL/frontend/styles.css" \
+  "$CDN_URL/frontend/styles.css" \
+  "$GH_URL/frontend/styles.css" || { echo "❌ frontend/styles.css 下载失败"; exit 1; }
+try_download_verified frontend/app.js "reportClientError" \
+  "$CDN_COMMIT_URL/frontend/app.js" \
+  "$CDN_URL/frontend/app.js" \
+  "$GH_URL/frontend/app.js" || { echo "❌ frontend/app.js 下载失败"; exit 1; }
+try_download_verified frontend/sw-register.js "serviceWorker" \
+  "$CDN_COMMIT_URL/frontend/sw-register.js" \
+  "$CDN_URL/frontend/sw-register.js" \
+  "$GH_URL/frontend/sw-register.js" || { echo "❌ frontend/sw-register.js 下载失败"; exit 1; }
 # sw.js 必须成功（SW 旧版本会缓存旧 HTML，导致前端永远看不到新功能）
 try_download_verified frontend/sw.js "$VERSION_TAG" \
   "$CDN_COMMIT_URL/frontend/sw.js" \
@@ -262,6 +279,15 @@ if [ "$HTML_STATUS" = "200" ]; then
 else
   echo "  ⚠️  首页 HTTP $HTML_STATUS（非200，前端可能无法访问）"
 fi
+# v6.7.0 新增：拆分后的 CSS/JS 外链文件检查
+for asset in styles.css app.js sw-register.js sw.js; do
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://localhost:3000/$asset" 2>/dev/null)
+  if [ "$CODE" = "200" ]; then
+    echo "  /$asset: 200 OK ✅"
+  else
+    echo "  ⚠️  /$asset HTTP $CODE"
+  fi
+done
 
 # 3. 关键路由存在性检查（需认证端点返回 401 说明路由已注册）
 for ep in /api/me /api/eng/dashboard /api/maintenance/status; do
