@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#6366F1">
+<meta name="theme-color" content="#2C3E5C">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="茄子管家">
@@ -12,56 +12,108 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <style>
+/* ========== 禅意东方 设计系统 v6.5 ========== */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
 :root{
---c-bg1:#7B8CFF;--c-bg2:#6366F1;--c-bg3:#A855F7;
---c-primary:#6366F1;--c-primary-2:#8B5CF6;--c-tab-act:#6366F1;
---c-accent:rgba(99,102,241,0.12);--c-accent-2:rgba(139,92,246,0.12);
---c-shadow:rgba(99,102,241,0.35);--c-shadow-soft:rgba(99,102,241,0.12);
---c-border:rgba(99,102,241,0.15);
+/* 背景层：温润米色，告别紫色满屏 */
+--c-bg1:#F5F1E8;--c-bg2:#EDE7D9;--c-bg3:#E0D9C7;
+--c-surface:#FAF7F0;--c-surface-2:#F0EBE0;--c-elevated:#FFFFFF;
+/* 文字层：墨色系，层次分明 */
+--c-fg:#1A1A1A;--c-fg-2:#4A4A4A;--c-fg-3:#8A8A8A;--c-fg-muted:#B5B5B5;
+/* 强调色：单一克制，深靛蓝（替代紫色） */
+--c-primary:#2C3E5C;--c-primary-2:#3D5273;--c-tab-act:#2C3E5C;
+--c-accent:rgba(44,62,92,0.08);--c-accent-2:rgba(61,82,115,0.12);
+/* 阴影边框：克制柔阴影，替代浓重紫影 */
+--c-shadow:rgba(44,62,92,0.08);--c-shadow-soft:rgba(44,62,92,0.04);
+--c-border:rgba(44,62,92,0.10);--c-border-strong:rgba(44,62,92,0.22);
+/* 模块语义色：低饱和，每个模块有自己的色 */
+--c-mod-health:#5A7A5A;--c-mod-finance:#8B6F47;--c-mod-growth:#6B5B8C;
+--c-mod-pet:#A57865;--c-mod-mind:#4A6B7A;--c-mod-relationship:#8C5A6B;--c-mod-insight:#7A6B4A;
+/* 状态色 */
+--c-success:#3A5A40;--c-warning:#B8860B;--c-danger:#8B2C2C;
+/* 字号层次 */
+--fs-display:22px;--fs-h1:18px;--fs-h2:15px;--fs-body:14px;--fs-small:12px;--fs-tiny:11px;
+/* 圆角层次（克制，不再是14-16大圆角） */
+--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;--r-full:9999px;
+/* 阴影层次 */
+--shadow-1:0 1px 3px var(--c-shadow-soft);--shadow-2:0 2px 8px var(--c-shadow);--shadow-3:0 4px 16px var(--c-shadow);
+/* 动效曲线 */
+--ease-out:cubic-bezier(0.16,1,0.3,1);--ease-in-out:cubic-bezier(0.4,0,0.2,1);
+--dur-fast:0.15s;--dur-base:0.25s;--dur-slow:0.4s;
 }
-*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+/* 暗黑模式：墨黑底+米白字 */
+[data-theme="dark"]{
+--c-bg1:#1A1A1A;--c-bg2:#1F1F1F;--c-bg3:#252525;
+--c-surface:#2A2A2A;--c-surface-2:#333333;--c-elevated:#1F1F1F;
+--c-fg:#E8E2D5;--c-fg-2:#B5B0A3;--c-fg-3:#8A8578;--c-fg-muted:#5A5A5A;
+--c-primary:#8FA8C8;--c-primary-2:#A5B8D0;--c-tab-act:#8FA8C8;
+--c-accent:rgba(143,168,200,0.10);--c-accent-2:rgba(165,184,208,0.15);
+--c-shadow:rgba(0,0,0,0.3);--c-shadow-soft:rgba(0,0,0,0.15);
+--c-border:rgba(232,226,213,0.10);--c-border-strong:rgba(232,226,213,0.22);
+}
+/* 护眼模式（黄昏/晨光自动切换） */
+[data-theme="sepia"]{
+--c-bg1:#F5E6D3;--c-bg2:#EDE0CC;--c-bg3:#E0D2B8;
+--c-surface:#FAF0E0;--c-surface-2:#F0E5D0;--c-elevated:#FFFAF0;
+--c-fg:#3A2A1A;--c-fg-2:#5A4A3A;--c-fg-3:#8A7A6A;--c-fg-muted:#B5A595;
+--c-primary:#6B4A2C;--c-primary-2:#8B6A4C;--c-tab-act:#6B4A2C;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 html,body{min-height:100vh}
-body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-bg3) 100%);color:#1A1A2E;background-attachment:fixed;padding-bottom:80px;transition:background .5s}
+body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-bg3) 100%);color:var(--c-fg);background-attachment:fixed;padding-bottom:80px;transition:background .5s,color .3s}
+/* 标题用衬线（思源宋体）—— 契合反思工具的质感 */
+h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;font-weight:600;letter-spacing:0.02em}
+/* 数字用等宽，避免跳动 */
+.num,.tabular,.count,.badge{font-variant-numeric:tabular-nums}
+/* 骨架屏（加载占位） */
+.skeleton{background:linear-gradient(90deg,var(--c-surface-2) 0%,var(--c-surface) 50%,var(--c-surface-2) 100%);background-size:200% 100%;animation:skeleton-pulse 1.4s ease-in-out infinite;border-radius:var(--r-md)}
+@keyframes skeleton-pulse{0%{background-position:200% 0}100%{background-position:-200% 0}}
+/* 卡片入场动画（staggered 淡入上移） */
+.fade-in{opacity:0;transform:translateY(8px);animation:fadeInUp var(--dur-slow) var(--ease-out) forwards}
+@keyframes fadeInUp{to{opacity:1;transform:translateY(0)}}
+/* 数字滚动 */
+.roll-num{display:inline-block;transition:transform var(--dur-base) var(--ease-out)}
 #lock{position:fixed;inset:0;background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-bg3) 100%);background-attachment:fixed;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
-#lock .login-card{background:#FFFFFF;border-radius:24px;padding:40px 32px 36px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.18);text-align:center}
-#lock .login-ic{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:40px}
-#lock .login-title{font-size:24px;font-weight:700;color:#4F46E5;margin-bottom:6px;letter-spacing:1px}
-#lock .login-sub{font-size:13px;color:#6B7280;margin-bottom:28px}
-#lock input{background:#F8F9FC;border:1px solid #E5E7EB;border-radius:12px;padding:14px 18px;width:100%;color:#1A1A2E;font-size:16px;text-align:left;outline:none;transition:border-color .2s;box-sizing:border-box}
-#lock input::placeholder{color:#9CA3AF;text-align:center}
-#lock input:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-shadow-soft)}
+#lock .login-card{background:var(--c-surface);border-radius:var(--r-xl);padding:40px 32px 36px;width:100%;max-width:340px;box-shadow:0 20px 60px var(--c-shadow);text-align:center;border:1px solid var(--c-border)}
+#lock .login-ic{width:72px;height:72px;border-radius:var(--r-lg);background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:40px}
+#lock .login-title{font-size:24px;font-weight:700;color:var(--c-primary);margin-bottom:6px;letter-spacing:1px}
+#lock .login-sub{font-size:13px;color:var(--c-fg-3);margin-bottom:28px}
+#lock input{background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:var(--r-md);padding:14px 18px;width:100%;color:var(--c-fg);font-size:16px;text-align:left;outline:none;transition:border-color var(--dur-base);box-sizing:border-box}
+#lock input::placeholder{color:var(--c-fg-muted);text-align:center}
+#lock input:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-accent)}
 #lock button{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:12px;padding:14px 30px;color:#fff;font-size:17px;font-weight:600;cursor:pointer;margin-top:16px;width:100%;box-shadow:0 6px 16px var(--c-shadow)}
 #lock button:active{transform:scale(0.98)}
 #lock .err{color:#EF4444;margin-top:12px;display:none;font-size:13px;text-align:center}
 #app{display:none;max-width:480px;margin:0 auto;padding:16px 16px 80px}
 .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.hd h1{font-size:22px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 2px rgba(0,0,0,0.08)}
+.hd h1{font-size:var(--fs-display);font-weight:700;color:var(--c-fg);font-family:"Noto Serif SC",serif;letter-spacing:0.02em}
 .hd-r{display:flex;gap:8px;align-items:center}
-.hd-r .badge{background:#EF4444;color:#fff;font-size:10px;border-radius:10px;padding:0 8px;line-height:18px}
-.hd-r button{background:rgba(255,255,255,0.9);border:none;border-radius:20px;padding:6px 12px;color:#4B5563;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-.greet{background:#FFFFFF;border-radius:16px;padding:14px 18px;margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,0.06);border-left:4px solid var(--c-primary)}
-.greet .d{font-size:12px;color:#9CA3AF}
-.greet .t{font-size:15px;color:#374151;margin-top:4px;display:flex;justify-content:space-between;align-items:center}
-.greet .t strong{color:#1A1A2E}
-.greet .t .phase-badge{background:linear-gradient(135deg,var(--c-accent),var(--c-accent-2));color:var(--c-primary);font-size:11px;font-weight:600;border-radius:12px;padding:2px 12px;line-height:22px}
-.greet .t .remind-badge{background:#EF4444;color:#fff;font-size:10px;border-radius:10px;padding:0 10px;line-height:20px;cursor:pointer}
-.growth-bar{background:#FFFFFF;border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+.hd-r .badge{background:var(--c-danger);color:#fff;font-size:10px;border-radius:var(--r-full);padding:0 8px;line-height:18px}
+.hd-r button{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r-full);padding:6px 12px;color:var(--c-fg-2);font-size:14px;cursor:pointer;box-shadow:var(--shadow-1);transition:all var(--dur-base)}
+.hd-r button:active{transform:scale(0.95)}
+.greet{background:var(--c-surface);border-radius:var(--r-lg);padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow-2);border-left:3px solid var(--c-primary);border:1px solid var(--c-border);border-left:3px solid var(--c-primary)}
+.greet .d{font-size:var(--fs-small);color:var(--c-fg-3)}
+.greet .t{font-size:var(--fs-h2);color:var(--c-fg-2);margin-top:4px;display:flex;justify-content:space-between;align-items:center}
+.greet .t strong{color:var(--c-fg)}
+.greet .t .phase-badge{background:var(--c-accent);color:var(--c-primary);font-size:var(--fs-tiny);font-weight:600;border-radius:var(--r-full);padding:2px 12px;line-height:22px}
+.greet .t .remind-badge{background:var(--c-danger);color:#fff;font-size:10px;border-radius:var(--r-full);padding:0 10px;line-height:20px;cursor:pointer}
+.growth-bar{background:var(--c-surface);border-radius:var(--r-md);padding:12px 14px;margin-bottom:16px;box-shadow:var(--shadow-1);border:1px solid var(--c-border)}
 .growth-bar .row{display:flex;justify-content:space-between;align-items:center}
-.growth-bar .phase{font-size:13px;font-weight:700;color:var(--c-primary)}
-.growth-bar .progress{font-size:12px;color:#6B7280}
-.growth-bar .bar{height:6px;background:#E5E7EB;border-radius:4px;margin-top:8px;overflow:hidden}
-.growth-bar .bar .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));transition:width 0.8s}
-.growth-bar .desc{font-size:11px;color:#9CA3AF;margin-top:4px}
+.growth-bar .phase{font-size:var(--fs-small);font-weight:700;color:var(--c-primary)}
+.growth-bar .progress{font-size:var(--fs-small);color:var(--c-fg-3)}
+.growth-bar .bar{height:6px;background:var(--c-surface-2);border-radius:var(--r-full);margin-top:8px;overflow:hidden}
+.growth-bar .bar .fill{height:100%;border-radius:var(--r-full);background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));transition:width 0.8s var(--ease-out)}
+.growth-bar .desc{font-size:var(--fs-tiny);color:var(--c-fg-3);margin-top:4px}
 .overview{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
-.overview-card{background:#FFFFFF;border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+.overview-card{background:var(--c-surface);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .overview-card .num{font-size:22px;font-weight:700;color:var(--c-primary)}
 .overview-card .label{font-size:10px;color:#6B7280;margin-top:3px;font-weight:500}
-.input-area{background:#FFFFFF;border-radius:16px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+.input-area{background:var(--c-surface);border-radius:16px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .input-area input{flex:1;background:transparent;border:none;color:#1A1A2E;font-size:15px;outline:none;padding:6px 0}
 .input-area input::placeholder{color:#9CA3AF}
 .input-area button{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px var(--c-shadow)}
 .focus-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.focus-card{background:#FFFFFF;border-radius:14px;padding:14px 14px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer;transition:transform .15s}
+.focus-card{background:var(--c-surface);border-radius:14px;padding:14px 14px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer;transition:transform .15s}
 .focus-card:active{transform:scale(0.96)}
 .focus-card .top{display:flex;justify-content:space-between;align-items:center}
 .focus-card .ic{font-size:22px}
@@ -72,41 +124,44 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .focus-card .status{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600}
 .focus-card .status.active{background:rgba(34,197,94,0.12);color:#16A34A}
 .focus-card .status.steady{background:rgba(251,191,36,0.12);color:#D97706}
-.focus-card .status.learning{background:rgba(99,102,241,0.12);color:#4F46E5}
+.focus-card .status.learning{background:rgba(44,62,92,0.12);color:var(--c-primary)}
 .quick-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
-.quick-module{background:#FFFFFF;border-radius:12px;padding:12px 4px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s}
+.quick-module{background:var(--c-surface);border-radius:12px;padding:12px 4px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s}
 .quick-module:active{transform:scale(0.94)}
 .quick-module .ic{font-size:22px}
 .quick-module .nm{font-size:10px;color:#374151;margin-top:4px;font-weight:600}
 .quick-module .cnt{font-size:9px;color:#9CA3AF}
 .correlation-list{margin:8px 0}
-.corr-item{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid var(--c-primary)}
+.corr-item{background:var(--c-surface);border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid var(--c-primary)}
 .corr-item .title{font-size:13px;font-weight:700;color:#1A1A2E}
 .corr-item .detail{font-size:12px;color:#6B7280;margin-top:3px;line-height:1.6}
-.suggestion-item{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid #F59E0B;font-size:13px;color:#374151}
+.suggestion-item{background:var(--c-surface);border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid #F59E0B;font-size:13px;color:#374151}
 .suggestion-item .actions{display:flex;gap:6px;margin-top:8px}
 .suggestion-item .actions button{background:#F3F4F6;border:none;border-radius:6px;padding:5px 12px;color:#4B5563;font-size:11px;cursor:pointer;font-weight:500}
 .suggestion-item .actions button.done{background:rgba(34,197,94,0.12);color:#16A34A}
 .suggestion-item .actions button.skip{background:rgba(239,68,68,0.12);color:#DC2626}
 .suggestion-item .feedback{font-size:11px;color:#9CA3AF;margin-top:5px}
-.bar{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,0.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,0.04);display:flex;padding:8px 0 18px;max-width:480px;margin:0 auto;z-index:100;box-shadow:0 -4px 18px rgba(0,0,0,0.04)}
-.tab{flex:1;text-align:center;color:#9CA3AF;font-size:10px;cursor:pointer;padding:2px 0;font-weight:500}
-.tab .ic{font-size:22px;display:block;margin-bottom:2px}
+.bar{position:fixed;bottom:0;left:0;right:0;background:rgba(250,247,240,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--c-border);display:flex;padding:8px 0 18px;max-width:480px;margin:0 auto;z-index:100;box-shadow:0 -4px 18px var(--c-shadow-soft)}
+.tab{flex:1;text-align:center;color:var(--c-fg-3);font-size:var(--fs-tiny);cursor:pointer;padding:2px 0;font-weight:500;transition:color var(--dur-base)}
+.tab .ic{font-size:22px;display:block;margin-bottom:2px;transition:transform var(--dur-base) var(--ease-out)}
+.tab:active .ic{transform:scale(0.9)}
 .tab.act{color:var(--c-tab-act);font-weight:700}
+.tab.act .ic{transform:translateY(-1px)}
 .pg{display:none}
-.pg.act{display:block}
+.pg.act{display:block;animation:fadeInUp var(--dur-base) var(--ease-out)}
 .detail{display:none;padding-bottom:80px}
-.detail.act{display:block}
-.back{background:transparent;border:none;color:var(--c-primary);font-size:16px;cursor:pointer;margin-bottom:12px;font-weight:600}
-.rec{background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04);display:flex;justify-content:space-between;align-items:center}
-.rec .tt{font-size:13px;color:#1A1A2E;font-weight:500}
-.rec .sb{font-size:10px;color:#9CA3AF;margin-top:3px}
+.detail.act{display:block;animation:fadeInUp var(--dur-base) var(--ease-out)}
+.back{background:transparent;border:none;color:var(--c-primary);font-size:var(--fs-h2);cursor:pointer;margin-bottom:12px;font-weight:600}
+.rec{background:var(--c-surface);border-radius:var(--r-md);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow-1);border:1px solid var(--c-border);display:flex;justify-content:space-between;align-items:center}
+.rec .tt{font-size:var(--fs-small);color:var(--c-fg);font-weight:500}
+.rec .sb{font-size:var(--fs-tiny);color:var(--c-fg-3);margin-top:3px}
 .rec .ac button{background:transparent;border:none;color:#9CA3AF;cursor:pointer;padding:0 4px;font-size:16px}
 .rec .ac .dl{color:#EF4444}
-.add{position:fixed;bottom:88px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--c-primary),#8B5CF6);border:none;color:#fff;font-size:30px;box-shadow:0 6px 20px rgba(99,102,241,0.4);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center}
+.add{position:fixed;bottom:88px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;color:#fff;font-size:30px;box-shadow:0 6px 20px var(--c-shadow);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;transition:transform var(--dur-base) var(--ease-out)}
+.add:active{transform:scale(0.92)}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .modal.act{display:flex}
-.modal-b{background:#FFFFFF;border-radius:20px;padding:24px;max-width:440px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.15)}
+.modal-b{background:var(--c-surface);border-radius:20px;padding:24px;max-width:440px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.15)}
 .modal-b h3{font-size:18px;margin-bottom:16px;color:#1A1A2E;font-weight:700}
 .modal-b label{display:block;font-size:12px;color:#6B7280;margin-bottom:5px;margin-top:12px;font-weight:600}
 .modal-b input,.modal-b select,.modal-b textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #E5E7EB;background:#FAFAFC;color:#1A1A2E;font-size:14px;font-family:inherit;margin-bottom:4px;box-sizing:border-box;outline:none;transition:border-color .2s}
@@ -116,7 +171,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .modal-b .row button{flex:1;padding:11px;border-radius:10px;border:none;font-size:15px;font-weight:700;cursor:pointer}
 .modal-b .sv{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;box-shadow:0 4px 12px var(--c-shadow)}
 .modal-b .cn{background:#F3F4F6;color:#4B5563}
-.space-item{background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer}
+.space-item{background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer}
 .space-item .top{display:flex;justify-content:space-between;align-items:center}
 .space-item .nm{font-size:14px;font-weight:700;color:#1A1A2E}
 .space-item .cnt{font-size:12px;color:#6B7280;font-weight:500}
@@ -126,7 +181,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .milestone-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;font-size:13px;color:#374151;font-weight:500}
 .milestone-item .ic{font-size:20px}
 .scene-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-.scene-card{background:#FFFFFF;border-radius:12px;padding:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s;position:relative;overflow:hidden}
+.scene-card{background:var(--c-surface);border-radius:12px;padding:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s;position:relative;overflow:hidden}
 .scene-card:active{transform:scale(0.95)}
 .scene-card .s-ic{font-size:18px}
 .scene-card .s-nm{font-size:12px;color:#1A1A2E;font-weight:600;margin-top:2px}
@@ -135,7 +190,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .rec-toolbar{margin-bottom:12px}
 .rec-search{width:100%;padding:10px 14px;border:1px solid #E5E7EB;border-radius:20px;font-size:13px;background:#F9FAFB;box-sizing:border-box}
 .rec-search:focus{outline:none;border-color:var(--c-primary);background:#fff}
-.rec-today{background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.08));border-radius:14px;padding:10px 14px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#4B5563}
+.rec-today{background:linear-gradient(135deg,rgba(44,62,92,0.08),rgba(139,92,246,0.08));border-radius:14px;padding:10px 14px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#4B5563}
 .rec-today .rt-item{display:flex;align-items:center;gap:3px}
 .rec-today .rt-num{font-weight:700;color:var(--c-primary)}
 .rec-today .rt-empty{color:#9CA3AF;font-size:11px}
@@ -143,7 +198,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 .rec-group .rg-title{font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:8px;padding-left:2px;display:flex;align-items:center;gap:8px}
 .rec-group .rg-sub{font-size:10px;color:#9CA3AF;font-weight:400}
 .rec-group.hidden{display:none}
-.tool-section{background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+.tool-section{background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .tool-section .ts-title{font-size:13px;font-weight:600;color:#1A1A2E;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
 .tool-section .ts-sub{font-size:10px;color:#9CA3AF}
 .tool-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
@@ -167,18 +222,18 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 </div>
 </div>
 <div id="app">
-<div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="togglePrivacy()">👁️</button><button onclick="switchTab('me')">⚙️</button></div></div>
+<div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="toggleTheme()" title="切换主题">🌓</button><button onclick="togglePrivacy()" title="隐私模式">👁️</button><button onclick="switchTab('me')" title="设置">⚙️</button></div></div>
 <div class="greet"><div class="d" id="todayD"></div><div class="t"><span id="greetT">加载中...</span><span class="phase-badge" id="phaseBadge">🌱 萌芽期</span></div></div>
 
-<div id="dailyQuestionArea" style="background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:4px solid #6366F1;">
+<div id="dailyQuestionArea" style="background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:4px solid var(--c-primary);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <span style="font-size:11px;color:#6B7280;">💭 今日之问</span>
     <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="viewQuestionHistory()">历史</span>
   </div>
   <div id="dailyQuestionText" style="font-size:15px;color:#1A1A2E;font-weight:500;margin-bottom:8px;">加载中...</div>
   <div style="display:flex;gap:8px;">
-    <input type="text" id="dailyQuestionInput" placeholder="写下你的回答..." style="flex:1;padding:8px 12px;border-radius:8px;background:#FFFFFF;color:#1A1A2E;font-size:14px;outline:none;">
-    <button onclick="submitDailyAnswer()" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">回答</button>
+    <input type="text" id="dailyQuestionInput" placeholder="写下你的回答..." style="flex:1;padding:8px 12px;border-radius:8px;background:var(--c-surface);color:#1A1A2E;font-size:14px;outline:none;">
+    <button onclick="submitDailyAnswer()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">回答</button>
   </div>
   <div id="dailyAnswerDisplay" style="margin-top:8px;font-size:13px;color:#6B7280;display:none;"></div>
 </div>
@@ -198,13 +253,13 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div id="homeSuggestions"></div>
 
 <!-- ====== 闪念笔记 ====== -->
-<div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+<div style="background:var(--c-surface);border-radius:12px;padding:12px 14px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <span style="font-size:13px;font-weight:600;color:#1A1A2E;">💭 闪念笔记</span>
     <span style="font-size:10px;color:#9CA3AF;cursor:pointer;" onclick="showQuickNotes()">查看全部</span>
   </div>
   <div style="display:flex;gap:8px;">
-    <input type="text" id="quickNoteInput" placeholder="随便记一下... 系统会自动归类" style="flex:1;padding:8px 12px;border-radius:8px;background:#FFFFFF;color:#1A1A2E;font-size:14px;outline:none;">
+    <input type="text" id="quickNoteInput" placeholder="随便记一下... 系统会自动归类" style="flex:1;padding:8px 12px;border-radius:8px;background:var(--c-surface);color:#1A1A2E;font-size:14px;outline:none;">
     <button onclick="submitQuickNote()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记</button>
   </div>
   <div id="quickNoteFeedback" style="margin-top:6px;font-size:12px;color:#6B7280;"></div>
@@ -396,7 +451,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div style="color:#6B7280;cursor:pointer;" onclick="openBackupMgr()">📂 备份管理</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="changePwd()">🔐 修改密码</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="openTrash()">♻️ 回收站</div>
-<div id="pwaInstallEntry" style="color:#8B5CF6;cursor:pointer;" onclick="triggerPwaInstall()">📲 安装到桌面</div>
+<div id="pwaInstallEntry" style="color:var(--c-primary-2);cursor:pointer;" onclick="triggerPwaInstall()">📲 安装到桌面</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="openMaintenance()">🛠️ 运维面板</div>
 <div style="color:#EF4444;cursor:pointer;" onclick="clearAll()">🗑️ 清空数据</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="logout()">🚪 退出登录</div>
@@ -726,7 +781,7 @@ async function renderHabits(){
       if(deg > 360) deg = 360;
       var todayDone = !!habit.todayDone;
       var nameText = habit.name + (todayDone ? ' ✅' : '');
-      return '<div onclick="checkinHabit(\''+habit.id+'\')" style="background:#FFFFFF;border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.05);transition:transform .2s;" onmousedown="this.style.transform=\'scale(0.96)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'"><div style="width:56px;height:56px;border-radius:50%;background:conic-gradient(#6366F1 '+deg+'deg,#e5e7eb 0);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;"><div style="width:40px;height:40px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:20px;">'+(habit.icon||'📌')+'</div></div><div style="font-size:12px;font-weight:600;color:#1A1A2E;">'+nameText+'</div><div style="font-size:11px;color:#6B7280">连续'+streak+'天</div></div>';
+      return '<div onclick="checkinHabit(\''+habit.id+'\')" style="background:var(--c-surface);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.05);transition:transform .2s;" onmousedown="this.style.transform=\'scale(0.96)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'"><div style="width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--c-primary) '+deg+'deg,#e5e7eb 0);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;"><div style="width:40px;height:40px;border-radius:50%;background:var(--c-surface);display:flex;align-items:center;justify-content:center;font-size:20px;">'+(habit.icon||'📌')+'</div></div><div style="font-size:12px;font-weight:600;color:#1A1A2E;">'+nameText+'</div><div style="font-size:11px;color:#6B7280">连续'+streak+'天</div></div>';
     }).join('');
   } catch(e) {
     grid.innerHTML = '';
@@ -811,25 +866,21 @@ function parseNL(text){
 }
 
 var THEMES = {
-home:  {bg1:'#7B8CFF',bg2:'#6366F1',bg3:'#A855F7',primary:'#6366F1',primary2:'#8B5CF6',tabAct:'#6366F1'},
-record:{bg1:'#059669',bg2:'#10B981',bg3:'#6EE7B7',primary:'#059669',primary2:'#34D399',tabAct:'#059669'},
-insight:{bg1:'#D97706',bg2:'#F59E0B',bg3:'#FCD34D',primary:'#D97706',primary2:'#FB923C',tabAct:'#D97706'},
-me:    {bg1:'#BE185D',bg2:'#EC4899',bg3:'#F472B6',primary:'#BE185D',primary2:'#F472B6',tabAct:'#BE185D'}
+home:    {primary:'#2C3E5C',primary2:'#3D5273',tabAct:'#2C3E5C'},
+record:  {primary:'#4A6B7A',primary2:'#5A7B8A',tabAct:'#4A6B7A'},
+insight: {primary:'#7A6B4A',primary2:'#8A7B5A',tabAct:'#7A6B4A'},
+me:      {primary:'#5A7A5A',primary2:'#6A8A6A',tabAct:'#5A7A5A'}
 };
 function applyTheme(t){
 var th=THEMES[t]||THEMES.home;
 var r=document.documentElement.style;
-r.setProperty('--c-bg1',th.bg1);
-r.setProperty('--c-bg2',th.bg2);
-r.setProperty('--c-bg3',th.bg3);
+// 禅意东方克制：只改强调色，背景保持温润米色
 r.setProperty('--c-primary',th.primary);
 r.setProperty('--c-primary-2',th.primary2);
 r.setProperty('--c-tab-act',th.tabAct);
-r.setProperty('--c-accent',hexToRgba(th.primary,0.12));
+r.setProperty('--c-accent',hexToRgba(th.primary,0.08));
 r.setProperty('--c-accent-2',hexToRgba(th.primary2,0.12));
-r.setProperty('--c-shadow',hexToRgba(th.primary,0.35));
-r.setProperty('--c-shadow-soft',hexToRgba(th.primary,0.12));
-r.setProperty('--c-border',hexToRgba(th.primary,0.15));
+// 不改 --c-bg1/2/3（背景恒为米色）与 --c-shadow（保持柔墨）
 }
 function hexToRgba(h,a){
 h=h.replace('#','');
@@ -904,7 +955,7 @@ function renderDetail(id){
   var actionsEl = document.getElementById('detailActions');
   if(actionsEl){
     if(!editId){
-      actionsEl.innerHTML = '<button onclick="copyLast()" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;padding:6px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,0.3);">复制上次</button>';
+      actionsEl.innerHTML = '<button onclick="copyLast()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:10px;padding:6px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(44,62,92,0.3);">复制上次</button>';
     } else {
       actionsEl.innerHTML = '';
     }
@@ -921,9 +972,9 @@ function renderDetail(id){
     var over = remaining < 0;
     var pct = budgetAmount > 0 ? Math.min(100, (spent / budgetAmount) * 100) : 0;
     var barBg = over ? '#FEE2E2' : '#E5E7EB';
-    var fillBg = over ? '#EF4444' : 'linear-gradient(90deg,#6366F1,#8B5CF6)';
+    var fillBg = over ? '#EF4444' : 'linear-gradient(90deg,var(--c-primary),var(--c-primary-2))';
     var textColor = over ? 'color:#EF4444;font-weight:700;' : '';
-    extraHtml += '<div id="budgetPanel" style="background:#FFFFFF;border-radius:14px;padding:12px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);">';
+    extraHtml += '<div id="budgetPanel" style="background:var(--c-surface);border-radius:14px;padding:12px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);">';
     extraHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
     extraHtml += '<span style="font-size:13px;font-weight:700;color:#1A1A2E;">💰 财务预算</span>';
     extraHtml += '<div style="display:flex;gap:6px;align-items:center;">';
@@ -932,7 +983,7 @@ function renderDetail(id){
     } else {
       extraHtml += '<span style="font-size:12px;color:#6B7280;">本月预算 ¥'+budgetAmount+'</span>';
     }
-    extraHtml += '<button onclick="setBudget()" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:8px;padding:6px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">设预算</button>';
+    extraHtml += '<button onclick="setBudget()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:8px;padding:6px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">设预算</button>';
     extraHtml += '</div></div>';
     if(budgetAmount > 0){
       extraHtml += '<div style="height:8px;border-radius:4px;overflow:hidden;margin:6px 0;background:'+barBg+';">';
@@ -952,7 +1003,7 @@ function renderDetail(id){
   // 宠物仪表盘：跨模块联动面板（花费汇总 + 物资状态 + 就医记录）
   if(id === 'pet' && petDashCache && petDashCache.totalRecords !== undefined){
     var pd = petDashCache;
-    extraHtml += '<div style="background:#FFFFFF;border-radius:14px;padding:12px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);">';
+    extraHtml += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);">';
     extraHtml += '<div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:8px;">🐾 宠物仪表盘 · 跨模块联动</div>';
     // 花费统计
     extraHtml += '<div style="display:flex;gap:12px;margin-bottom:8px;">';
@@ -1910,7 +1961,7 @@ async function openTrash(){
       var modName = {finance:'财务',sleep:'睡眠',exercise:'锻炼',emotion:'情绪',diet:'饮食',diary:'日记',learn:'学习',photo:'摄影',think:'思考',work:'工作',home:'居住',travel:'出行',body:'身体',relation:'关系',time:'时间',growth:'成长',spirit:'精神',pet:'宠物',medical:'医疗',todo:'待办',health:'健康'}[t._module] || t._module;
       var title = t.content || t.name || t.title || t.symptom || t.person || '记录';
       var delDate = (t._deletedAt||'').split('T')[0];
-      html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #F59E0B">';
+      html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #F59E0B">';
       html += '<div style="font-size:13px;color:#1A1A2E">'+escapeHtml(String(title).substring(0,40))+'</div>';
       html += '<div style="font-size:11px;color:#9CA3AF;margin-top:2px">'+modName+' · 删于'+delDate+'</div>';
       html += '<div style="display:flex;gap:12px;margin-top:6px">';
@@ -1958,16 +2009,16 @@ async function openPrinciples(){
     var r = await fetch('/api/principles');
     var list = await r.json();
     var html = '<div style="margin-bottom:14px">';
-    html += '<textarea id="newPrincipleText" placeholder="提炼一条你的人生原则..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:14px;font-family:inherit;min-height:60px;resize:vertical"></textarea>';
-    html += '<input id="newPrincipleSource" placeholder="来源（可选：范仲淹/自我感悟/反思提炼）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-top:6px">';
-    html += '<button onclick="addPrinciple()" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-weight:600;cursor:pointer">添加原则</button>';
+    html += '<textarea id="newPrincipleText" placeholder="提炼一条你的人生原则..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:14px;font-family:inherit;min-height:60px;resize:vertical"></textarea>';
+    html += '<input id="newPrincipleSource" placeholder="来源（可选：范仲淹/自我感悟/反思提炼）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-top:6px">';
+    html += '<button onclick="addPrinciple()" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-weight:600;cursor:pointer">添加原则</button>';
     html += '</div>';
     if (list.length === 0) {
       html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有原则。<br>每次反思后提炼一条，这是你的人生智慧积累。<br><br>例如：「不以物喜，不以己悲」「权衡利弊，先看势再看人」「能量不足时不做重要决策」</div>';
     } else {
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条</div>';
       list.forEach(function(p){
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6366F1">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--c-primary)">';
         html += '<div style="font-size:13px;color:#1A1A2E;line-height:1.5">'+escapeHtml(p.text)+'</div>';
         if (p.source) html += '<div style="font-size:11px;color:#9CA3AF;margin-top:4px">— '+escapeHtml(p.source)+'</div>';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span style="font-size:10px;color:#475569">'+(p.createdAt||'').split('T')[0]+'</span><span style="font-size:11px;color:#EF4444;cursor:pointer" onclick="delPrinciple(\''+p.id+'\')">删除</span></div>';
@@ -2006,10 +2057,10 @@ async function openDecisions(){
     var list = await r.json();
     var html = '<div style="margin-bottom:14px;background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;border:1px solid rgba(245,158,11,0.15)">';
     html += '<div style="font-size:11px;color:#FBBF24;margin-bottom:8px">📝 记录当下的推理，日后回溯判断力</div>';
-    html += '<input id="decTitle" placeholder="决策标题（如：是否跳槽）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<textarea id="decReason" placeholder="推理过程：基于什么事实？考虑了什么？权衡了什么？" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<input id="decExpected" placeholder="预期结果" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<input id="decDeadline" type="date" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<input id="decTitle" placeholder="决策标题（如：是否跳槽）" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="decReason" placeholder="推理过程：基于什么事实？考虑了什么？权衡了什么？" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="decExpected" placeholder="预期结果" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<input id="decDeadline" type="date" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
     html += '<button onclick="addDecision()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录决策</button>';
     html += '</div>';
     if (list.length === 0) {
@@ -2019,17 +2070,17 @@ async function openDecisions(){
       list.forEach(function(d){
         var reviewed = d.reviewed;
         var correct = d.correct;
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid '+(reviewed?(correct===true?'#22C55E':correct===false?'#EF4444':'#94A3B8'):'#FBBF24')+'">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid '+(reviewed?(correct===true?'#22C55E':correct===false?'#EF4444':'#94A3B8'):'#FBBF24')+'">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px;color:#1A1A2E">'+escapeHtml(d.title)+'</b>';
         html += '<span style="font-size:10px;padding:2px 8px;border-radius:8px;'+(reviewed?'background:rgba(34,197,94,0.15);color:#22C55E':'background:rgba(251,191,36,0.15);color:#FBBF24')+'">'+(reviewed?'已回溯':'待回溯')+'</span></div>';
         if (d.reasoning) html += '<div style="font-size:12px;color:#6B7280;margin-top:6px;line-height:1.5"><b>推理：</b>'+escapeHtml(d.reasoning)+'</div>';
         if (d.expected) html += '<div style="font-size:12px;color:#6B7280;margin-top:4px"><b>预期：</b>'+escapeHtml(d.expected)+'</div>';
         if (d.deadline) html += '<div style="font-size:11px;color:#9CA3AF;margin-top:4px">📅 截止：'+d.deadline+'</div>';
         if (reviewed) {
-          if (d.outcome) html += '<div style="font-size:12px;color:#4B5563;margin-top:6px;padding:6px 8px;background:#FFFFFF;border-radius:6px"><b>结果：</b>'+escapeHtml(d.outcome)+'</div>';
+          if (d.outcome) html += '<div style="font-size:12px;color:#4B5563;margin-top:6px;padding:6px 8px;background:var(--c-surface);border-radius:6px"><b>结果：</b>'+escapeHtml(d.outcome)+'</div>';
           html += '<div style="font-size:11px;color:'+(correct===true?'#22C55E':correct===false?'#EF4444':'#94A3B8')+';margin-top:4px">'+(correct===true?'✅ 判断正确':correct===false?'❌ 判断错误':'⚖️ 中性')+'</div>';
         } else {
-          html += '<button onclick="reviewDecision(\''+d.id+'\')" style="margin-top:6px;font-size:11px;padding:4px 12px;border-radius:8px;background:transparent;color:#6366F1;cursor:pointer">回溯结果</button>';
+          html += '<button onclick="reviewDecision(\''+d.id+'\')" style="margin-top:6px;font-size:11px;padding:4px 12px;border-radius:8px;background:transparent;color:var(--c-primary);cursor:pointer">回溯结果</button>';
         }
         html += '</div>';
       });
@@ -2073,11 +2124,11 @@ async function openRootCause(){
     var html = '<div style="background:rgba(16,185,129,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(16,185,129,0.15)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新根因分析</div>';
     html += '<label style="font-size:11px;color:#6B7280">触发事件（让你情绪波动/决策失误的事）</label>';
-    html += '<textarea id="rcTrigger" placeholder="如：今天和同事吵了一架 / 又熬夜了 / 冲动消费了" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:14px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<textarea id="rcTrigger" placeholder="如：今天和同事吵了一架 / 又熬夜了 / 冲动消费了" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:14px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<div id="rcWhys" style="margin-bottom:8px"></div>';
     html += '<div style="display:flex;gap:6px;margin-bottom:8px"><button onclick="addWhy()" style="flex:1;padding:8px;border:1px dashed rgba(16,185,129,0.4);border-radius:8px;background:rgba(16,185,129,0.04);color:#10B981;font-size:12px;cursor:pointer">+ 追加一层追问</button></div>';
     html += '<label style="font-size:11px;color:#6B7280">根因（一句话，必须是你能改变的）</label>';
-    html += '<input id="rcRoot" placeholder="如：我在压力下习惯性逃避对话" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:14px;margin-bottom:8px">';
+    html += '<input id="rcRoot" placeholder="如：我在压力下习惯性逃避对话" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:14px;margin-bottom:8px">';
     html += '<button onclick="saveRootCause()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#10B981,#34D399);color:#fff;font-weight:600;cursor:pointer">保存根因分析</button>';
     html += '</div>';
     if (list.length === 0) {
@@ -2085,7 +2136,7 @@ async function openRootCause(){
     } else {
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条</div>';
       list.forEach(function(rc){
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+(rc.resolved?'#22C55E':'#F59E0B')+'">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+(rc.resolved?'#22C55E':'#F59E0B')+'">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#9CA3AF">'+rc.date+'</span><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+(rc.resolved?'rgba(34,197,94,0.15)':'rgba(245,158,11,0.15)')+';color:'+(rc.resolved?'#22C55E':'#F59E0B')+'">'+(rc.resolved?'已解决':'待解决')+'</span></div>';
         html += '<div style="font-size:13px;color:#1A1A2E;margin-top:6px"><b>触发：</b>'+escapeHtml(rc.trigger)+'</div>';
         if (rc.whys && rc.whys.length) {
@@ -2113,7 +2164,7 @@ function renderWhyInputs(){
   var html = '';
   for (var i=0; i<addWhyCount+1; i++) {
     html += '<label style="font-size:11px;color:#6B7280">第 '+(i+1)+' 层 为什么？</label>';
-    html += '<input id="rcWhy'+i+'" placeholder="因为..." style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<input id="rcWhy'+i+'" placeholder="因为..." style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
   }
   c.innerHTML = html;
 }
@@ -2163,12 +2214,12 @@ async function openInterpersonal(){
     var r = await fetch('/api/interpersonal'); var list = await r.json();
     var html = '<div style="background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.15)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新博弈记录</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipPerson" placeholder="对象姓名" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><input id="ipRole" placeholder="角色（同事/家人/朋友）" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div>';
-    html += '<textarea id="ipEvent" placeholder="发生了什么事？" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyGoal" placeholder="我要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><input id="ipTheirGoal" placeholder="他/她要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyMove" placeholder="我做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><input id="ipTheirMove" placeholder="他/她做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyCost" type="number" placeholder="我的成本(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><input id="ipMyGain" type="number" placeholder="我的收益(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div>';
-    html += '<textarea id="ipLesson" placeholder="一句教训/收获" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipPerson" placeholder="对象姓名" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"><input id="ipRole" placeholder="角色（同事/家人/朋友）" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"></div>';
+    html += '<textarea id="ipEvent" placeholder="发生了什么事？" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyGoal" placeholder="我要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"><input id="ipTheirGoal" placeholder="他/她要什么？" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyMove" placeholder="我做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"><input id="ipTheirMove" placeholder="他/她做了什么" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input id="ipMyCost" type="number" placeholder="我的成本(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"><input id="ipMyGain" type="number" placeholder="我的收益(0-10)" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"></div>';
+    html += '<textarea id="ipLesson" placeholder="一句教训/收获" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<button onclick="saveInterpersonal()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">保存博弈</button>';
     html += '</div>';
     if (list.length === 0) {
@@ -2177,7 +2228,7 @@ async function openInterpersonal(){
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条</div>';
       list.forEach(function(it){
         var netColor = it.net > 0 ? '#22C55E' : it.net < 0 ? '#EF4444' : '#94A3B8';
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+netColor+'">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+netColor+'">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#1A1A2E;font-weight:600">'+escapeHtml(it.person)+(it.role?' · '+escapeHtml(it.role):'')+'</span><span style="font-size:10px;color:#9CA3AF">'+it.date+'</span></div>';
         html += '<div style="font-size:12px;color:#4B5563;margin-top:4px">'+escapeHtml(it.event)+'</div>';
         if (it.myGoal) html += '<div style="font-size:11px;color:#6B7280;margin-top:4px">我要：'+escapeHtml(it.myGoal)+'</div>';
@@ -2228,26 +2279,26 @@ async function openMindfulness(){
     var r2 = await fetch('/api/mindfulness/baseline'); var base = await r2.json();
     var html = '';
     if (base && base.interpretation) {
-      html += '<div style="background:rgba(99,102,241,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #6366F1">';
-      html += '<div style="font-size:12px;color:#6366F1;margin-bottom:6px">📊 心境基线</div>';
+      html += '<div style="background:rgba(44,62,92,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid var(--c-primary)">';
+      html += '<div style="font-size:12px;color:var(--c-primary);margin-bottom:6px">📊 心境基线</div>';
       html += '<div style="font-size:13px;color:#1A1A2E;line-height:1.6;white-space:pre-wrap">'+escapeHtml(base.interpretation)+'</div>';
       html += '</div>';
     }
-    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(99,102,241,0.15)">';
+    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(44,62,92,0.15)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新训练记录</div>';
     html += '<label style="font-size:11px;color:#6B7280">类型</label>';
-    html += '<select id="mfType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<select id="mfType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
     html += '<option value="情绪冲击">情绪冲击（被激怒/焦虑）</option>';
     html += '<option value="诱惑">诱惑（想吃/想买/想刷）</option>';
     html += '<option value="延迟满足">延迟满足</option>';
     html += '<option value="冥想">主动冥想</option>';
     html += '<option value="停顿">停顿3秒</option>';
     html += '</select>';
-    html += '<input id="mfTrigger" placeholder="触发事件（如：被领导批评）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><label style="font-size:11px;color:#6B7280">触发前心境(1-5)</label><input id="mfBefore" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div><div><label style="font-size:11px;color:#6B7280">触发后心境(1-5)</label><input id="mfAfter" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div></div>';
-    html += '<input id="mfMethod" placeholder="用了什么方法（深呼吸/离开现场/数到10）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<textarea id="mfNote" placeholder="感悟（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
-    html += '<button onclick="saveMindfulness()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#6366F1);color:#fff;font-weight:600;cursor:pointer">保存训练</button>';
+    html += '<input id="mfTrigger" placeholder="触发事件（如：被领导批评）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><label style="font-size:11px;color:#6B7280">触发前心境(1-5)</label><input id="mfBefore" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"></div><div><label style="font-size:11px;color:#6B7280">触发后心境(1-5)</label><input id="mfAfter" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"></div></div>';
+    html += '<input id="mfMethod" placeholder="用了什么方法（深呼吸/离开现场/数到10）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="mfNote" placeholder="感悟（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveMindfulness()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary));color:#fff;font-weight:600;cursor:pointer">保存训练</button>';
     html += '</div>';
     if (list.length === 0) {
       html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有训练记录。<br>定力不是"忍住"，是"看见而不被带走"。<br>每次情绪冲击，都是一次训练机会——记录下来，看清自己的反应模式。</div>';
@@ -2255,12 +2306,12 @@ async function openMindfulness(){
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条</div>';
       list.forEach(function(m){
         var dColor = m.delta > 0 ? '#22C55E' : m.delta < 0 ? '#EF4444' : '#94A3B8';
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+dColor+'">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+dColor+'">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#1A1A2E;font-weight:600">'+escapeHtml(m.type)+'</span><span style="font-size:10px;color:#9CA3AF">'+m.date+'</span></div>';
         if (m.trigger) html += '<div style="font-size:12px;color:#4B5563;margin-top:4px">触发：'+escapeHtml(m.trigger)+'</div>';
         html += '<div style="font-size:11px;color:'+dColor+';margin-top:4px">心境 '+m.beforeLevel+' → '+m.afterLevel+' ('+(m.delta>=0?'+':'')+m.delta+')</div>';
         if (m.method) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">方法：'+escapeHtml(m.method)+'</div>';
-        if (m.note) html += '<div style="font-size:11px;color:#6366F1;margin-top:4px;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:6px">📝 '+escapeHtml(m.note)+'</div>';
+        if (m.note) html += '<div style="font-size:11px;color:var(--c-primary);margin-top:4px;padding:4px 8px;background:rgba(44,62,92,0.06);border-radius:6px">📝 '+escapeHtml(m.note)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delMindfulness(\''+m.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -2310,14 +2361,14 @@ async function openEnergy(){
     html += '<div style="background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.15)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 记录能量</div>';
     html += '<label style="font-size:11px;color:#6B7280">类型</label>';
-    html += '<select id="egType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<select id="egType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
     html += '<option value="drain">消耗（让我累）</option>';
     html += '<option value="gain">充能（让我有力）</option>';
     html += '</select>';
-    html += '<input id="egSource" placeholder="来源（如：刷短视频/深度对话/运动）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<input id="egSource" placeholder="来源（如：刷短视频/深度对话/运动）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
     html += '<label style="font-size:11px;color:#6B7280">强度(1-10)</label>';
-    html += '<input id="egAmount" type="number" min="1" max="10" value="5" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<textarea id="egNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<input id="egAmount" type="number" min="1" max="10" value="5" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="egNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<button onclick="saveEnergy()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录</button>';
     html += '</div>';
     if (list.length === 0) {
@@ -2327,7 +2378,7 @@ async function openEnergy(){
       list.slice(0, 15).forEach(function(e){
         var color = e.type === 'drain' ? '#EF4444' : '#22C55E';
         var icon = e.type === 'drain' ? '🔴' : '🟢';
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:8px 12px;margin-bottom:4px;border-left:3px solid '+color+'">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:8px 12px;margin-bottom:4px;border-left:3px solid '+color+'">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#1A1A2E">'+icon+' '+escapeHtml(e.source)+'</span><span style="font-size:11px;color:'+color+';font-weight:600">'+(e.type==='drain'?'-':'+')+e.amount+'</span></div>';
         if (e.note) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">'+escapeHtml(e.note)+'</div>';
         html += '<div style="font-size:10px;color:#9CA3AF">'+e.date+'</div>';
@@ -2368,7 +2419,7 @@ async function openReview(){
     var r2 = await fetch('/api/review/auto?period=week'); var autoWeek = await r2.json();
     var r3 = await fetch('/api/review/auto?period=month'); var autoMonth = await r3.json();
 
-    var html = '<div style="background:rgba(99,102,241,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #6366F1">';
+    var html = '<div style="background:rgba(44,62,92,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid var(--c-primary)">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#1A1A2E">🤖 本周自动复盘</span><span style="font-size:10px;color:#9CA3AF">'+autoWeek.range+'</span></div>';
     html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap;margin-bottom:6px">'+escapeHtml(autoWeek.summary)+'</div>';
     if (autoWeek.suggestions && autoWeek.suggestions.length) {
@@ -2383,22 +2434,22 @@ async function openReview(){
     html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">'+escapeHtml(autoMonth.summary)+'</div>';
     html += '</div>';
 
-    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(99,102,241,0.15)">';
+    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(44,62,92,0.15)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 写一条自己的复盘</div>';
-    html += '<select id="rvPeriod" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px"><option value="week">本周</option><option value="month">本月</option></select>';
-    html += '<textarea id="rvContent" placeholder="这周/月你最重要的反思是什么？" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<input id="rvHighlights" placeholder="亮点（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<input id="rvRegrets" placeholder="遗憾（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<input id="rvNextActions" placeholder="下周/月要做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:8px">';
-    html += '<button onclick="saveReview()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-weight:600;cursor:pointer">保存复盘</button>';
+    html += '<select id="rvPeriod" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px"><option value="week">本周</option><option value="month">本月</option></select>';
+    html += '<textarea id="rvContent" placeholder="这周/月你最重要的反思是什么？" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="rvHighlights" placeholder="亮点（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<input id="rvRegrets" placeholder="遗憾（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<input id="rvNextActions" placeholder="下周/月要做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:8px">';
+    html += '<button onclick="saveReview()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-weight:600;cursor:pointer">保存复盘</button>';
     html += '</div>';
 
     if (list.length > 0) {
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">历史复盘 '+list.length+' 条</div>';
       list.forEach(function(rv){
         var pLabel = rv.period === 'month' ? '月度' : '周度';
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6366F1">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#6366F1">'+pLabel+'复盘</span><span style="font-size:10px;color:#9CA3AF">'+rv.date+'</span></div>';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--c-primary)">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--c-primary)">'+pLabel+'复盘</span><span style="font-size:10px;color:#9CA3AF">'+rv.date+'</span></div>';
         html += '<div style="font-size:12px;color:#1A1A2E;margin-top:4px;line-height:1.6">'+escapeHtml(rv.content)+'</div>';
         if (rv.highlights) html += '<div style="font-size:11px;color:#22C55E;margin-top:4px">✨ '+escapeHtml(rv.highlights)+'</div>';
         if (rv.regrets) html += '<div style="font-size:11px;color:#EF4444;margin-top:2px">💭 '+escapeHtml(rv.regrets)+'</div>';
@@ -2445,21 +2496,21 @@ async function openBeliefs(){
     var r = await fetch('/api/beliefs'); var list = await r.json();
     var html = '<div style="background:rgba(139,92,246,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(139,92,246,0.15)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 记录一条信念</div>';
-    html += '<textarea id="blBelief" placeholder="你坚信的事，如：努力会有回报 / 人性本善 / 我能掌控自己" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<input id="blSource" placeholder="来源（自己验证/父母教的/书上看的/创伤形成的）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><div><label style="font-size:11px;color:#6B7280">信心(1-5)</label><input id="blConfidence" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"></div><div><label style="font-size:11px;color:#6B7280">分类</label><select id="blCategory" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><option>人生</option><option>金钱</option><option>关系</option><option>工作</option><option>自己</option></select></div></div>';
-    html += '<button onclick="saveBelief()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#F472B6);color:#fff;font-weight:600;cursor:pointer">记录信念</button>';
+    html += '<textarea id="blBelief" placeholder="你坚信的事，如：努力会有回报 / 人性本善 / 我能掌控自己" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="blSource" placeholder="来源（自己验证/父母教的/书上看的/创伤形成的）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><div><label style="font-size:11px;color:#6B7280">信心(1-5)</label><input id="blConfidence" type="number" min="1" max="5" value="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"></div><div><label style="font-size:11px;color:#6B7280">分类</label><select id="blCategory" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"><option>人生</option><option>金钱</option><option>关系</option><option>工作</option><option>自己</option></select></div></div>';
+    html += '<button onclick="saveBelief()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary-2),#F472B6);color:#fff;font-weight:600;cursor:pointer">记录信念</button>';
     html += '</div>';
     if (list.length === 0) {
       html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有信念记录。<br>信念是人生的操作系统——你所有的决策都基于它。<br>但很多信念你从没验证过，只是"以为"它对。<br>记录下来，定期让现实打脸。</div>';
     } else {
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 条信念</div>';
       list.forEach(function(b){
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #8B5CF6">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--c-primary-2)">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#6B7280">'+b.category+' · 信心'+b.confidence+'/5</span><span style="font-size:10px;color:#9CA3AF">'+b.date+'</span></div>';
         html += '<div style="font-size:13px;color:#1A1A2E;margin-top:4px;font-weight:500">'+escapeHtml(b.belief)+'</div>';
         if (b.source) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">来源：'+escapeHtml(b.source)+'</div>';
-        if (b.tested > 0) html += '<div style="font-size:11px;color:#6366F1;margin-top:4px">已检验'+b.tested+'次 · 成立'+b.heldUp+' · 被打破'+b.broken+'</div>';
+        if (b.tested > 0) html += '<div style="font-size:11px;color:var(--c-primary);margin-top:4px">已检验'+b.tested+'次 · 成立'+b.heldUp+' · 被打破'+b.broken+'</div>';
         html += '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
         html += '<button onclick="testBelief(\''+b.id+'\',\'held\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(34,197,94,0.3);border-radius:8px;background:rgba(34,197,94,0.06);color:#22C55E;cursor:pointer">✓ 成立</button>';
         html += '<button onclick="testBelief(\''+b.id+'\',\'broken\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;background:rgba(239,68,68,0.06);color:#EF4444;cursor:pointer">✗ 打破</button>';
@@ -2512,8 +2563,8 @@ async function openCharacter(){
     var r2 = await fetch('/api/character'); var list = await r2.json();
     var html = '';
     if (radar.interpretation) {
-      html += '<div style="background:rgba(168,85,247,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #A855F7">';
-      html += '<div style="font-size:12px;color:#A855F7;margin-bottom:6px">📊 品格演化</div>';
+      html += '<div style="background:rgba(168,85,247,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid var(--c-primary-2)">';
+      html += '<div style="font-size:12px;color:var(--c-primary-2);margin-bottom:6px">📊 品格演化</div>';
       html += '<div style="font-size:13px;color:#1A1A2E;line-height:1.6;white-space:pre-wrap">'+escapeHtml(radar.interpretation)+'</div>';
       html += '</div>';
     }
@@ -2521,22 +2572,22 @@ async function openCharacter(){
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新自评（0-10）</div>';
     var dims = [['honesty','诚实'],['courage','勇气'],['resilience','韧性'],['restraint','克制'],['responsibility','担当'],['altruism','利他']];
     dims.forEach(function(d){
-      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:13px;color:#1A1A2E;width:50px">'+d[1]+'</span><input id="ch_'+d[0]+'" type="range" min="0" max="10" value="5" style="flex:1" oninput="document.getElementById(\'ch_'+d[0]+'_v\').textContent=this.value"><span id="ch_'+d[0]+'_v" style="font-size:13px;color:#A855F7;width:24px;text-align:right">5</span></div>';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:13px;color:#1A1A2E;width:50px">'+d[1]+'</span><input id="ch_'+d[0]+'" type="range" min="0" max="10" value="5" style="flex:1" oninput="document.getElementById(\'ch_'+d[0]+'_v\').textContent=this.value"><span id="ch_'+d[0]+'_v" style="font-size:13px;color:var(--c-primary-2);width:24px;text-align:right">5</span></div>';
     });
-    html += '<textarea id="chNote" placeholder="为什么这次这么评？（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
-    html += '<button onclick="saveCharacter()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#A855F7,#C084FC);color:#fff;font-weight:600;cursor:pointer">保存自评</button>';
+    html += '<textarea id="chNote" placeholder="为什么这次这么评？（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveCharacter()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary-2),#C084FC);color:#fff;font-weight:600;cursor:pointer">保存自评</button>';
     html += '</div>';
     if (list.length === 0) {
       html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有品格记录。<br>诚实是所有品格的基石——先诚实，再谈其他。<br>每月自评一次，看自己的演化轨迹。</div>';
     } else {
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">历史 '+list.length+' 份</div>';
       list.slice(0, 6).forEach(function(c){
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #A855F7">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--c-primary-2)">';
         html += '<div style="font-size:11px;color:#9CA3AF">'+c.date+'</div>';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:11px">';
         dims.forEach(function(d){ html += '<div style="color:#6B7280">'+d[1]+'：<span style="color:#1A1A2E;font-weight:600">'+c[d[0]]+'</span></div>'; });
         html += '</div>';
-        if (c.note) html += '<div style="font-size:11px;color:#A855F7;margin-top:4px;padding:4px 8px;background:rgba(168,85,247,0.06);border-radius:6px">📝 '+escapeHtml(c.note)+'</div>';
+        if (c.note) html += '<div style="font-size:11px;color:var(--c-primary-2);margin-top:4px;padding:4px 8px;background:rgba(168,85,247,0.06);border-radius:6px">📝 '+escapeHtml(c.note)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delCharacter(\''+c.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -2575,7 +2626,7 @@ async function openSelfPortrait(){
   try {
     var r = await fetch('/api/self-portrait'); var list = await r.json();
     var html = '<div style="background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(168,85,247,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(139,92,246,0.2);text-align:center">';
-    html += '<button onclick="generatePortrait()" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#8B5CF6,#A855F7);color:#fff;font-weight:600;cursor:pointer">🪞 生成当前画像</button>';
+    html += '<button onclick="generatePortrait()" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary-2),var(--c-primary-2));color:#fff;font-weight:600;cursor:pointer">🪞 生成当前画像</button>';
     html += '<div style="font-size:11px;color:#9CA3AF;margin-top:6px">基于你所有记录，系统会画出"你是谁"</div>';
     html += '</div>';
     if (list.length === 0) {
@@ -2583,8 +2634,8 @@ async function openSelfPortrait(){
     } else {
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">历史画像 '+list.length+' 份（最多保留12份）</div>';
       list.forEach(function(p){
-        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid #8B5CF6">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#8B5CF6">'+p.date+' 画像</span><span style="font-size:10px;color:#9CA3AF">基于'+p.sampleSize+'条</span></div>';
+        html += '<div style="background:var(--c-surface);border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid var(--c-primary-2)">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--c-primary-2)">'+p.date+' 画像</span><span style="font-size:10px;color:#9CA3AF">基于'+p.sampleSize+'条</span></div>';
         if (p.oneLine) html += '<div style="font-size:14px;color:#1A1A2E;font-weight:600;margin-top:6px">'+escapeHtml(p.oneLine)+'</div>';
         if (p.narrative) html += '<div style="font-size:12px;color:#4B5563;margin-top:6px;line-height:1.7;white-space:pre-wrap">'+escapeHtml(p.narrative)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delPortrait(\''+p.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
@@ -2625,24 +2676,24 @@ async function openEntropy(){
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0 8px">⚠️ 信号 '+monitor.signals.length+' 条</div>';
       monitor.signals.forEach(function(s){
         var sc = s.severity === 'high' ? '#EF4444' : s.severity === 'med' ? '#F59E0B' : '#94A3B8';
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+sc+'">';
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+sc+'">';
         html += '<div style="font-size:12px;color:#1A1A2E">'+escapeHtml(s.signal)+'</div>';
         if (s.suggestion) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">→ '+escapeHtml(s.suggestion)+'</div>';
         html += '</div>';
       });
     }
-    html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-top:10px;border:1px solid #FFFFFF">';
+    html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-top:10px;border:1px solid #FFFFFF">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:6px">📝 手动记录熵增信号</div>';
-    html += '<select id="epDim" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px"><option>健康</option><option>关系</option><option>财务</option><option>工作</option><option>情绪</option><option>习惯</option></select>';
-    html += '<input id="epSignal" placeholder="信号（如：连续3天没联系家人）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<select id="epSev" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px"><option value="low">轻度</option><option value="med" selected>中度</option><option value="high">严重</option></select>';
+    html += '<select id="epDim" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px"><option>健康</option><option>关系</option><option>财务</option><option>工作</option><option>情绪</option><option>习惯</option></select>';
+    html += '<input id="epSignal" placeholder="信号（如：连续3天没联系家人）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<select id="epSev" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px"><option value="low">轻度</option><option value="med" selected>中度</option><option value="high">严重</option></select>';
     html += '<button onclick="saveEntropyLog()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录信号</button>';
     html += '</div>';
     if (logs.length > 0) {
       html += '<div style="font-size:11px;color:#9CA3AF;margin:10px 0 6px">手动记录 '+logs.length+' 条</div>';
       logs.forEach(function(l){
         var sc = l.severity === 'high' ? '#EF4444' : l.severity === 'med' ? '#F59E0B' : '#94A3B8';
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+(l.resolved?'#22C55E':sc)+'">';
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+(l.resolved?'#22C55E':sc)+'">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#6B7280">'+l.dimension+'</span>'+(l.resolved?'<span style="font-size:10px;color:#22C55E">已处理</span>':'')+'</div>';
         html += '<div style="font-size:12px;color:#1A1A2E;margin-top:2px">'+escapeHtml(l.signal)+'</div>';
         if (l.note) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">'+escapeHtml(l.note)+'</div>';
@@ -2694,7 +2745,7 @@ async function openAntifragile(){
       html += '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#1A1A2E">'+d[1]+'</span><span id="af_'+d[0]+'_v" style="font-size:13px;color:#22C55E;font-weight:600">5</span></div><input id="af_'+d[0]+'" type="range" min="0" max="10" value="5" style="width:100%" oninput="document.getElementById(\'af_'+d[0]+'_v\').textContent=this.value"></div>';
       html += '<div style="font-size:10px;color:#9CA3AF;margin-bottom:4px">'+d[2]+'</div>';
     });
-    html += '<textarea id="afNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<textarea id="afNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<button onclick="saveAntifragile()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#22C55E,#34D399);color:#fff;font-weight:600;cursor:pointer">保存评估</button>';
     html += '</div>';
     if (list.length > 0) {
@@ -2702,7 +2753,7 @@ async function openAntifragile(){
       list.slice(0, 5).forEach(function(a){
         var total = a.financial + a.skill + a.social + a.health + a.mental;
         var avg = (total/5).toFixed(1);
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #22C55E">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #22C55E">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#9CA3AF">'+a.date+'</span><span style="font-size:13px;color:#22C55E;font-weight:600">均'+avg+'</span></div>';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;margin-top:6px;font-size:10px;text-align:center">';
         html += '<div><div style="color:#9CA3AF">财务</div><div style="color:#1A1A2E">'+a.financial+'</div></div>';
@@ -2747,17 +2798,17 @@ async function openNorthStar(){
     var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2)">';
     html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:10px">🧭 你的坐标系</div>';
     html += '<label style="font-size:11px;color:#F59E0B;font-weight:600">⭐ 终局（你想活成什么样）</label>';
-    html += '<textarea id="nsUltimate" placeholder="如：一个自由、有爱、有创造力的人" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin:4px 0 8px">'+escapeHtml(data ? data.ultimate || '' : '')+'</textarea>';
+    html += '<textarea id="nsUltimate" placeholder="如：一个自由、有爱、有创造力的人" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin:4px 0 8px">'+escapeHtml(data ? data.ultimate || '' : '')+'</textarea>';
     html += '<label style="font-size:11px;color:#F59E0B">5年目标</label>';
-    html += '<input id="nsFiveYear" placeholder="5年后要成为什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.fiveYear || '' : '')+'">';
+    html += '<input id="nsFiveYear" placeholder="5年后要成为什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.fiveYear || '' : '')+'">';
     html += '<label style="font-size:11px;color:#F59E0B">1年目标</label>';
-    html += '<input id="nsOneYear" placeholder="今年要达成什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.oneYear || '' : '')+'">';
+    html += '<input id="nsOneYear" placeholder="今年要达成什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.oneYear || '' : '')+'">';
     html += '<label style="font-size:11px;color:#F59E0B">本季度</label>';
-    html += '<input id="nsQuarter" placeholder="这3个月做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisQuarter || '' : '')+'">';
+    html += '<input id="nsQuarter" placeholder="这3个月做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisQuarter || '' : '')+'">';
     html += '<label style="font-size:11px;color:#F59E0B">本周</label>';
-    html += '<input id="nsWeek" placeholder="这周做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisWeek || '' : '')+'">';
+    html += '<input id="nsWeek" placeholder="这周做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisWeek || '' : '')+'">';
     html += '<label style="font-size:11px;color:#F59E0B">今天</label>';
-    html += '<input id="nsToday" placeholder="今天做什么让终局近1%" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.today || '' : '')+'">';
+    html += '<input id="nsToday" placeholder="今天做什么让终局近1%" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.today || '' : '')+'">';
     html += '<button onclick="saveNorthStar()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">保存坐标系</button>';
     html += '</div>';
     if (!data || !data.ultimate) {
@@ -2791,12 +2842,12 @@ async function openCrisisPlan(){
     var r = await fetch('/api/crisis-plan'); var list = await r.json();
     var html = '<div style="background:rgba(239,68,68,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(239,68,68,0.15)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新危机预案</div>';
-    html += '<input id="cpScenario" placeholder="危机场景（如：失业/生病/分手）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><select id="cpProb" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><option value="low">低概率</option><option value="med" selected>中概率</option><option value="high">高概率</option></select><select id="cpImpact" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px"><option value="low">轻度</option><option value="med">中度</option><option value="high" selected>严重</option><option value="critical">致命</option></select></div>';
-    html += '<input id="cpPrecondition" placeholder="前置信号（如：连续3个月入不敷出）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px">';
-    html += '<textarea id="cpImmediate" placeholder="立即行动（头24小时做什么）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="cpThreeDay" placeholder="3天计划（止血、稳住）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="cpRecovery" placeholder="恢复计划（长期）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<input id="cpScenario" placeholder="危机场景（如：失业/生病/分手）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><select id="cpProb" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"><option value="low">低概率</option><option value="med" selected>中概率</option><option value="high">高概率</option></select><select id="cpImpact" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px"><option value="low">轻度</option><option value="med">中度</option><option value="high" selected>严重</option><option value="critical">致命</option></select></div>';
+    html += '<input id="cpPrecondition" placeholder="前置信号（如：连续3个月入不敷出）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="cpImmediate" placeholder="立即行动（头24小时做什么）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="cpThreeDay" placeholder="3天计划（止血、稳住）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="cpRecovery" placeholder="恢复计划（长期）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
     html += '<button onclick="saveCrisisPlan()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#EF4444,#F87171);color:#fff;font-weight:600;cursor:pointer">保存预案</button>';
     html += '</div>';
     if (list.length === 0) {
@@ -2805,7 +2856,7 @@ async function openCrisisPlan(){
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">共 '+list.length+' 个预案</div>';
       list.forEach(function(c){
         var pColor = c.probability === 'high' ? '#EF4444' : c.probability === 'med' ? '#F59E0B' : '#94A3B8';
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+pColor+'">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+pColor+'">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#1A1A2E;font-weight:600">'+escapeHtml(c.scenario)+'</span>'+(c.rehearsed?'<span style="font-size:10px;color:#22C55E">已演练</span>':'')+'</div>';
         html += '<div style="font-size:11px;color:'+pColor+';margin-top:4px">概率'+c.probability+' · 影响'+c.impact+'</div>';
         if (c.immediateAction) html += '<div style="font-size:11px;color:#4B5563;margin-top:4px"><b>立即：</b>'+escapeHtml(c.immediateAction)+'</div>';
@@ -2858,26 +2909,26 @@ async function openDeathTest(){
   openModal2('⚰️ 临终测试', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/death-test'); var list = await r.json();
-    var html = '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid rgba(99,102,241,0.15)">';
+    var html = '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid rgba(44,62,92,0.15)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">💭 假如今天就是终点</div>';
-    html += '<textarea id="dtRegrets" placeholder="最大的遗憾是什么？" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="dtUndone" placeholder="想做却没做的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="dtProud" placeholder="让你骄傲的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<textarea id="dtChange" placeholder="如果重来，你会改变什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
-    html += '<input id="dtFocus" placeholder="由此刻起，最重要的一件事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:8px">';
-    html += '<button onclick="saveDeathTest()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#818CF8);color:#fff;font-weight:600;cursor:pointer">记录</button>';
+    html += '<textarea id="dtRegrets" placeholder="最大的遗憾是什么？" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtUndone" placeholder="想做却没做的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtProud" placeholder="让你骄傲的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtChange" placeholder="如果重来，你会改变什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="dtFocus" placeholder="由此刻起，最重要的一件事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:8px">';
+    html += '<button onclick="saveDeathTest()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),#818CF8);color:#fff;font-weight:600;cursor:pointer">记录</button>';
     html += '</div>';
     if (list.length === 0) {
       html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有临终测试记录。<br>这不是诅咒，是反向校准——\n站在终点看现在，很多事就不纠结了。</div>';
     } else {
       html += '<div style="font-size:11px;color:#9CA3AF;margin:6px 0">历史 '+list.length+' 次</div>';
       list.forEach(function(d){
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #6366F1">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--c-primary)">';
         html += '<div style="font-size:11px;color:#9CA3AF">'+d.date+'</div>';
         if (d.regrets) html += '<div style="font-size:12px;color:#4B5563;margin-top:4px"><b style="color:#EF4444">遗憾：</b>'+escapeHtml(d.regrets)+'</div>';
         if (d.undone) html += '<div style="font-size:12px;color:#4B5563;margin-top:2px"><b style="color:#F59E0B">未做：</b>'+escapeHtml(d.undone)+'</div>';
         if (d.proudOf) html += '<div style="font-size:12px;color:#4B5563;margin-top:2px"><b style="color:#22C55E">骄傲：</b>'+escapeHtml(d.proudOf)+'</div>';
-        if (d.focus) html += '<div style="font-size:12px;color:#6366F1;margin-top:4px;padding:4px 8px;background:rgba(99,102,241,0.06);border-radius:6px">→ '+escapeHtml(d.focus)+'</div>';
+        if (d.focus) html += '<div style="font-size:12px;color:var(--c-primary);margin-top:4px;padding:4px 8px;background:rgba(44,62,92,0.06);border-radius:6px">→ '+escapeHtml(d.focus)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delDeathTest(\''+d.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -2916,17 +2967,17 @@ async function openNarrative(){
     var curYear = new Date().getFullYear();
     var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(139,92,246,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2);text-align:center">';
     html += '<div style="font-size:13px;color:#1A1A2E;margin-bottom:8px">生成 '+curYear+' 年的故事</div>';
-    html += '<button onclick="generateNarrative('+curYear+')" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#8B5CF6);color:#fff;font-weight:600;cursor:pointer">📖 生成年度叙事</button>';
+    html += '<button onclick="generateNarrative('+curYear+')" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,var(--c-primary-2));color:#fff;font-weight:600;cursor:pointer">📖 生成年度叙事</button>';
     html += '<div style="font-size:11px;color:#9CA3AF;margin-top:6px">基于你的所有记录，系统会写出"你这一年活成了什么"</div>';
     html += '</div>';
     if (list.length === 0) {
       html += '<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px;line-height:1.6">还没有年度叙事。<br>记录不是终点——这些数据要变成故事，变成判断力。</div>';
     } else {
       list.forEach(function(n){
-        html += '<div style="background:#FFFFFF;border-radius:12px;padding:14px;margin-bottom:8px;border-left:3px solid #F59E0B">';
+        html += '<div style="background:var(--c-surface);border-radius:12px;padding:14px;margin-bottom:8px;border-left:3px solid #F59E0B">';
         html += '<div style="font-size:14px;color:#F59E0B;font-weight:600;margin-bottom:8px">📖 '+n.year+' 年叙事</div>';
         if (n.story) html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.8;white-space:pre-wrap">'+escapeHtml(n.story)+'</div>';
-        if (n.conclusion) html += '<div style="font-size:12px;color:#8B5CF6;margin-top:10px;padding:8px 10px;background:rgba(139,92,246,0.06);border-radius:6px;white-space:pre-wrap">'+escapeHtml(n.conclusion)+'</div>';
+        if (n.conclusion) html += '<div style="font-size:12px;color:var(--c-primary-2);margin-top:10px;padding:8px 10px;background:rgba(139,92,246,0.06);border-radius:6px;white-space:pre-wrap">'+escapeHtml(n.conclusion)+'</div>';
         html += '<div style="margin-top:8px"><button onclick="delNarrative(\''+n.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -2957,8 +3008,8 @@ async function openManifesto(){
     var r = await fetch('/api/manifesto'); var data = (await r.json())[0];
     var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2)">';
     html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:8px">📜 你给自己的契约</div>';
-    html += '<input id="mfTitle" placeholder="标题（如：我的船长宣言）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;margin-bottom:6px" value="'+escapeHtml(data ? data.title || '' : '')+'">';
-    html += '<textarea id="mfBody" placeholder="写下你对自己的承诺——必须包含你愿意付出的代价。\n如：我承诺做一个诚实的人，即使诚实会让我失去机会。\n我承诺照顾身体，即使这意味着放弃一些享乐。\n..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:#FFFFFF;color:#1A1A2E;font-size:13px;font-family:inherit;min-height:120px;resize:vertical;margin-bottom:8px">'+escapeHtml(data ? data.body || '' : '')+'</textarea>';
+    html += '<input id="mfTitle" placeholder="标题（如：我的船长宣言）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px" value="'+escapeHtml(data ? data.title || '' : '')+'">';
+    html += '<textarea id="mfBody" placeholder="写下你对自己的承诺——必须包含你愿意付出的代价。\n如：我承诺做一个诚实的人，即使诚实会让我失去机会。\n我承诺照顾身体，即使这意味着放弃一些享乐。\n..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:120px;resize:vertical;margin-bottom:8px">'+escapeHtml(data ? data.body || '' : '')+'</textarea>';
     html += '<button onclick="saveManifesto()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-weight:600;cursor:pointer">'+(data ? '更新宣言' : '签订宣言')+'</button>';
     html += '</div>';
     if (!data) {
@@ -3061,12 +3112,12 @@ async function openMetacognition(){
   try {
     var r = await fetch('/api/eng/metacognition'); var d = await r.json();
     var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">🧠 你在"如何"思考，比你"思考什么"更重要</div>';
-    if (d.score !== undefined) html += '<div style="background:rgba(99,102,241,0.08);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #6366F1"><div style="font-size:11px;color:#6366F1;margin-bottom:6px">元认知得分</div><div style="font-size:20px;font-weight:700;color:#6366F1">' + d.score + '/10</div></div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.score !== undefined) html += '<div style="background:rgba(44,62,92,0.08);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">元认知得分</div><div style="font-size:20px;font-weight:700;color:var(--c-primary)">' + d.score + '/10</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
     if (d.details && d.details.length) {
       html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">🔍 检测到的思维特征</div>';
       d.details.forEach(function(item){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : item.severity === 'med' ? '#F59E0B' : '#10B981') + '"><div style="font-size:12px;color:#1A1A2E">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : item.severity === 'med' ? '#F59E0B' : '#10B981') + '"><div style="font-size:12px;color:#1A1A2E">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
       });
     }
     openModal2('🔄 元认知反思', html);
@@ -3079,11 +3130,11 @@ async function openCognitiveBias(){
     var r = await fetch('/api/eng/cognitive-bias'); var d = await r.json();
     var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">⚠️ 你的大脑在偷偷骗你吗？</div>';
     if (d.score !== undefined) html += '<div style="background:rgba(239,68,68,0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #EF4444"><div style="font-size:11px;color:#EF4444;margin-bottom:6px">检测到的偏差</div><div style="font-size:20px;font-weight:700;color:#EF4444">' + d.score + ' 个</div></div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
     if (d.details && d.details.length) {
       html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">🎯 偏差详情</div>';
       d.details.forEach(function(item){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid #F59E0B"><div style="font-size:12px;color:#1A1A2E;font-weight:600">' + escapeHtml(item.name || item.type || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.description || item.detail || '') + '</div></div>';
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid #F59E0B"><div style="font-size:12px;color:#1A1A2E;font-weight:600">' + escapeHtml(item.name || item.type || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.description || item.detail || '') + '</div></div>';
       });
     }
     openModal2('🎭 认知偏差检测', html);
@@ -3095,13 +3146,13 @@ async function openTrajectory(){
   try {
     var r = await fetch('/api/eng/trajectory?days=30'); var d = await r.json();
     var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">📊 近30天你在变好还是变差？</div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
     if (d.trend) html += '<div style="background:rgba(' + (d.trend === '↓' ? '239,68,68' : d.trend === '↑' ? '16,185,129' : '107,114,128') + ',0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid ' + (d.trend === '↓' ? '#EF4444' : d.trend === '↑' ? '#10B981' : '#6B7280') + '"><div style="font-size:20px;font-weight:700">趋势：' + d.trend + ' ' + escapeHtml(d.trendLabel || '') + '</div></div>';
     if (d.details && d.details.length) {
       html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">📉 各维度变化</div>';
       d.details.forEach(function(item){
         var color = item.change > 0 ? '#10B981' : item.change < 0 ? '#EF4444' : '#6B7280';
-        html += '<div style="display:flex;justify-content:space-between;background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px"><span style="font-size:12px;color:#1A1A2E">' + escapeHtml(item.label || item.dim || '') + '</span><span style="font-size:12px;color:' + color + ';font-weight:600">' + (item.change > 0 ? '+' : '') + escapeHtml(String(item.change)) + '</span></div>';
+        html += '<div style="display:flex;justify-content:space-between;background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px"><span style="font-size:12px;color:#1A1A2E">' + escapeHtml(item.label || item.dim || '') + '</span><span style="font-size:12px;color:' + color + ';font-weight:600">' + (item.change > 0 ? '+' : '') + escapeHtml(String(item.change)) + '</span></div>';
       });
     }
     openModal2('📈 轨迹分析', html);
@@ -3112,7 +3163,7 @@ async function openSecondOrder(){
   openModal2('⚡ 二阶效应分析', '<div style="text-align:center;color:#9CA3AF;padding:20px">分析连锁反应中...</div>');
   try {
     var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">⚡ 你做的每件事都有连锁反应</div>';
-    html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px"><div style="font-size:12px;color:#6B7280;margin-bottom:8px">选择一个要分析的领域：</div>';
+    html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px"><div style="font-size:12px;color:#6B7280;margin-bottom:8px">选择一个要分析的领域：</div>';
     var mods = [['sleep','😴 睡眠'],['finance','💰 财务'],['emotion','😊 情绪'],['exercise','🏃 运动'],['diet','🥗 饮食'],['work','💼 工作']];
     mods.forEach(function(m){
       html += '<button onclick="analyzeSecondOrder(\'' + m[0] + '\')" style="width:100%;padding:10px;margin-bottom:6px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer">' + m[1] + '</button>';
@@ -3127,11 +3178,11 @@ async function analyzeSecondOrder(mid){
     var r = await fetch('/api/eng/second-order', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mid:mid})});
     var d = await r.json();
     var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">⚡ <strong>' + escapeHtml(mid) + '</strong> 的连锁效应</div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
     if (d.chain && d.chain.length) {
       html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">🔗 效应链</div>';
       d.chain.forEach(function(item, i){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (i === 0 ? '#6366F1' : i === 1 ? '#F59E0B' : '#EF4444') + '"><div style="font-size:11px;color:#9CA3AF">第' + (i+1) + '阶效应</div><div style="font-size:12px;color:#1A1A2E;margin-top:2px">' + escapeHtml(item) + '</div></div>';
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (i === 0 ? 'var(--c-primary)' : i === 1 ? '#F59E0B' : '#EF4444') + '"><div style="font-size:11px;color:#9CA3AF">第' + (i+1) + '阶效应</div><div style="font-size:12px;color:#1A1A2E;margin-top:2px">' + escapeHtml(item) + '</div></div>';
       });
     }
     openModal2('⚡ 二阶效应：' + escapeHtml(mid), html);
@@ -3144,11 +3195,11 @@ async function openValues(){
     var r = await fetch('/api/eng/values-clarification'); var d = await r.json();
     var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">🎯 你宣称的价值观 vs 你实际在做什么</div>';
     if (d.alignment !== undefined) html += '<div style="background:rgba(16,185,129,0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #10B981"><div style="font-size:11px;color:#10B981;margin-bottom:6px">人生对齐度</div><div style="font-size:20px;font-weight:700;color:#10B981">' + d.alignment + '/10</div></div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
     if (d.details && d.details.length) {
       html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">💎 你的真实价值观</div>';
       d.details.forEach(function(item){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid #8B5CF6"><div style="font-size:12px;color:#1A1A2E;font-weight:600">' + escapeHtml(item.label || item.name || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.detail || item.description || '') + '</div></div>';
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid var(--c-primary-2)"><div style="font-size:12px;color:#1A1A2E;font-weight:600">' + escapeHtml(item.label || item.name || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.detail || item.description || '') + '</div></div>';
       });
     }
     openModal2('🎯 价值观澄清', html);
@@ -3161,11 +3212,11 @@ async function openAntiHuman(){
     var r = await fetch('/api/eng/anti-human-nature'); var d = await r.json();
     var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">🚫 对抗人性弱点，才能超越自己</div>';
     if (d.score !== undefined) html += '<div style="background:rgba(245,158,11,0.08);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #F59E0B"><div style="font-size:11px;color:#F59E0B;margin-bottom:6px">反人性指数</div><div style="font-size:20px;font-weight:700;color:#F59E0B">' + d.score + '/10</div></div>';
-    if (d.text) html += '<div style="background:#FFFFFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
     if (d.details && d.details.length) {
       html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">⚠️ 检测到的人性弱点</div>';
       d.details.forEach(function(item){
-        html += '<div style="background:#FFFFFF;border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : '#F59E0B') + '"><div style="font-size:12px;color:#1A1A2E;font-weight:600">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : '#F59E0B') + '"><div style="font-size:12px;color:#1A1A2E;font-weight:600">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:#6B7280;margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
       });
     }
     openModal2('🚫 反人性检测', html);
@@ -3197,13 +3248,13 @@ function showCognitiveFeedback(res){
       }
     }
   }
-  if (res.reflection) parts.push('<div style="background:rgba(99,102,241,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #6366F1"><div style="font-size:11px;color:#6366F1;margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
+  if (res.reflection) parts.push('<div style="background:rgba(44,62,92,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
   if (res.dailySummary) parts.push('<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">📊 '+escapeHtml(res.dailySummary)+'</div>');
   if (res.correlations && res.correlations.length > 0) {
-    var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:#6366F1;margin-bottom:6px">🔗 关联发现</div>';
+    var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">🔗 关联发现</div>';
     res.correlations.forEach(function(c){
-      var color = c.s === 'crit' ? '#EF4444' : c.s === 'high' ? '#F59E0B' : '#6366F1';
-      ch += '<div style="background:rgba(99,102,241,0.06);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
+      var color = c.s === 'crit' ? '#EF4444' : c.s === 'high' ? '#F59E0B' : 'var(--c-primary)';
+      ch += '<div style="background:rgba(44,62,92,0.06);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
     });
     ch += '</div>';
     parts.push(ch);
@@ -3221,7 +3272,7 @@ function showCognitiveFeedback(res){
     parts.push('<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px">已保存 ✓<br><br>多记录几次，认知引擎会开始发现你的模式。</div>');
   }
   if (res.reflection) {
-    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid rgba(99,102,241,0.3);border-radius:8px;background:transparent;color:#6366F1;font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
+    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid rgba(44,62,92,0.3);border-radius:8px;background:transparent;color:var(--c-primary);font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
     window.__lastReflection = res.reflection;
   }
   openModal2('✨ 保存后的认知反馈', parts.join(''), '<button class="sv" onclick="closeModal2()">知道了</button>');
@@ -3263,8 +3314,8 @@ async function openHealthTrends(){
     if (s.weight || s.bp) {
       html += '<div style="display:flex;gap:8px;margin-bottom:14px">';
       if (s.weight) {
-        var trendColor = s.weight.trend === '上升' ? '#EF4444' : s.weight.trend === '下降' ? '#10B981' : '#6366F1';
-        html += '<div style="flex:1;background:#FFFFFF;border-radius:10px;padding:10px">';
+        var trendColor = s.weight.trend === '上升' ? '#EF4444' : s.weight.trend === '下降' ? '#10B981' : 'var(--c-primary)';
+        html += '<div style="flex:1;background:var(--c-surface);border-radius:10px;padding:10px">';
         html += '<div style="font-size:11px;color:#9CA3AF">⚖️ 体重</div>';
         html += '<div style="font-size:18px;font-weight:700;color:#1A1A2E;margin-top:2px">' + s.weight.last + ' <span style="font-size:11px;color:#9CA3AF;font-weight:400">kg</span></div>';
         html += '<div style="font-size:11px;color:' + trendColor + ';margin-top:2px">' + s.weight.trend + (s.weight.change >= 0 ? ' +' : ' ') + s.weight.change + 'kg</div>';
@@ -3273,7 +3324,7 @@ async function openHealthTrends(){
       }
       if (s.bp) {
         var bpColor = s.bp.level === '偏高' ? '#EF4444' : s.bp.level === '偏低' ? '#F59E0B' : '#10B981';
-        html += '<div style="flex:1;background:#FFFFFF;border-radius:10px;padding:10px">';
+        html += '<div style="flex:1;background:var(--c-surface);border-radius:10px;padding:10px">';
         html += '<div style="font-size:11px;color:#9CA3AF">🩸 血压</div>';
         html += '<div style="font-size:18px;font-weight:700;color:#1A1A2E;margin-top:2px">' + s.bp.lastSys + '/' + s.bp.lastDia + '</div>';
         html += '<div style="font-size:11px;color:' + bpColor + ';margin-top:2px">' + s.bp.level + '</div>';
@@ -3284,7 +3335,7 @@ async function openHealthTrends(){
     }
     // 体重折线图（SVG）
     if (w.length > 0) {
-      html += renderLineChart('体重趋势(kg)', w.map(function(p){return {x:p.date, y:p.weight};}), '#6366F1');
+      html += renderLineChart('体重趋势(kg)', w.map(function(p){return {x:p.date, y:p.weight};}), 'var(--c-primary)');
     }
     // 血压折线图
     if (bp.length > 0) {
@@ -3302,7 +3353,7 @@ async function openHealthTrends(){
 // SVG折线图渲染（单线）
 function renderLineChart(title, points, color){
   if (!points || points.length < 2) {
-    return '<div style="background:#FFFFFF;border-radius:10px;padding:14px;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:6px">' + title + '</div><div style="font-size:11px;color:#9CA3AF;text-align:center;padding:10px">数据点不足（至少2个）</div></div>';
+    return '<div style="background:var(--c-surface);border-radius:10px;padding:14px;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:6px">' + title + '</div><div style="font-size:11px;color:#9CA3AF;text-align:center;padding:10px">数据点不足（至少2个）</div></div>';
   }
   var W = 280, H = 110, padL = 28, padR = 8, padT = 10, padB = 18;
   var xs = points.map(function(p){return p.x;});
@@ -3319,7 +3370,7 @@ function renderLineChart(title, points, color){
   });
   var path = pts.map(function(p,i){return (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1);}).join(' ');
   var areaPath = path + ' L' + pts[pts.length-1].x.toFixed(1) + ',' + (H-padB) + ' L' + pts[0].x.toFixed(1) + ',' + (H-padB) + ' Z';
-  var html = '<div style="background:#FFFFFF;border-radius:10px;padding:14px;margin-bottom:12px">';
+  var html = '<div style="background:var(--c-surface);border-radius:10px;padding:14px;margin-bottom:12px">';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:600;color:#1A1A2E">' + title + '</span><span style="font-size:10px;color:#9CA3AF">' + points.length + '个点</span></div>';
   html += '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto">';
   // Y轴标尺线
@@ -3349,7 +3400,7 @@ function renderLineChart(title, points, color){
 // SVG双线图（血压：高压/低压）
 function renderDualLineChart(title, points, c1, c2){
   if (!points || points.length < 2) {
-    return '<div style="background:#FFFFFF;border-radius:10px;padding:14px;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:6px">' + title + '</div><div style="font-size:11px;color:#9CA3AF;text-align:center;padding:10px">数据点不足</div></div>';
+    return '<div style="background:var(--c-surface);border-radius:10px;padding:14px;margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:6px">' + title + '</div><div style="font-size:11px;color:#9CA3AF;text-align:center;padding:10px">数据点不足</div></div>';
   }
   var W = 280, H = 110, padL = 28, padR = 8, padT = 10, padB = 18;
   var xs = points.map(function(p){return p.x;});
@@ -3366,7 +3417,7 @@ function renderDualLineChart(title, points, c1, c2){
   }); };
   var p1 = mkPts('y1'), p2 = mkPts('y2');
   var mkPath = function(pts){ return pts.map(function(p,i){return (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1);}).join(' '); };
-  var html = '<div style="background:#FFFFFF;border-radius:10px;padding:14px;margin-bottom:12px">';
+  var html = '<div style="background:var(--c-surface);border-radius:10px;padding:14px;margin-bottom:12px">';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:600;color:#1A1A2E">' + title + '</span><span style="font-size:10px;color:#9CA3AF"><span style="color:'+c1+'">●</span>高压 <span style="color:'+c2+';margin-left:6px">●</span>低压</span></div>';
   html += '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto">';
   for (var i=0; i<=2; i++) {
@@ -3405,23 +3456,23 @@ async function renderPlanList(){
     var html = '';
     // 类型切换
     html += '<div style="display:flex;gap:6px;margin-bottom:10px">';
-    html += '<button onclick="currentPlanType=\'week\';renderPlanList()" style="flex:1;padding:8px;border:'+(currentPlanType==='week'?'2px solid #6366F1':'1px solid #E5E7EB')+';background:'+(currentPlanType==='week'?'#EEF2FF':'#fff')+';color:'+(currentPlanType==='week'?'#6366F1':'#6B7280')+';border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">📅 周计划</button>';
-    html += '<button onclick="currentPlanType=\'month\';renderPlanList()" style="flex:1;padding:8px;border:'+(currentPlanType==='month'?'2px solid #6366F1':'1px solid #E5E7EB')+';background:'+(currentPlanType==='month'?'#EEF2FF':'#fff')+';color:'+(currentPlanType==='month'?'#6366F1':'#6B7280')+';border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🗓️ 月计划</button>';
+    html += '<button onclick="currentPlanType=\'week\';renderPlanList()" style="flex:1;padding:8px;border:'+(currentPlanType==='week'?'2px solid var(--c-primary)':'1px solid #E5E7EB')+';background:'+(currentPlanType==='week'?'#EEF2FF':'#fff')+';color:'+(currentPlanType==='week'?'var(--c-primary)':'#6B7280')+';border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">📅 周计划</button>';
+    html += '<button onclick="currentPlanType=\'month\';renderPlanList()" style="flex:1;padding:8px;border:'+(currentPlanType==='month'?'2px solid var(--c-primary)':'1px solid #E5E7EB')+';background:'+(currentPlanType==='month'?'#EEF2FF':'#fff')+';color:'+(currentPlanType==='month'?'var(--c-primary)':'#6B7280')+';border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🗓️ 月计划</button>';
     html += '</div>';
     // 对比信息
     if (cmp && cmp.message) {
-      html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#4B5563;line-height:1.6">' + cmp.message + '</div>';
+      html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#4B5563;line-height:1.6">' + cmp.message + '</div>';
     }
     // 创建按钮
-    html += '<button onclick="openCreatePlan()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">+ 创建新' + (currentPlanType==='week'?'周':'月') + '计划</button>';
+    html += '<button onclick="openCreatePlan()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">+ 创建新' + (currentPlanType==='week'?'周':'月') + '计划</button>';
     // 计划列表
     if (!list.length) {
       html += '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px;line-height:1.8">📭 暂无' + (currentPlanType==='week'?'周':'月') + '计划<br>创建一个，开始追踪执行</div>';
     } else {
       list.forEach(function(p){
         var pct = p.progress || 0;
-        var barColor = pct === 100 ? '#10B981' : pct >= 50 ? '#6366F1' : '#F59E0B';
-        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:8px">';
+        var barColor = pct === 100 ? '#10B981' : pct >= 50 ? 'var(--c-primary)' : '#F59E0B';
+        html += '<div style="background:var(--c-surface);border-radius:12px;padding:12px;margin-bottom:8px">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
         html += '<span style="font-size:13px;font-weight:600;color:#1A1A2E">' + escapeHtml(p.title || p.period) + '</span>';
         html += '<span style="font-size:11px;color:' + barColor + ';font-weight:700">' + p.done + '/' + p.total + ' · ' + pct + '%</span>';
@@ -3443,7 +3494,7 @@ async function renderPlanList(){
         // 添加事项
         html += '<div style="display:flex;gap:6px;margin-top:8px">';
         html += '<input id="planItemInput_'+p.id+'" placeholder="添加事项..." style="flex:1;padding:6px 8px;border:1px solid #E5E7EB;border-radius:6px;font-size:11px">';
-        html += '<button onclick="addPlanItem(\''+p.id+'\')" style="padding:6px 10px;border:none;border-radius:6px;background:#6366F1;color:#fff;font-size:11px;cursor:pointer">+</button>';
+        html += '<button onclick="addPlanItem(\''+p.id+'\')" style="padding:6px 10px;border:none;border-radius:6px;background:var(--c-primary);color:#fff;font-size:11px;cursor:pointer">+</button>';
         html += '</div>';
         html += '<div style="margin-top:6px;text-align:right"><span onclick="delPlan(\''+p.id+'\')" style="font-size:11px;color:#EF4444;cursor:pointer">🗑 删除计划</span></div>';
         html += '</div>';
@@ -3461,7 +3512,7 @@ function openCreatePlan(){
   html += '<label style="font-size:12px;color:#374151">事项（每行一条）</label>';
   html += '<textarea id="newPlanItems" rows="5" placeholder="读书30分钟&#10;锻炼&#10;写日记" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px"></textarea>';
   html += '<div style="display:flex;gap:8px;margin-top:12px">';
-  html += '<button onclick="createPlan()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:600;cursor:pointer">创建</button>';
+  html += '<button onclick="createPlan()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer">创建</button>';
   html += '<button onclick="renderPlanList()" style="flex:1;padding:10px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;color:#6B7280;font-size:13px;cursor:pointer">取消</button>';
   html += '</div>';
   openModal2('➕ 创建' + (currentPlanType==='week'?'周':'月') + '计划', html);
@@ -3529,11 +3580,11 @@ async function openCausal(){
       return;
     }
     var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">基于' + d.sampleSize + '条情绪记录 · 测试0-7天滞后相关性</div>';
-    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">🎯 因果 ≠ 相关。本引擎通过"滞后时间窗"分析：今天的情绪，是否由N天前的睡眠/锻炼导致。<br>滞后相关性越强，因果方向越可信。</div>';
+    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">🎯 因果 ≠ 相关。本引擎通过"滞后时间窗"分析：今天的情绪，是否由N天前的睡眠/锻炼导致。<br>滞后相关性越强，因果方向越可信。</div>';
     if (d.factors && d.factors.length) {
       d.factors.forEach(function(f){
         var strengthColor = f.strength === '强' ? '#EF4444' : f.strength === '中' ? '#F59E0B' : '#9CA3AF';
-        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+        html += '<div style="background:var(--c-surface);border-radius:12px;padding:12px;margin-bottom:10px">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
         html += '<span style="font-size:13px;font-weight:600;color:#1A1A2E">' + f.factorName + '</span>';
         html += '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:'+strengthColor+'20;color:'+strengthColor+';font-weight:600">' + f.strength + '</span>';
@@ -3557,10 +3608,10 @@ async function openCausal(){
               return {x:x, y:y, r:t.r, lag:t.lag};
             });
             var pathStr = pathPoints.map(function(p,i){ return (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
-            html += '<path d="' + pathStr + '" fill="none" stroke="#6366F1" stroke-width="2"/>';
+            html += '<path d="' + pathStr + '" fill="none" stroke="var(--c-primary)" stroke-width="2"/>';
             pathPoints.forEach(function(p){
               var isBest = (p.lag === f.bestLag);
-              html += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isBest?4:2.5) + '" fill="' + (isBest?'#EF4444':'#6366F1') + '"/>';
+              html += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isBest?4:2.5) + '" fill="' + (isBest?'#EF4444':'var(--c-primary)') + '"/>';
             });
             // X标签
             pathPoints.forEach(function(p,i){
@@ -3593,7 +3644,7 @@ async function openBaseline(){
       return;
     }
     var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">基于近' + d.days + '天数据建立个人常态基线</div>';
-    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
+    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
     // 各维度基线
     var dims = d.baselines || {};
     var dimKeys = Object.keys(dims);
@@ -3602,10 +3653,10 @@ async function openBaseline(){
     } else {
       dimKeys.forEach(function(key){
         var b = dims[key];
-        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+        html += '<div style="background:var(--c-surface);border-radius:12px;padding:12px;margin-bottom:10px">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
         html += '<span style="font-size:13px;font-weight:600;color:#1A1A2E">' + b.label + '</span>';
-        html += '<span style="font-size:11px;color:#6366F1;font-weight:700">均' + b.mean + b.unit + '</span>';
+        html += '<span style="font-size:11px;color:var(--c-primary);font-weight:700">均' + b.mean + b.unit + '</span>';
         html += '</div>';
         html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:6px">';
         html += '<span>P25: ' + b.p25 + b.unit + '</span>';
@@ -3617,7 +3668,7 @@ async function openBaseline(){
         var p25Pct = ((b.p25 - b.min) / range) * 100;
         var p75Pct = ((b.p75 - b.min) / range) * 100;
         var meanPct = ((b.mean - b.min) / range) * 100;
-        html += '<div style="position:relative;height:18px;background:linear-gradient(90deg,#DBEAFE 0%,#DBEAFE ' + p25Pct + '%, #6366F1 ' + p25Pct + '%, #6366F1 ' + p75Pct + '%, #DBEAFE ' + p75Pct + '%);border-radius:9px;overflow:hidden">';
+        html += '<div style="position:relative;height:18px;background:linear-gradient(90deg,#DBEAFE 0%,#DBEAFE ' + p25Pct + '%, var(--c-primary) ' + p25Pct + '%, var(--c-primary) ' + p75Pct + '%, #DBEAFE ' + p75Pct + '%);border-radius:9px;overflow:hidden">';
         html += '<div style="position:absolute;top:0;left:' + meanPct + '%;width:2px;height:18px;background:#1A1A2E"></div>';
         html += '</div>';
         html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;margin-top:2px">';
@@ -3630,7 +3681,7 @@ async function openBaseline(){
       });
       // 今日偏离
       if (d.deviations && d.deviations.length) {
-        html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+        html += '<div style="background:var(--c-surface);border-radius:12px;padding:12px;margin-bottom:10px">';
         html += '<div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:8px">📍 今日偏离基线</div>';
         d.deviations.forEach(function(dev){
           var devColor = dev.status === 'below' ? '#EF4444' : dev.status === 'above' ? '#F59E0B' : '#10B981';
@@ -3658,8 +3709,8 @@ async function openLifeMilestone(){
   try {
     var r = await fetch('/api/life-milestone');
     var list = await r.json();
-    var html = '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">⚓ 人生节点=你回头看时，定义"你是谁"的那些时刻。<br>不是大事记，是转折点——它改变了你之后的方向。</div>';
-    html += '<button onclick="openCreateMilestone()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">+ 标记一个人生节点</button>';
+    var html = '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">⚓ 人生节点=你回头看时，定义"你是谁"的那些时刻。<br>不是大事记，是转折点——它改变了你之后的方向。</div>';
+    html += '<button onclick="openCreateMilestone()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">+ 标记一个人生节点</button>';
     if (!list.length) {
       html += '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px;line-height:1.8">📭 暂无人生节点<br>标记一个：毕业、换工作、独立、觉醒...<br>都是你成为今天的自己的关键点</div>';
     } else {
@@ -3667,19 +3718,19 @@ async function openLifeMilestone(){
       list.sort(function(a,b){ return a.date < b.date ? 1 : -1; });
       // 时间轴
       html += '<div style="position:relative;padding-left:14px">';
-      html += '<div style="position:absolute;left:4px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#6366F1,#8B5CF6,#E5E7EB)"></div>';
+      html += '<div style="position:absolute;left:4px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--c-primary),var(--c-primary-2),#E5E7EB)"></div>';
       list.forEach(function(m){
-        var typeColor = m.type === '转折' ? '#6366F1' : m.type === '成就' ? '#10B981' : m.type === '挫折' ? '#EF4444' : m.type === '觉醒' ? '#F59E0B' : '#6B7280';
+        var typeColor = m.type === '转折' ? 'var(--c-primary)' : m.type === '成就' ? '#10B981' : m.type === '挫折' ? '#EF4444' : m.type === '觉醒' ? '#F59E0B' : '#6B7280';
         html += '<div style="position:relative;margin-bottom:14px">';
         html += '<div style="position:absolute;left:-14px;top:4px;width:10px;height:10px;border-radius:50%;background:'+typeColor+';border:2px solid #fff;box-shadow:0 0 0 2px '+typeColor+'"></div>';
-        html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-left:8px">';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-left:8px">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
         html += '<span style="font-size:13px;font-weight:600;color:#1A1A2E">' + escapeHtml(m.title) + '</span>';
         html += '<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:'+typeColor+'20;color:'+typeColor+'">' + (m.type || '节点') + '</span>';
         html += '</div>';
         html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">📅 ' + m.date + '</div>';
         if (m.description) html += '<div style="font-size:12px;color:#374151;line-height:1.6;margin-bottom:4px">' + escapeHtml(m.description) + '</div>';
-        if (m.impact) html += '<div style="font-size:11px;color:#6366F1;margin-bottom:4px">💥 影响：' + escapeHtml(m.impact) + '</div>';
+        if (m.impact) html += '<div style="font-size:11px;color:var(--c-primary);margin-bottom:4px">💥 影响：' + escapeHtml(m.impact) + '</div>';
         if (m.lesson) html += '<div style="font-size:11px;color:#F59E0B">💡 教训：' + escapeHtml(m.lesson) + '</div>';
         html += '<div style="margin-top:6px;text-align:right"><span onclick="delMilestone(\''+m.id+'\')" style="font-size:11px;color:#EF4444;cursor:pointer">🗑 删除</span></div>';
         html += '</div></div>';
@@ -3709,7 +3760,7 @@ function openCreateMilestone(){
   html += '<label style="font-size:12px;color:#374151">教训/收获</label>';
   html += '<textarea id="msLesson" rows="2" placeholder="我从中学到了什么..." style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:10px;font-size:13px"></textarea>';
   html += '<div style="display:flex;gap:8px;margin-top:12px">';
-  html += '<button onclick="createMilestone()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:13px;font-weight:600;cursor:pointer">保存</button>';
+  html += '<button onclick="createMilestone()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer">保存</button>';
   html += '<button onclick="openLifeMilestone()" style="flex:1;padding:10px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;color:#6B7280;font-size:13px;cursor:pointer">取消</button>';
   html += '</div>';
   openModal2('➕ 标记人生节点', html);
@@ -3754,10 +3805,10 @@ async function openSeasonal(){
       return;
     }
     var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">基于' + d.sampleSize + '条情绪记录 · 按月/季节聚合</div>';
-    html += '<div style="background:rgba(99,102,241,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
+    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
     // 季节对比
     if (d.seasonal && d.seasonal.length) {
-      html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+      html += '<div style="background:var(--c-surface);border-radius:12px;padding:12px;margin-bottom:10px">';
       html += '<div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:8px">🌿 季节平均情绪</div>';
       var maxAvg = Math.max.apply(null, d.seasonal.map(function(s){return s.avg;}));
       var minAvg = Math.min.apply(null, d.seasonal.map(function(s){return s.avg;}));
@@ -3766,7 +3817,7 @@ async function openSeasonal(){
         var isBest = d.bestSeason && s.season === d.bestSeason.season;
         var isWorst = d.worstSeason && s.season === d.worstSeason.season;
         var isCurrent = s.season === d.currentSeason;
-        var color = isBest ? '#10B981' : isWorst ? '#EF4444' : '#6366F1';
+        var color = isBest ? '#10B981' : isWorst ? '#EF4444' : 'var(--c-primary)';
         var pct = (s.avg / 10) * 100;
         html += '<div style="margin-bottom:6px">';
         html += '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">';
@@ -3783,7 +3834,7 @@ async function openSeasonal(){
     }
     // 月度柱状图
     if (d.monthly && d.monthly.length) {
-      html += '<div style="background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:10px">';
+      html += '<div style="background:var(--c-surface);border-radius:12px;padding:12px;margin-bottom:10px">';
       html += '<div style="font-size:12px;font-weight:600;color:#1A1A2E;margin-bottom:8px">📅 月度情绪分布</div>';
       var maxM = Math.max.apply(null, d.monthly.map(function(m){return m.avg;}));
       // 12个月柱状图
@@ -3794,7 +3845,7 @@ async function openSeasonal(){
         var x = idx * barW + 2;
         var h = (m.avg / 10) * 60;
         var y = 70 - h;
-        var color = m.avg >= 7 ? '#10B981' : m.avg >= 5 ? '#6366F1' : '#F59E0B';
+        var color = m.avg >= 7 ? '#10B981' : m.avg >= 5 ? 'var(--c-primary)' : '#F59E0B';
         html += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + (barW-4).toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + color + '" rx="2"/>';
         html += '<text x="' + (x + (barW-4)/2).toFixed(1) + '" y="80" text-anchor="middle" font-size="8" fill="#9CA3AF">' + m.month + '月</text>';
         html += '<text x="' + (x + (barW-4)/2).toFixed(1) + '" y="' + (y-2).toFixed(1) + '" text-anchor="middle" font-size="8" fill="#4B5563">' + m.avg + '</text>';
@@ -3928,9 +3979,9 @@ function renderInsight(){
   var summary='';
   if(insightsCache && insightsCache.growth){
     var g=insightsCache.growth;
-    summary='<div style="background:rgba(99,102,241,0.08);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(99,102,241,0.15);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:14px;font-weight:700;color:#6366F1">'+g.phase+'</span><span style="font-size:11px;color:#9CA3AF">'+g.progress+'%</span></div><div style="font-size:12px;color:#4B5563;">'+g.phaseDesc+' · 下一里程碑：'+g.nextMilestone+'</div><div style="margin-top:8px;height:4px;background:#E5E7EB;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));border-radius:4px"></div></div></div>';
+    summary='<div style="background:rgba(44,62,92,0.08);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(44,62,92,0.15);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:14px;font-weight:700;color:var(--c-primary)">'+g.phase+'</span><span style="font-size:11px;color:#9CA3AF">'+g.progress+'%</span></div><div style="font-size:12px;color:#4B5563;">'+g.phaseDesc+' · 下一里程碑：'+g.nextMilestone+'</div><div style="margin-top:8px;height:4px;background:#E5E7EB;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));border-radius:4px"></div></div></div>';
     if(insightsCache.correlations && insightsCache.correlations.length>0){
-      summary+='<div style="background:#FFFFFF;border-radius:14px;padding:12px 16px;margin-bottom:16px;"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:6px">🔗 发现关联</div>';
+      summary+='<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:16px;"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:6px">🔗 发现关联</div>';
       insightsCache.correlations.slice(0,2).forEach(function(corr){ summary+='<div class="corr-item"><div class="title">'+corr.title+'</div><div class="detail">'+corr.detail+'</div></div>'; });
       summary+='</div>';
     }
@@ -4017,8 +4068,8 @@ function renderEngDashboard(){
     var sp = s.selfPortrait;
     var portraitText = sp.summary || sp.portrait || sp.description || sp.narrative || '';
     if(portraitText){
-      html += '<div style="background:rgba(99,102,241,0.06);border-radius:14px;padding:12px 16px;margin-bottom:12px;border:1px solid rgba(99,102,241,0.15);">';
-      html += '<div style="font-size:12px;font-weight:700;color:#6366F1;margin-bottom:6px;">🪞 自我画像</div>';
+      html += '<div style="background:rgba(44,62,92,0.06);border-radius:14px;padding:12px 16px;margin-bottom:12px;border:1px solid rgba(44,62,92,0.15);">';
+      html += '<div style="font-size:12px;font-weight:700;color:var(--c-primary);margin-bottom:6px;">🪞 自我画像</div>';
       html += '<div style="font-size:12px;color:#374151;line-height:1.6;">'+String(portraitText).substring(0,200)+'</div>';
       html += '</div>';
     }
@@ -4029,7 +4080,7 @@ function renderEngDashboard(){
     var ent = s.entropy;
     var entScore = ent.score !== undefined ? ent.score : (ent.entropy !== undefined ? ent.entropy : '-');
     var entSignals = ent.signals || ent.dimensions || [];
-    html += '<div style="background:#FFFFFF;border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
+    html += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:12px;font-weight:600;color:#6B7280;">📉 反熵增</span><span style="font-size:14px;font-weight:700;color:'+(typeof entScore==='number' && entScore>50?'#EF4444':'#10B981')+';">'+entScore+'</span></div>';
     if(entSignals && entSignals.length){
       entSignals.slice(0,2).forEach(function(sig){
@@ -4045,7 +4096,7 @@ function renderEngDashboard(){
     var af = s.antifragile;
     var afAvg = af.average || af.avg || af.score || '-';
     var afWeakest = af.weakest || af.shortboard || null;
-    html += '<div style="background:#FFFFFF;border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
+    html += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:12px;font-weight:600;color:#6B7280;">🛡️ 反脆弱</span><span style="font-size:14px;font-weight:700;color:#2563EB;">'+afAvg+'</span></div>';
     if(afWeakest){
       var weakName = afWeakest.name || afWeakest.dimension || '短板';
@@ -4060,7 +4111,7 @@ function renderEngDashboard(){
     var tr = s.trajectory;
     var trTrend = tr.trend || tr.direction || '-';
     var trChange = tr.change !== undefined ? tr.change : (tr.delta !== undefined ? tr.delta : '');
-    html += '<div style="background:#FFFFFF;border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
+    html += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;font-weight:600;color:#6B7280;">📈 30天轨迹</span><span style="font-size:12px;color:'+(trTrend==='up'?'#10B981':(trTrend==='down'?'#EF4444':'#6B7280'))+';font-weight:600;">'+(trTrend==='up'?'↑上升':(trTrend==='down'?'↓下降':'→平稳'))+(trChange!==''?' '+trChange:'')+'</span></div>';
     html += '</div>';
   }
@@ -4072,12 +4123,12 @@ function renderEngDashboard(){
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">';
     if(hasMeta){
       var ms = s.metacognition.score;
-      html += '<div style="background:#FFFFFF;border-radius:12px;padding:10px 12px;"><div style="font-size:11px;color:#6B7280;">🔄 元认知</div><div style="font-size:16px;font-weight:700;color:#6366F1;margin-top:2px;">'+ms+'</div></div>';
+      html += '<div style="background:var(--c-surface);border-radius:12px;padding:10px 12px;"><div style="font-size:11px;color:#6B7280;">🔄 元认知</div><div style="font-size:16px;font-weight:700;color:var(--c-primary);margin-top:2px;">'+ms+'</div></div>';
     }
     if(hasBias){
       var biases = s.cognitiveBias.biases || s.cognitiveBias.items || [];
       var biasScore = s.cognitiveBias.score !== undefined ? s.cognitiveBias.score : biases.length;
-      html += '<div style="background:#FFFFFF;border-radius:12px;padding:10px 12px;"><div style="font-size:11px;color:#6B7280;">🎭 偏差检测</div><div style="font-size:16px;font-weight:700;color:#F59E0B;margin-top:2px;">'+biasScore+'</div></div>';
+      html += '<div style="background:var(--c-surface);border-radius:12px;padding:10px 12px;"><div style="font-size:11px;color:#6B7280;">🎭 偏差检测</div><div style="font-size:16px;font-weight:700;color:#F59E0B;margin-top:2px;">'+biasScore+'</div></div>';
     }
     html += '</div>';
   }
@@ -4097,11 +4148,11 @@ function renderEngDashboard(){
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">';
     if(hasAnti){
       var antiScore = s.antiHumanNature.score !== undefined ? s.antiHumanNature.score : '-';
-      html += '<div style="background:#FFFFFF;border-radius:12px;padding:10px 12px;"><div style="font-size:11px;color:#6B7280;">🚫 反人性</div><div style="font-size:16px;font-weight:700;color:#8B5CF6;margin-top:2px;">'+antiScore+'</div></div>';
+      html += '<div style="background:var(--c-surface);border-radius:12px;padding:10px 12px;"><div style="font-size:11px;color:#6B7280;">🚫 反人性</div><div style="font-size:16px;font-weight:700;color:var(--c-primary-2);margin-top:2px;">'+antiScore+'</div></div>';
     }
     if(hasValues){
       var valScore = s.valuesClarification.score !== undefined ? s.valuesClarification.score : (s.valuesClarification.values ? s.valuesClarification.values.length : '-');
-      html += '<div style="background:#FFFFFF;border-radius:12px;padding:10px 12px;"><div style="font-size:11px;color:#6B7280;">🎯 价值观</div><div style="font-size:16px;font-weight:700;color:#EC4899;margin-top:2px;">'+valScore+'</div></div>';
+      html += '<div style="background:var(--c-surface);border-radius:12px;padding:10px 12px;"><div style="font-size:11px;color:#6B7280;">🎯 价值观</div><div style="font-size:16px;font-weight:700;color:#EC4899;margin-top:2px;">'+valScore+'</div></div>';
     }
     html += '</div>';
   }
@@ -4109,12 +4160,12 @@ function renderEngDashboard(){
   // 即使没有数据，也至少显示一张说明性卡片，让用户知道功能在正常工作
   if(!html){
     html = '<div style="background:linear-gradient(135deg,#EEF2FF 0%,#E0E7FF 100%);border-radius:14px;padding:14px 16px;margin-bottom:8px;">';
-    html += '<div style="font-size:12px;font-weight:700;color:#6366F1;margin-bottom:4px;">📊 认知仪表盘已就绪</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:var(--c-primary);margin-bottom:4px;">📊 认知仪表盘已就绪</div>';
     html += '<div style="font-size:11px;color:#6B7280;line-height:1.5;">暂无足够数据生成深度分析。连续记录几天后，这里会出现：风险预警、自我画像、反熵增、反脆弱、30天轨迹、元认知、认知偏差等洞察。</div>';
     html += '</div>';
   }
   // 标题栏（总是显示）
-  var header = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px;"><div style="font-size:11px;font-weight:700;color:#9CA3AF;letter-spacing:0.5px;">🧠 认知仪表盘'+(engDashboardCache && engDashboardCache.sampleSize !== undefined ? ' · '+engDashboardCache.sampleSize+'条样本' : '')+'</div><button onclick="loadEngDashboard(true)" style="font-size:10px;color:#6366F1;background:transparent;border:1px solid rgba(99,102,241,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;">↻ 刷新</button></div>';
+  var header = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px;"><div style="font-size:11px;font-weight:700;color:#9CA3AF;letter-spacing:0.5px;">🧠 认知仪表盘'+(engDashboardCache && engDashboardCache.sampleSize !== undefined ? ' · '+engDashboardCache.sampleSize+'条样本' : '')+'</div><button onclick="loadEngDashboard(true)" style="font-size:10px;color:var(--c-primary);background:transparent;border:1px solid rgba(44,62,92,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;">↻ 刷新</button></div>';
   el.innerHTML = header + html;
 }
 
@@ -4177,7 +4228,7 @@ function renderMe(){
   var total = 0;
   SCENES.forEach(function(s){ total += (dataCache[s.id]||[]).length; });
   CORE_MODULES.forEach(function(m){ total += (dataCache[m.id]||[]).length; });
-  var header='<div style="background:rgba(99,102,241,0.08);border-radius:14px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(99,102,241,0.15);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;color:#1A1A2E;">📊 船长日志</span><span style="font-size:12px;color:#6366F1;font-weight:700;">共 '+total+' 条记录</span></div></div>';
+  var header='<div style="background:rgba(44,62,92,0.08);border-radius:14px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(44,62,92,0.15);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;color:#1A1A2E;">📊 船长日志</span><span style="font-size:12px;color:var(--c-primary);font-weight:700;">共 '+total+' 条记录</span></div></div>';
   // 只更新 header 容器，不再拼接到整个 innerHTML（修复累积渲染 bug）
   c.innerHTML=header;
   loadCognitiveCounts();
@@ -4286,7 +4337,7 @@ async function openMaintenance(){
   if(!d){ alert('运维面板初始化失败：detail 元素不存在'); return; }
   document.getElementById('detailTitle').textContent = '🛠️ 运维面板';
   document.getElementById('detailActions').innerHTML = '';
-  document.getElementById('detailContent').innerHTML = '<div style="padding:20px;text-align:center;color:#6366F1;">🔄 加载中...</div>';
+  document.getElementById('detailContent').innerHTML = '<div style="padding:20px;text-align:center;color:var(--c-primary);">🔄 加载中...</div>';
   d.classList.remove('show');
   d.classList.add('act');
   try {
@@ -4307,7 +4358,7 @@ async function loadMaintenanceStatus(){
     var res = await resp.json();
     if(res && res.success){
       var fmt = function(b){ return (b/1024).toFixed(1) + ' KB'; };
-      html += '<div style="background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-bottom:12px;">';
+      html += '<div style="background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-bottom:12px;">';
       html += '<div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:10px;">💾 数据库状态</div>';
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">';
       html += '<div>📦 主库：'+fmt(res.dbSize)+'</div>';
@@ -4329,12 +4380,12 @@ async function loadMaintenanceStatus(){
   // 操作按钮
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">';
   html += '<button onclick="runMaintenance()" style="background:#10B981;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;">🧹 一键运维</button>';
-  html += '<button onclick="runVacuum()" style="background:#6366F1;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;">🗜️ VACUUM压缩</button>';
+  html += '<button onclick="runVacuum()" style="background:var(--c-primary);color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;">🗜️ VACUUM压缩</button>';
   html += '</div>';
   html += '<div style="font-size:11px;color:#9CA3AF;margin-top:6px;line-height:1.5;">一键运维：WAL合并+PM2日志清理<br>VACUUM：重建数据库文件，回收碎片（较慢）</div>';
 
   // 备份校验
-  html += '<div style="background:#FFFFFF;border-radius:14px;padding:14px 16px;margin-top:16px;">';
+  html += '<div style="background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-top:16px;">';
   html += '<div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:10px;">✅ 备份完整性校验</div>';
   html += '<div id="verifyList" style="font-size:12px;color:#6B7280;">点击下方按钮校验最近备份</div>';
   html += '<button onclick="verifyLatestBackup()" style="margin-top:8px;background:rgba(37,99,235,0.1);color:#2563EB;border:1px solid rgba(37,99,235,0.2);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;">🔍 校验最近备份</button>';
@@ -4403,6 +4454,34 @@ async function verifyLatestBackup(){
 (function init(){
   document.getElementById('pwdI').focus();
 })();
+
+// ============================================================
+// 主题切换（禅意东方：日/夜/护眼，按时段自动 + 手动覆盖）
+// ============================================================
+function applyAutoTheme() {
+  var saved = localStorage.getItem('qz-theme');
+  if (saved) { setTheme(saved); return; }
+  // 未手动指定，按时段自动：6-17 日间，17-20 护眼，其余夜间
+  var h = new Date().getHours();
+  if (h >= 6 && h < 17) setTheme('light');
+  else if (h >= 17 && h < 20) setTheme('sepia');
+  else setTheme('dark');
+}
+function setTheme(name) {
+  if (name === 'light') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', name);
+  localStorage.setItem('qz-theme', name);
+  // 更新切换按钮高亮
+  document.querySelectorAll('.theme-btn').forEach(function(b){
+    b.classList.toggle('act', b.dataset.theme === name);
+  });
+}
+function toggleTheme() {
+  var cur = localStorage.getItem('qz-theme') || 'light';
+  var next = cur === 'light' ? 'dark' : (cur === 'dark' ? 'sepia' : 'light');
+  setTheme(next);
+}
+applyAutoTheme();
 
 // ============================================================
 // 闪念笔记 JS
@@ -4623,7 +4702,7 @@ async function loadAchievements() {
       return;
     }
     container.innerHTML = data.unlocked.slice(0, 4).map(function(a) {
-      return '<span style="background:rgba(99,102,241,0.1);border-radius:12px;padding:2px 10px;font-size:11px;color:#6366F1;">' + a.name + '</span>';
+      return '<span style="background:rgba(44,62,92,0.1);border-radius:12px;padding:2px 10px;font-size:11px;color:var(--c-primary);">' + a.name + '</span>';
     }).join('');
   } catch(e) { document.getElementById('achievementList').textContent = '加载失败'; }
   try { await fetch('/api/achievements/check', { method: 'POST' }); } catch(e) {}
@@ -4684,7 +4763,7 @@ async function loadWork() {
       var topSkills = skills.skills ? skills.skills.slice(0, 3) : [];
       if (topSkills.length > 0) {
         html += topSkills.map(function(s) {
-          return '<span style="display:inline-block;background:rgba(99,102,241,0.08);border-radius:8px;padding:2px 10px;font-size:11px;color:#6366F1;margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
+          return '<span style="display:inline-block;background:rgba(44,62,92,0.08);border-radius:8px;padding:2px 10px;font-size:11px;color:var(--c-primary);margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
         }).join('');
       } else {
         html += '<span style="color:#9CA3AF;font-size:12px;">还没有技能评分，点击下方添加</span>';
