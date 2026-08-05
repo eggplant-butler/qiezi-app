@@ -12,7 +12,7 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <!-- 版本指纹：deploy.sh 校验 + 前端自检（版本不匹配时强制刷新） -->
-<meta name="app-version" content="qiezi-v6.5.3">
+<meta name="app-version" content="qiezi-v6.5.6">
 <style>
 /* ========== 深夜书房 设计系统 v6.5.1 ==========
    暗色优先（默认）：暖灰底+米白字+琥珀强调
@@ -590,6 +590,54 @@ var curScene = null, editId = null, privacyOn = false;
 var dataCache = {};
 var insightsCache = null;
 var suggestionFeedback = {};
+// ====== 登录安全锁 v6.5.6：防止登录过程中被强制刷新（iPhone Safari 死循环修复） ======
+// 页面加载后的前 120 秒，如果处于登录界面，禁止一切自动刷新（给用户留足输密码时间）
+var __PAGE_LOAD_TS = Date.now();
+var __LOGIN_GRACE_PERIOD_MS = 120 * 1000;  // 登录宽限期：2分钟
+function __hasAuth() {
+  try { return !!(localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY)); }
+  catch(e) { return false; }
+}
+function __isLoginScreenVisible() {
+  try {
+    var lock = document.getElementById('lock');
+    if (!lock) return true;  // DOM 还没加载出来，按登录页处理（安全）
+    var ds = lock.style.display;
+    var cs = window.getComputedStyle ? window.getComputedStyle(lock).display : ds;
+    // 如果 display 不是 none 或者未设置（默认显示），说明是登录界面
+    if (ds === 'none' || cs === 'none') return false;
+    return true;
+  } catch(e) { return true; }
+}
+function __isUserTypingPassword() {
+  try {
+    var pwdI = document.getElementById('pwdI');
+    if (!pwdI) return false;
+    // 密码框有焦点 或 已输入内容 → 用户正在登录操作中
+    if (document.activeElement === pwdI) return true;
+    if (pwdI.value && pwdI.value.length > 0) return true;
+    return false;
+  } catch(e) { return false; }
+}
+function __shouldBlockRefresh(reason) {
+  // 1) 用户正在输密码 → 绝对不刷新（最高优先级）
+  if (__isUserTypingPassword()) {
+    console.warn('[RefreshGuard] ' + (reason||'') + ' → 用户正在输密码，BLOCK 刷新');
+    return true;
+  }
+  // 2) 登录宽限期内 + 登录页可见 → 不刷新（用户可能正在看界面/思考密码）
+  var inGracePeriod = (Date.now() - __PAGE_LOAD_TS) < __LOGIN_GRACE_PERIOD_MS;
+  if (inGracePeriod && __isLoginScreenVisible()) {
+    console.warn('[RefreshGuard] ' + (reason||'') + ' → 登录宽限期内（' + Math.round((__LOGIN_GRACE_PERIOD_MS - (Date.now() - __PAGE_LOAD_TS))/1000) + 's），BLOCK 刷新');
+    return true;
+  }
+  // 3) 登录页可见 且 未登录 → 不刷新
+  if (__isLoginScreenVisible() && !__hasAuth()) {
+    console.warn('[RefreshGuard] ' + (reason||'') + ' → 未登录且在登录页，BLOCK 刷新');
+    return true;
+  }
+  return false;
+}
 
 // ============ 认证：覆盖 fetch 自动注入 token + 401 自动登出 ============
 var _origFetch = window.fetch;
@@ -5111,10 +5159,25 @@ if ('serviceWorker' in navigator) {
       .catch(function(e) {
         console.warn('[SW] 注册失败:', e.message);
       });
-    // 监听控制器变更，自动刷新页面加载新版本
+    // 监听控制器变更，自动刷新页面加载新版本（已登录才立即刷，未登录延后）
+    // v6.5.6 修复：使用统一 RefreshGuard，绝对禁止登录过程中刷新
     var refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', function() {
       if (refreshing) return;
+      if (__shouldBlockRefresh('SW controllerchange')) {
+        // 登录中/登录页：延后到登录成功后再刷新（监听正确的 TOKEN_KEY）
+        console.log('[SW] controllerchange → 登录保护中，延后到登录成功后再检查');
+        var checkAuth = setInterval(function() {
+          if (__shouldBlockRefresh('SW controllerchange (poll)')) return;  // 仍在登录流程，继续等
+          clearInterval(checkAuth);
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        }, 3000);
+        setTimeout(function(){ clearInterval(checkAuth); }, 60 * 60 * 1000);  // 最多等1小时
+        return;
+      }
       refreshing = true;
       window.location.reload();
     });
@@ -5122,14 +5185,9 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', function(event) {
       if (event.data && event.data.type === 'SW_UPDATED') {
         console.log('[SW] 收到新版本通知:', event.data.version);
-        // 不直接刷新（避免打断用户操作），交给 controllerchange 触发
-        // 但如果 controller 迟迟不变，5 秒后强制刷新
-        setTimeout(function() {
-          if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-          }
-        }, 5000);
+        // v6.5.6 修复：不自动刷新，完全交给 controllerchange + RefreshGuard 控制
+        // 避免 SW_UPDATED 消息在登录时触发延迟刷新
+        console.log('[SW] 新版本通知 → 等待 controllerchange 自然触发（RefreshGuard 保护中）');
       }
     });
   });
@@ -5138,8 +5196,15 @@ if ('serviceWorker' in navigator) {
 // v6.4.5 紧急逃生舱：如果检测到当前页面缺少关键函数（说明被旧 SW 缓存了旧 HTML），
 // 主动清掉所有 SW 缓存 + 注销 SW + 强制刷新，确保用户能拿到最新页面
 // v6.5.2 增强：版本指纹自检（即使函数都在，版本号落后也刷新）
+// v6.5.6 完全重写：使用统一 RefreshGuard，关键函数检查延后到 window.onload 后
 (function versionSelfCheck() {
   function forceRefresh(reason) {
+    // v6.5.6：统一使用 RefreshGuard，三层拦截（输密码/宽限期/登录页未登录）
+    if (__shouldBlockRefresh(reason)) {
+      console.warn('[VersionCheck] ' + reason + ' → 登录保护中，延后 30 分钟再检查');
+      setTimeout(versionSelfCheck, 30 * 60 * 1000);
+      return;
+    }
     console.warn('[VersionCheck] ' + reason + '，清缓存并刷新');
     if ('caches' in window) {
       caches.keys().then(function(names) {
@@ -5155,31 +5220,40 @@ if ('serviceWorker' in navigator) {
       setTimeout(function() { window.location.reload(true); }, 500);
     }
   }
-  // 1. 关键函数缺失 → 立即刷新（旧 HTML 缓存）
-  if (typeof loadEngDashboard !== 'function' || typeof openMaintenance !== 'function') {
-    forceRefresh('关键函数缺失，疑似旧 SW 缓存');
-    return;
-  }
-  // 2. 启动 3 秒后版本指纹自检（不影响首屏渲染）
-  setTimeout(function() {
-    var meta = document.querySelector('meta[name="app-version"]');
-    if (!meta) {
-      forceRefresh('未找到版本指纹');
+  // ------- v6.5.6 修复：关键函数缺失检查延后到 load 事件后 -------
+  // 之前的问题：IIFE 执行时函数还没定义（JS 还没执行到后面）→ 误判 → 误触发刷新
+  function runChecks() {
+    // 1. 关键函数缺失 → 立即刷新（旧 HTML 缓存）
+    if (typeof loadEngDashboard !== 'function' || typeof openMaintenance !== 'function') {
+      forceRefresh('关键函数缺失，疑似旧 SW 缓存');
       return;
     }
-    var currentVersion = meta.getAttribute('content');
-    fetch('/api/health', { cache: 'no-store' })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        var serverVersion = 'qiezi-v' + data.version;
-        if (serverVersion !== currentVersion) {
-          forceRefresh('版本落后（当前 ' + currentVersion + '，服务器 ' + serverVersion + '）');
-        } else {
-          console.log('[VersionCheck] 版本一致:', currentVersion);
-        }
-      })
-      .catch(function() {});  // 网络失败静默
-  }, 3000);
+    // 2. 版本指纹自检（不影响首屏渲染，给登录留时间）
+    setTimeout(function() {
+      var meta = document.querySelector('meta[name="app-version"]');
+      if (!meta) {
+        forceRefresh('未找到版本指纹');
+        return;
+      }
+      var currentVersion = meta.getAttribute('content');
+      fetch('/api/health', { cache: 'no-store' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var serverVersion = 'qiezi-v' + data.version;
+          if (serverVersion !== currentVersion) {
+            forceRefresh('版本落后（当前 ' + currentVersion + '，服务器 ' + serverVersion + '）');
+          } else {
+            console.log('[VersionCheck] 版本一致:', currentVersion);
+          }
+        })
+        .catch(function() {});  // 网络失败静默
+    }, 10000);  // v6.5.6：5s → 10s，给登录留更充足时间
+  }
+  if (document.readyState === 'complete') {
+    runChecks();
+  } else {
+    window.addEventListener('load', runChecks);
+  }
 })();
 
 // PWA 安装提示：捕获 beforeinstallprompt，延迟到用户点击时触发
