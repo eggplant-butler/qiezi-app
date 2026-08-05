@@ -12,7 +12,7 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <!-- 版本指纹：deploy.sh 校验 + 前端自检（版本不匹配时强制刷新） -->
-<meta name="app-version" content="qiezi-v6.6.0">
+<meta name="app-version" content="qiezi-v6.6.1">
 <style>
 /* ========== 深夜书房 设计系统 v6.5.1 ==========
    暗色优先（默认）：暖灰底+米白字+琥珀强调
@@ -127,6 +127,31 @@ body.privacy-mode .emotion-content:hover {
 #lock button:active{transform:scale(0.98)}
 #lock .err{color:#EF4444;margin-top:12px;display:none;font-size:13px;text-align:center}
 #app{display:none;max-width:480px;margin:0 auto;padding:18px 16px 90px}
+
+/* v6.6.1 桌面端响应式：宽屏时双栏布局 + 更大字号 */
+@media(min-width:768px){
+  #app{max-width:680px;padding:24px 20px 100px}
+  .hd h1{font-size:22px}
+  .hd-r button{font-size:20px;width:40px;height:40px}
+  .bar{max-width:680px}
+  .bar-tab{flex-direction:column;gap:2px;padding:8px 4px}
+  .bar-tab .label{font-size:11px}
+  .overview{grid-template-columns:repeat(3,1fr);gap:10px}
+  .overview-card{padding:14px 16px}
+  .overview-card .num{font-size:28px}
+  .log-list{grid-template-columns:1fr 1fr;gap:12px}
+  .log-item{padding:16px 18px}
+  .section-label{font-size:15px;margin:24px 0 12px}
+  .greet .t{font-size:20px}
+  .greet .d{font-size:15px}
+}
+@media(min-width:1024px){
+  #app{max-width:800px;padding:28px 24px 110px}
+  .hd h1{font-size:24px}
+  .bar{max-width:800px}
+  .bar-tab{padding:10px 6px}
+  .bar-tab .label{font-size:12px}
+}
 /* v6.5.7 首页信息密度优化：更大间距+呼吸感 */
 .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 .hd h1{font-size:var(--fs-display);font-weight:700;color:var(--c-fg);font-family:"Noto Serif SC",serif;letter-spacing:0.02em}
