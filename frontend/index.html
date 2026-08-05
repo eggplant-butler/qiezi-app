@@ -4713,10 +4713,29 @@ function openAddSkill() {
 }
 </script>
 
-<!-- Service Worker 注册：离线缓存 + 后台静默更新 -->
+<!-- Service Worker 注册：离线缓存 + 后台静默更新 + 旧版本自动注销 -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
+    // v6.4.5 紧急逃生：主动 fetch sw.js 检查版本，旧版本直接注销 + 清缓存 + 强刷
+    fetch('/sw.js?_v=' + Date.now(), { cache: 'no-store' })
+      .then(function(r) { return r.text(); })
+      .then(function(txt) {
+        var m = txt.match(/qiezi-v([\d.]+)/);
+        var serverVer = m ? m[1] : '0';
+        // 当前控制的 SW 版本
+        return navigator.serviceWorker.getRegistration('/').then(function(reg) {
+          if (!reg || !reg.active) return reg;
+          // 拿当前 SW 的版本
+          return navigator.serviceWorker.controller.scriptURL ? reg : reg;
+        }).then(function(r) {
+          // 主动触发更新（浏览器会重新拉取 sw.js，发现版本变化就触发 updatefound）
+          if (r) r.update().catch(function(){});
+          return r;
+        });
+      })
+      .catch(function(){});
+
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(function(reg) {
         console.log('[SW] 注册成功，scope:', reg.scope);
@@ -4744,6 +4763,29 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+// v6.4.5 紧急逃生舱：如果检测到当前页面缺少关键函数（说明被旧 SW 缓存了旧 HTML），
+// 主动清掉所有 SW 缓存 + 注销 SW + 强制刷新，确保用户能拿到最新页面
+(function emergencySWReset() {
+  if (typeof loadEngDashboard !== 'function' || typeof openMaintenance !== 'function') {
+    console.warn('[Emergency] 检测到关键函数缺失，疑似旧 SW 缓存，执行紧急重置');
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        names.forEach(function(n) { caches.delete(n); });
+        console.log('[Emergency] 已清除所有缓存:', names);
+      });
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.unregister(); });
+        console.log('[Emergency] 已注销 SW，刷新页面');
+        setTimeout(function() { window.location.reload(true); }, 500);
+      });
+    } else {
+      setTimeout(function() { window.location.reload(true); }, 1000);
+    }
+  }
+})();
 
 // PWA 安装提示：捕获 beforeinstallprompt，延迟到用户点击时触发
 var deferredInstallPrompt = null;

@@ -138,33 +138,40 @@ try_download_verified() {
 
 GH_URL="https://raw.githubusercontent.com/eggplant-butler/qiezi-app/main"
 CDN_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main"
-
-# 用 commit 哈希避免缓存：git ls-remote 拿最新 HEAD（无需 API token，无速率限制）
+# GitHub API 备用：git ls-remote 失败时用 API（无 token 有 60次/小时限制，够用）
 LATEST_COMMIT=$(git ls-remote https://github.com/eggplant-butler/qiezi-app.git HEAD 2>/dev/null | awk '{print $1}')
+if [ -z "$LATEST_COMMIT" ]; then
+  LATEST_COMMIT=$(curl -fsSL --connect-timeout 10 "https://api.github.com/repos/eggplant-butler/qiezi-app/commits/main" 2>/dev/null | grep -oE '"sha":"[a-f0-9]+"' | head -1 | cut -d'"' -f4)
+fi
 if [ -n "$LATEST_COMMIT" ]; then
   echo "      📌 最新 commit: ${LATEST_COMMIT:0:7}"
-  # jsDelivr 支持 @commit 方式绕过 CDN 缓存（@main 有缓存，@具体commit 实时）
   CDN_URL="https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@${LATEST_COMMIT}"
 else
-  echo "      ⚠️  无法获取最新 commit，将使用 @main（可能有 CDN 缓存）"
+  echo "      ⚠️  无法获取最新 commit，将使用 @main + GitHub raw 双源"
 fi
 
+# 每个文件 3 个下载源：GitHub raw → jsDelivr @commit → jsDelivr @main
 try_download_verified server.js "v6.4" \
   "$GH_URL/server.js" \
-  "$CDN_URL/server.js" || { echo "❌ server.js 下载失败"; exit 1; }
+  "$CDN_URL/server.js" \
+  "https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/server.js" || { echo "❌ server.js 下载失败"; exit 1; }
 try_download_verified package.json "qiezi" \
   "$GH_URL/package.json" \
-  "$CDN_URL/package.json" || { echo "❌ package.json 下载失败"; exit 1; }
+  "$CDN_URL/package.json" \
+  "https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/package.json" || { echo "❌ package.json 下载失败"; exit 1; }
 
 mkdir -p frontend
 try_download_verified frontend/index.html "engDashboard" \
   "$GH_URL/frontend/index.html" \
-  "$CDN_URL/frontend/index.html" || { echo "❌ frontend/index.html 下载失败"; exit 1; }
+  "$CDN_URL/frontend/index.html" \
+  "https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/frontend/index.html" || { echo "❌ frontend/index.html 下载失败"; exit 1; }
+# sw.js 必须成功（SW 旧版本会缓存旧 HTML，导致前端永远看不到新功能）
 try_download_verified frontend/sw.js "qiezi-v6.4" \
   "$GH_URL/frontend/sw.js" \
-  "$CDN_URL/frontend/sw.js" || { echo "❌ frontend/sw.js 下载失败（可选，继续）"; }
+  "$CDN_URL/frontend/sw.js" \
+  "https://cdn.jsdelivr.net/gh/eggplant-butler/qiezi-app@main/frontend/sw.js" || { echo "❌ frontend/sw.js 下载失败（关键文件，必须成功）"; exit 1; }
 
-echo "      ✅ 代码文件已更新 + 内容校验通过"
+echo "      ✅ 代码文件已更新 + 内容校验通过（含 sw.js）"
 echo ""
 
 # ---------- 第五步：安装依赖（最易卡住：npm install 国内访问慢）----------
