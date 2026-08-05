@@ -88,6 +88,82 @@ function genId() {
   }
 })();
 
+// ======= 跨模块合并迁移（一次执行，持久化到SQLite）=======
+// P0-B: learn → growth 合并
+// P0-C: body + medical → health 合并
+(function mergeMigrate() {
+  try {
+    // 1) learn → growth：如果 learn 有记录但 growth 没有迁移标记，则迁移
+    const learnCount = db.prepare('SELECT COUNT(*) as c FROM records WHERE mid=?').get('learn').c;
+    const growthMigrated = db.prepare('SELECT COUNT(*) as c FROM kv WHERE key=?').get('migrate:learn_to_growth').c;
+    if (learnCount > 0 && growthMigrated === 0) {
+      const learnRows = db.prepare('SELECT id, data, created, updated FROM records WHERE mid=?').all('learn');
+      const insert = db.prepare('INSERT INTO records (mid, id, data, created, updated) VALUES (?,?,?,?,?)');
+      const tx = db.transaction(function(rows) {
+        for (const r of rows) {
+          try {
+            const obj = JSON.parse(r.data);
+            if (obj && typeof obj === 'object') {
+              obj._module = 'growth';
+              obj._migratedFrom = 'learn';
+              obj.type = obj.type || '学习';
+              if (obj.subject && !obj.skill) obj.skill = obj.subject;
+              if (obj.understanding !== undefined && obj.progress === undefined) {
+                obj.progress = '理解度 ' + obj.understanding + ' 档';
+              }
+              // 避免 id 冲突（如果原 id 冲突则自动生成新 id）
+              const exists = db.prepare('SELECT COUNT(*) as c FROM records WHERE mid=? AND id=?').get('growth', r.id).c;
+              const newId = exists > 0 ? (r.id + '_m' + Date.now().toString(36)) : r.id;
+              insert.run('growth', newId, JSON.stringify(obj), r.created, r.updated);
+            }
+          } catch (e) { console.error('[migrate] learn解析失败:', e.message); }
+        }
+      });
+      tx(learnRows);
+      db.prepare('INSERT INTO kv (key, value) VALUES (?,?)').run('migrate:learn_to_growth', String(learnCount));
+      console.log('[migrate] ✅ learn → growth 迁移完成，' + learnCount + ' 条');
+    }
+
+    // 2) body + medical → health：如果 body 或 medical 有记录但 health 没有迁移标记，则迁移
+    const bodyCount = db.prepare('SELECT COUNT(*) as c FROM records WHERE mid=?').get('body').c;
+    const medCount = db.prepare('SELECT COUNT(*) as c FROM records WHERE mid=?').get('medical').c;
+    const healthMigrated = db.prepare('SELECT COUNT(*) as c FROM kv WHERE key=?').get('migrate:body_medical_to_health').c;
+    if ((bodyCount + medCount) > 0 && healthMigrated === 0) {
+      const rows = [];
+      const bodyRows = db.prepare('SELECT id, mid, data, created, updated FROM records WHERE mid=?').all('body');
+      for (const r of bodyRows) rows.push(Object.assign({srcMid: 'body'}, r));
+      const medRows = db.prepare('SELECT id, mid, data, created, updated FROM records WHERE mid=?').all('medical');
+      for (const r of medRows) rows.push(Object.assign({srcMid: 'medical'}, r));
+      if (rows.length > 0) {
+        const insert = db.prepare('INSERT INTO records (mid, id, data, created, updated) VALUES (?,?,?,?,?)');
+        const tx = db.transaction(function(list) {
+          for (const r of list) {
+            try {
+              const obj = JSON.parse(r.data);
+              if (obj && typeof obj === 'object') {
+                obj._module = 'health';
+                obj._migratedFrom = r.srcMid;
+                // body → sceneType=身体观察，medical → sceneType=就医行动
+                if (!obj.sceneType) {
+                  obj.sceneType = r.srcMid === 'body' ? '身体观察' : '就医行动';
+                }
+                const exists = db.prepare('SELECT COUNT(*) as c FROM records WHERE mid=? AND id=?').get('health', r.id).c;
+                const newId = exists > 0 ? (r.id + '_m' + Date.now().toString(36)) : r.id;
+                insert.run('health', newId, JSON.stringify(obj), r.created, r.updated);
+              }
+            } catch (e) { console.error('[migrate] health解析失败:', e.message); }
+          }
+        });
+        tx(rows);
+        db.prepare('INSERT INTO kv (key, value) VALUES (?,?)').run('migrate:body_medical_to_health', String(bodyCount + medCount));
+        console.log('[migrate] ✅ body(' + bodyCount + ') + medical(' + medCount + ') → health 迁移完成');
+      }
+    }
+  } catch (e) {
+    console.error('[migrate] 合并迁移失败（继续启动）:', e.message);
+  }
+})();
+
 function readData(m) {
   const rows = db.prepare('SELECT data FROM records WHERE mid=? ORDER BY created DESC').all(m);
   const result = [];
@@ -1495,7 +1571,9 @@ const ENG = {
 
   // 构造统一历史格式
   buildHistory() {
-    const mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit'];
+    // 合并后：learn 数据会镜像到 growth；body/medical 会镜像到 health
+    // 保留旧 mid 兜底，避免迁移前数据丢失
+    const mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo','health'];
     const hist = [];
     mods.forEach(m => {
       const records = readData(m);
@@ -3427,8 +3505,8 @@ app.post('/api/record/add', (req, res) => {
       writeData('finance', finList);
     } catch (e) { console.error('[linkage] pet→finance:', e.message); }
   }
-  // 2. 医疗花费 → 自动创建财务支出记录
-  if (mid === 'medical' && !editId && data.cost && parseFloat(data.cost) > 0) {
+  // 2. 医疗/健康花费 → 自动创建财务支出记录（兼容 body/medical/health 三种 mid）
+  if (!editId && data.cost && parseFloat(data.cost) > 0 && (mid === 'medical' || mid === 'health')) {
     try {
       const finList = readData('finance');
       const finItem = {
@@ -3436,16 +3514,172 @@ app.post('/api/record/add', (req, res) => {
         type: '支出',
         amount: parseFloat(data.cost),
         category: '医疗',
-        content: (data.hospital || data.symptom || '就医') + ' - ' + (data.type || ''),
+        content: (data.hospital || data.symptom || '就医') + ' - ' + (data.type || data.sceneType || ''),
         paymentMethod: data.paymentMethod || '',
         date: data.date || new Date().toISOString().split('T')[0],
-        _linkedModule: 'medical',
+        _linkedModule: mid,
         _linkedId: item.id,
         created: new Date().toISOString()
       };
       finList.push(finItem);
       writeData('finance', finList);
-    } catch (e) { console.error('[linkage] medical→finance:', e.message); }
+    } catch (e) { console.error('[linkage] health→finance:', e.message); }
+  }
+  // 3. 出行花费 → 自动创建财务支出记录
+  if (mid === 'travel' && !editId && data.cost && parseFloat(data.cost) > 0) {
+    try {
+      const finList = readData('finance');
+      // 出行目的推断分类：旅行→娱乐/上班→交通/购物→购物
+      let cat = '交通';
+      if (data.purpose === '旅行') cat = '娱乐';
+      else if (data.purpose === '购物') cat = '购物';
+      else if (data.purpose === '约会') cat = '娱乐';
+      const finItem = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        type: '支出',
+        amount: parseFloat(data.cost),
+        category: cat,
+        content: (data.transport || '出行') + ' - ' + (data.purpose || '') + (data.from && data.to ? ' ' + data.from + '→' + data.to : ''),
+        paymentMethod: '',
+        date: data.date || new Date().toISOString().split('T')[0],
+        _linkedModule: 'travel',
+        _linkedId: item.id,
+        created: new Date().toISOString()
+      };
+      finList.push(finItem);
+      writeData('finance', finList);
+    } catch (e) { console.error('[linkage] travel→finance:', e.message); }
+  }
+  // 4. 人情消费（关系模块花费）→ 自动创建财务支出记录
+  if (mid === 'relation' && !editId && data.cost && parseFloat(data.cost) > 0) {
+    try {
+      const finList = readData('finance');
+      // favorType 推断分类：随份子/送礼/请客→娱乐或其他
+      let cat = '其他';
+      if (data.favorType === '随份子' || data.favorType === '送礼' || data.favorType === '请客') cat = '娱乐';
+      else if (data.favorType === '借出' || data.favorType === '借入') cat = '其他';
+      const finItem = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        type: '支出',
+        amount: parseFloat(data.cost),
+        category: cat,
+        content: (data.person || data.role || '关系') + ' - ' + (data.favorType || data.interaction || '人情'),
+        paymentMethod: '',
+        date: data.date || new Date().toISOString().split('T')[0],
+        _linkedModule: 'relation',
+        _linkedId: item.id,
+        created: new Date().toISOString()
+      };
+      finList.push(finItem);
+      writeData('finance', finList);
+    } catch (e) { console.error('[linkage] relation→finance:', e.message); }
+  }
+  // 5. 工作记录 → 自动创建时间分配记录（减少重复填写）
+  if (mid === 'work' && !editId) {
+    try {
+      const date = data.date || new Date().toISOString().split('T')[0];
+      const timeList = readData('time');
+      // 防止重复：同日期已存在 work→time 联动记录则跳过
+      const exists = timeList.some(function(t) {
+        return (t._linkedModule === 'work') && (t._linkedId === item.id);
+      });
+      if (!exists) {
+        // 从 focusLevel 和 meaning 推导 time.value
+        let value = '一般';
+        const fl = parseInt(String(data.focusLevel || '3').charAt(0), 10);
+        const mn = parseInt(String(data.meaning || '3'), 10);
+        const avg = (fl + mn) / 2;
+        if (avg >= 4.2) value = '非常有';
+        else if (avg >= 3.2) value = '比较有';
+        else if (avg <= 1.8) value = '后悔';
+        else if (avg <= 2.4) value = '浪费';
+        // 默认 8 小时工作，除非 role/income 推断调整
+        let dur = 480;
+        const timeItem = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          category: '工作',
+          duration: dur,
+          value: value,
+          content: (data.role || '工作') + ' - ' + (data.task ? String(data.task).substring(0, 50) : ''),
+          date: date,
+          _linkedModule: 'work',
+          _linkedId: item.id,
+          created: new Date().toISOString()
+        };
+        timeList.push(timeItem);
+        writeData('time', timeList);
+      }
+    } catch (e) { console.error('[linkage] work→time:', e.message); }
+  }
+  // 6. 居住记录：花费→财务；购买/丢弃→库存自动变更
+  if (mid === 'home' && !editId) {
+    try {
+      const date = data.date || new Date().toISOString().split('T')[0];
+      // 6a 花费自动记账
+      if (data.cost && parseFloat(data.cost) > 0) {
+        const finList = readData('finance');
+        let cat = '其他';
+        if (data.action === '购买') cat = '购物';
+        else if (data.action === '搬家') cat = '其他';
+        const finItem = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          type: '支出',
+          amount: parseFloat(data.cost),
+          category: cat,
+          content: (data.space || '居住') + ' - ' + (data.action || '') + (data.items ? ' ' + data.items : ''),
+          paymentMethod: '',
+          date: date,
+          _linkedModule: 'home',
+          _linkedId: item.id,
+          created: new Date().toISOString()
+        };
+        finList.push(finItem);
+        writeData('finance', finList);
+      }
+      // 6b 购买：自动写入 inventory（如果填了 items）
+      if ((data.action === '购买' || data.action === '其他(买)') && data.items) {
+        const invList = readData('inventory');
+        const names = String(data.items).split(/[,，、/;\s]+/).filter(function(x) { return x.trim().length > 0; });
+        for (const n of names) {
+          const invItem = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+            name: n,
+            category: '其他',
+            quantity: 1,
+            price: data.cost && names.length === 1 ? parseFloat(data.cost) : undefined,
+            purchaseDate: date,
+            location: data.space || '',
+            usageFreq: '偶尔',
+            condition: '良好',
+            necessity: '3-偶尔用',
+            declutter: '保留',
+            _linkedModule: 'home',
+            _linkedId: item.id,
+            created: new Date().toISOString()
+          };
+          invList.push(invItem);
+        }
+        writeData('inventory', invList);
+      }
+      // 6c 丢弃：找到同名 inventory 标记 declutter=已捐赠/出售，不删数据保留审计
+      if ((data.action === '丢弃' || data.action === '其他(丢)') && data.items) {
+        const invList = readData('inventory');
+        const names = String(data.items).split(/[,，、/;\s]+/).filter(function(x) { return x.trim().length > 0; });
+        let changed = false;
+        for (const inv of invList) {
+          for (const n of names) {
+            if (inv.name === n || (inv.name && inv.name.indexOf(n) !== -1)) {
+              inv.declutter = '已捐赠/出售';
+              inv._linkedModule = 'home';
+              inv._linkedId = item.id;
+              changed = true;
+              break;
+            }
+          }
+        }
+        if (changed) writeData('inventory', invList);
+      }
+    } catch (e) { console.error('[linkage] home→finance/inventory:', e.message); }
   }
 
   // 生成认知反馈
@@ -4681,7 +4915,7 @@ const SYSTEM_MODULES = new Set(['deleted', 'trash', '__proto__', 'constructor', 
 // 已知业务模块白名单（含 v5.6/v5.7 新增）
 const VALID_MODULES = new Set([
   'finance','sleep','exercise','emotion','diet','body','relation','work','home','travel',
-  'time','growth','spirit','learn','photo','think','diary','inventory','space','pet','medical','todo',
+  'time','growth','spirit','learn','photo','think','diary','inventory','space','pet','medical','todo','health',
   'life_milestone','habits','quickNote','dailyQuestion','principles','decisions','fiveWhy',
   'interview','skill','work_mode','reading','bills','contacts','housework','mindfulness',
   'belief','character','selfImage','entropy','fragility','northstar','crisis','dyingTest',
@@ -4720,6 +4954,7 @@ const MODULE_ALLOWED_FIELDS = {
   pet: ['petName','type','sceneType','action','mood','food','cost','healthNote','vetNote','content','date'],
   medical: ['type','hospital','department','doctor','symptom','diagnosis','prescription','cost','paymentMethod','nextVisit','content','date'],
   todo: ['title','category','priority','status','dueDate','completed','content','date'],
+  health: ['sceneType','symptom','area','severity','measure','weight','bloodPressure','type','hospital','department','doctor','diagnosis','prescription','cost','paymentMethod','nextVisit','content','date'],
   life_milestone: ['title','date','description','category'],
   habits: ['name','frequency','goal','note'],
   quickNote: ['content','date'],
@@ -4799,7 +5034,7 @@ app.get('/api/bootstrap', (req, res) => {
   try {
     const BOOTSTRAP_MODULES = [
       'finance','sleep','exercise','emotion','diet','diary','learn','photo','think',
-      'inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo'
+      'inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo','health'
     ];
     const result = {};
     for (const m of BOOTSTRAP_MODULES) {

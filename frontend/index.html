@@ -443,7 +443,7 @@ var SCENES = [
 {id:'work',name:'我的工作',icon:'💼',brief:'职业·收入·意义'},
 {id:'home',name:'我的居住',icon:'🏠',brief:'空间·物品·安全'},
 {id:'travel',name:'我的出行',icon:'🛵',brief:'通勤·自由·掌控'},
-{id:'body',name:'我的身体',icon:'💪',brief:'睡眠·锻炼·饮食'},
+{id:'health',name:'我的健康',icon:'❤️',brief:'身体·就医·体检'},
 {id:'relation',name:'我的关系',icon:'👥',brief:'父母·同事·朋友'},
 {id:'time',name:'我的时间',icon:'⏰',brief:'分配·频率·充实'},
 {id:'growth',name:'我的成长',icon:'🌱',brief:'学习·技能·方向'},
@@ -454,7 +454,7 @@ var SCENES = [
 var FOCUS = [
 {id:'work',label:'工作收入',icon:'💼',desc:'稳定收入·增长路径',status:'active'},
 {id:'photo',label:'摄影能力',icon:'📷',desc:'技能积累·表达出口',status:'learning'},
-{id:'body',label:'身体健康',icon:'💪',desc:'能量基础·一切前提',status:'steady'},
+{id:'health',label:'身体健康',icon:'❤️',desc:'能量基础·一切前提',status:'steady'},
 {id:'think',label:'认知思考',icon:'🧠',desc:'决策质量·成长引擎',status:'learning'}
 ];
 
@@ -462,10 +462,10 @@ var CORE_MODULES = [
 {id:'finance',label:'财务',icon:'💰'},{id:'sleep',label:'睡眠',icon:'😴'},
 {id:'exercise',label:'锻炼',icon:'🏃'},{id:'emotion',label:'情绪',icon:'😊'},
 {id:'diet',label:'饮食',icon:'🥗'},{id:'diary',label:'日记',icon:'📖'},
-{id:'learn',label:'学习复盘',icon:'📚'},{id:'photo',label:'摄影',icon:'📷'},
+{id:'growth',label:'成长认知',icon:'🌱'},{id:'photo',label:'摄影',icon:'📷'},
 {id:'think',label:'认知思考',icon:'🧠'},{id:'inventory',label:'库存',icon:'📦'},
 {id:'space',label:'空间物品',icon:'🏠'},{id:'pet',label:'宠物',icon:'🐾'},
-{id:'medical',label:'医疗',icon:'🏥'},{id:'todo',label:'待办',icon:'📋'}
+{id:'health',label:'健康',icon:'❤️'},{id:'todo',label:'待办',icon:'📋'}
 ];
 
 async function apiFetch(m) {
@@ -562,7 +562,7 @@ async function initApp() {
     try { insightsCache = await insResp.json(); } catch(e) { insightsCache = null; }
   } catch(e) {
     // 聚合接口失败时降级为逐模块串行（兜底）
-    var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo'];
+    var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo','health'];
     for(var i=0; i<mods.length; i++) await apiFetch(mods[i]);
     await fetchInsights();
   }
@@ -1079,13 +1079,18 @@ function renderDetail(id){
       l=timeParts.length?timeParts.join(' · '):(item.content||'时间记录');
       if(item.value) l+=' · '+item.value;
       if(item.content) l+=' · '+String(item.content).substring(0,30);
-    } else if(id==='growth'){
+    } else if(id==='growth' || id==='learn'){
+      // id='learn' 为旧数据兼容，统一按成长新格式显示
       var growParts=[];
+      if(item.type) growParts.push(item.type);
       if(item.skill) growParts.push(item.skill);
+      else if(item.subject) growParts.push(item.subject); // 旧 learn 兼容
       if(item.method) growParts.push(item.method);
       if(item.duration) growParts.push(item.duration+'分钟');
       l=growParts.length?growParts.join(' · '):(item.content||'成长记录');
       if(item.progress) l+=' · 进步:'+String(item.progress).substring(0,30);
+      else if(item.understanding) l+=' · 掌握'+item.understanding;
+      if(item.output) l+=' · 产出:'+String(item.output).substring(0,20);
     } else if(id==='spirit'){
       var spiParts=[];
       if(item.mood) spiParts.push(item.mood);
@@ -1105,13 +1110,20 @@ function renderDetail(id){
       if(item.food) l+=' · '+item.food;
       if(item.healthNote) l+=' · '+item.healthNote;
       if(item.vetNote) l+=' · 就医:'+item.vetNote;
-    } else if(id==='medical'){
-      var medParts=[];
-      if(item.type) medParts.push(item.type);
-      if(item.hospital) medParts.push(item.hospital);
-      if(item.department) medParts.push(item.department);
-      if(item.symptom) medParts.push(item.symptom);
-      l=medParts.length?medParts.join(' · '):(item.content||'就医记录');
+    } else if(id==='health' || id==='body' || id==='medical'){
+      // id='body'/'medical' 为旧数据兼容，统一按 health 新格式显示
+      var hParts=[];
+      if(item.sceneType) hParts.push(item.sceneType);
+      else if(id==='body') hParts.push('身体观察');
+      else if(id==='medical') hParts.push(item.type||'就医');
+      if(item.symptom) hParts.push(item.symptom);
+      if(item.area) hParts.push(item.area);
+      if(item.hospital) hParts.push(item.hospital);
+      if(item.department) hParts.push(item.department);
+      if(item.weight) hParts.push('体重'+item.weight+'kg');
+      if(item.bloodPressure) hParts.push('血压'+item.bloodPressure);
+      if(item.severity) hParts.push('严重度'+item.severity+'/5');
+      l=hParts.length?hParts.join(' · '):(item.content||'健康记录');
       if(item.diagnosis) l+=' → '+item.diagnosis;
       if(item.cost) l+=' · ¥'+item.cost;
       if(item.nextVisit) l+=' · 复诊:'+item.nextVisit;
@@ -1265,6 +1277,44 @@ var MODAL_FORMS = {
       {key:'date', label:'日期', type:'date'}
     ]
   },
+  growth: {
+    title: '成长记录（学习/技能/习惯突破/心智）',
+    fields: [
+      {key:'type', label:'成长类型', type:'select', options:['学习','技能','习惯突破','心智模式','知识输出','身体突破','品格修炼']},
+      {key:'skill', label:'方向/技能', type:'text', placeholder:'例：英语、编程、早起、跑步'},
+      {key:'method', label:'方法', type:'select', options:['看书','听课','练习','复盘','请教','践行','输出作品','冥想反思']},
+      {key:'duration', label:'时长(分钟)', type:'number', placeholder:'如 45'},
+      {key:'understanding', label:'掌握度', type:'select', options:['1-入门','2-有点懂','3-懂了','4-会用','5-能教']},
+      {key:'progress', label:'今日突破/进步', type:'textarea', placeholder:'取得了什么进步...'},
+      {key:'obstacle', label:'遇到的障碍', type:'textarea', placeholder:'遇到了什么困难...'},
+      {key:'plan', label:'下一步计划', type:'textarea', placeholder:'接下来怎么做...'},
+      {key:'output', label:'产出/成果', type:'textarea', placeholder:'例：写了文章/跑了5km/通过考试'},
+      {key:'content', label:'总结', type:'textarea', placeholder:'今日成长总结...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
+  health: {
+    title: '健康记录（身体观察+就医行动）',
+    fields: [
+      {key:'sceneType', label:'场景类型', type:'select', options:['身体观察','体检','门诊','急诊','牙科','眼科','皮肤科','中医','心理咨询','复诊','疫苗','手术','住院','复查']},
+      {key:'symptom', label:'症状/主诉', type:'text', placeholder:'如：发烧3天/咳嗽/体检'},
+      {key:'area', label:'部位', type:'text', placeholder:'如：颈部/胃/全身体检'},
+      {key:'severity', label:'严重度 1-5', type:'select', options:['1','2','3','4','5']},
+      {key:'measure', label:'处理方式', type:'textarea', placeholder:'吃药/休息/就医/已预约...'},
+      {key:'hospital', label:'医院/诊所', type:'text', placeholder:'如：市第一人民医院'},
+      {key:'department', label:'科室', type:'text', placeholder:'如：内科/骨科'},
+      {key:'doctor', label:'医生', type:'text', placeholder:'（可选）'},
+      {key:'diagnosis', label:'诊断结果', type:'text', placeholder:'如：上呼吸道感染'},
+      {key:'prescription', label:'处方/用药', type:'textarea', placeholder:'医生开的药和用量'},
+      {key:'weight', label:'体重(kg)', type:'number', placeholder:'可选'},
+      {key:'bloodPressure', label:'血压', type:'text', placeholder:'如：120/80'},
+      {key:'cost', label:'花费(¥)', type:'number', placeholder:'0.00（自动同步到财务）'},
+      {key:'paymentMethod', label:'支付方式', type:'select', options:['','医保','微信','支付宝','现金','银行卡','其他']},
+      {key:'nextVisit', label:'下次复诊', type:'date'},
+      {key:'content', label:'备注', type:'textarea', placeholder:'医嘱/注意事项/恢复情况...'},
+      {key:'date', label:'日期', type:'date'}
+    ]
+  },
   inventory: {
     title: '物品登记',
     fields: [
@@ -1374,19 +1424,6 @@ var MODAL_FORMS = {
       {key:'duration', label:'时长(分钟)', type:'number', placeholder:'如 60'},
       {key:'value', label:'是否有价值', type:'select', options:['非常有','比较有','一般','浪费','后悔']},
       {key:'content', label:'做了什么', type:'textarea', placeholder:'具体描述...'},
-      {key:'date', label:'日期', type:'date'}
-    ]
-  },
-  growth: {
-    title: '成长记录',
-    fields: [
-      {key:'skill', label:'技能/方向', type:'text', placeholder:'例：英语/编程'},
-      {key:'method', label:'方法', type:'select', options:['看书','听课','练习','复盘','请教','其他']},
-      {key:'duration', label:'时长(分钟)', type:'number', placeholder:'如 45'},
-      {key:'progress', label:'今日进步', type:'textarea', placeholder:'取得了什么进步...'},
-      {key:'obstacle', label:'遇到的障碍', type:'textarea', placeholder:'遇到了什么困难...'},
-      {key:'plan', label:'下一步计划', type:'textarea', placeholder:'接下来怎么做...'},
-      {key:'content', label:'总结', type:'textarea', placeholder:'今日成长总结...'},
       {key:'date', label:'日期', type:'date'}
     ]
   },
@@ -1506,8 +1543,8 @@ var REQUIRED_KEYS = {
   inventory:['name'], space:['name'],
   work:['task'], home:['space'], travel:['from'],
   body:[], relation:['person'], time:['duration','category'],
-  growth:['skill'], spirit:['mood'], pet:['petName','action'],
-  medical:['type','symptom'], todo:['title','status']
+  growth:['type','skill'], spirit:['mood'], pet:['petName','action'],
+  medical:['type','symptom'], todo:['title','status'], health:['sceneType']
 };
 function isFieldRequired(sceneId, fieldKey){
   var arr = REQUIRED_KEYS[sceneId] || [];
@@ -1813,7 +1850,7 @@ async function openTrash(){
     }
     var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">共 '+list.length+' 条 · 30天后自动清理</div>';
     list.forEach(function(t){
-      var modName = {finance:'财务',sleep:'睡眠',exercise:'锻炼',emotion:'情绪',diet:'饮食',diary:'日记',learn:'学习',photo:'摄影',think:'思考',work:'工作',home:'居住',travel:'出行',body:'身体',relation:'关系',time:'时间',growth:'成长',spirit:'精神',pet:'宠物',medical:'医疗',todo:'待办'}[t._module] || t._module;
+      var modName = {finance:'财务',sleep:'睡眠',exercise:'锻炼',emotion:'情绪',diet:'饮食',diary:'日记',learn:'学习',photo:'摄影',think:'思考',work:'工作',home:'居住',travel:'出行',body:'身体',relation:'关系',time:'时间',growth:'成长',spirit:'精神',pet:'宠物',medical:'医疗',todo:'待办',health:'健康'}[t._module] || t._module;
       var title = t.content || t.name || t.title || t.symptom || t.person || '记录';
       var delDate = (t._deletedAt||'').split('T')[0];
       html += '<div style="background:#FFFFFF;border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #F59E0B">';
@@ -3716,8 +3753,8 @@ async function openSeasonal(){
 
 // 日志Tab：按生活域分组 + 今日统计 + 搜索
 var RECORD_GROUPS = {
-  life:    {ids:['body','diet','sleep','emotion','pet','medical'], title:'生活基础', icon:'🌱', sub:'身体·饮食·睡眠·情绪·宠物·医疗'},
-  growth:  {ids:['learn','think','diary','photo'], title:'成长认知', icon:'📚', sub:'学习·思考·日记·摄影'},
+  life:    {ids:['health','diet','sleep','emotion','pet'], title:'生活基础', icon:'🌱', sub:'健康·饮食·睡眠·情绪·宠物'},
+  growth:  {ids:['growth','think','diary','photo'], title:'成长认知', icon:'📚', sub:'成长·思考·日记·摄影'},
   action:  {ids:['work','home','travel','time','relation','todo'], title:'行动场景', icon:'💼', sub:'工作·居住·出行·时间·关系·待办'},
   asset:   {ids:['finance','inventory','space'], title:'资产管理', icon:'📦', sub:'财务·库存·空间'}
 };
@@ -3729,7 +3766,8 @@ var MODULE_META = {
   finance:{name:'财务',icon:'💰'}, inventory:{name:'库存',icon:'📦'}, space:{name:'空间',icon:'🏚️'},
   exercise:{name:'锻炼',icon:'🏃'}, growth:{name:'成长',icon:'🌱'}, spirit:{name:'精神',icon:'🧘'},
   pet:{name:'宠物',icon:'🐾'},
-  medical:{name:'医疗',icon:'🏥'}, todo:{name:'待办',icon:'📋'}
+  medical:{name:'医疗',icon:'🏥'}, todo:{name:'待办',icon:'📋'},
+  health:{name:'健康',icon:'❤️'}
 };
 
 function renderRecord(){
