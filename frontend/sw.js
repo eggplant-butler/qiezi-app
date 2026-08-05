@@ -8,7 +8,7 @@
 // 版本号变更会触发 activate 清理旧缓存
 // ============================================================
 
-const SW_VERSION = 'qiezi-v6.5.1';
+const SW_VERSION = 'qiezi-v6.5.2';
 const SW_CACHE_PREFIX = 'qiezi-sw-';
 const SW_CACHE_CURRENT = SW_CACHE_PREFIX + SW_VERSION;
 
@@ -18,16 +18,17 @@ const PRECACHE_URLS = [
   './index.html'
 ];
 
-// ============ install：预缓存 + 立即激活 ============
+// ============ install：预缓存 + 立即激活 + 通知客户端刷新 ============
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SW_CACHE_CURRENT)
       .then((cache) => cache.addAll(PRECACHE_URLS))
       .then(() => self.skipWaiting())  // 跳过等待，立即接管
+      .then(() => broadcastUpdate())   // 通知所有客户端有新版本
   );
 });
 
-// ============ activate：清理旧版本缓存 + 立即接管 ============
+// ============ activate：清理旧版本缓存 + 立即接管 + 通知刷新 ============
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
@@ -39,8 +40,17 @@ self.addEventListener('activate', (event) => {
         );
       })
       .then(() => self.clients.claim())  // 立即接管所有客户端
+      .then(() => broadcastUpdate())     // 再次通知（保险）
   );
 });
+
+// ============ 通知所有客户端：有新版本，请刷新 ============
+async function broadcastUpdate() {
+  const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  clients.forEach((client) => {
+    client.postMessage({ type: 'SW_UPDATED', version: SW_VERSION });
+  });
+}
 
 // ============ fetch：按请求类型路由 ============
 self.addEventListener('fetch', (event) => {
