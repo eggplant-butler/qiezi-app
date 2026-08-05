@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#2C3E5C">
+<meta name="theme-color" content="#1F1B16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="茄子管家">
@@ -12,28 +12,30 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <style>
-/* ========== 禅意东方 设计系统 v6.5 ========== */
+/* ========== 深夜书房 设计系统 v6.5.1 ==========
+   暗色优先（默认）：暖灰底+米白字+琥珀强调
+   日间模式：暖白底+墨字+琥珀强调
+   琥珀(#D4A574) 温暖克制，契合长期反思场景
+*/
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
 :root{
-/* 背景层：温润米色，告别紫色满屏 */
---c-bg1:#F5F1E8;--c-bg2:#EDE7D9;--c-bg3:#E0D9C7;
---c-surface:#FAF7F0;--c-surface-2:#F0EBE0;--c-elevated:#FFFFFF;
-/* 文字层：墨色系，层次分明 */
---c-fg:#1A1A1A;--c-fg-2:#4A4A4A;--c-fg-3:#8A8A8A;--c-fg-muted:#B5B5B5;
-/* 强调色：单一克制，深靛蓝（替代紫色） */
---c-primary:#2C3E5C;--c-primary-2:#3D5273;--c-tab-act:#2C3E5C;
---c-accent:rgba(44,62,92,0.08);--c-accent-2:rgba(61,82,115,0.12);
-/* 阴影边框：克制柔阴影，替代浓重紫影 */
---c-shadow:rgba(44,62,92,0.08);--c-shadow-soft:rgba(44,62,92,0.04);
---c-border:rgba(44,62,92,0.10);--c-border-strong:rgba(44,62,92,0.22);
-/* 模块语义色：低饱和，每个模块有自己的色 */
---c-mod-health:#5A7A5A;--c-mod-finance:#8B6F47;--c-mod-growth:#6B5B8C;
---c-mod-pet:#A57865;--c-mod-mind:#4A6B7A;--c-mod-relationship:#8C5A6B;--c-mod-insight:#7A6B4A;
-/* 状态色 */
---c-success:#3A5A40;--c-warning:#B8860B;--c-danger:#8B2C2C;
+/* 默认暗色：深夜书房 —— 暖灰底+米白字+琥珀强调 */
+--c-bg1:#1F1B16;--c-bg2:#252019;--c-bg3:#2C2620;
+--c-surface:#332D24;--c-surface-2:#3D362C;--c-elevated:#3A332A;
+--c-fg:#E8DFD0;--c-fg-2:#B5AC9C;--c-fg-3:#8A8275;--c-fg-muted:#5C5547;
+/* 琥珀强调：温暖克制，替代冷靖蓝 */
+--c-primary:#D4A574;--c-primary-2:#E0B585;--c-tab-act:#D4A574;
+--c-accent:rgba(212,165,116,0.12);--c-accent-2:rgba(224,181,133,0.18);
+--c-shadow:rgba(0,0,0,0.35);--c-shadow-soft:rgba(0,0,0,0.18);
+--c-border:rgba(232,223,208,0.10);--c-border-strong:rgba(232,223,208,0.22);
+/* 模块语义色：暗色底上的低饱和暖色 */
+--c-mod-health:#7BA07A;--c-mod-finance:#C9A876;--c-mod-growth:#A88FB5;
+--c-mod-pet:#D4A574;--c-mod-mind:#7A9CB0;--c-mod-relationship:#C98B8B;--c-mod-insight:#C9B07A;
+/* 状态色（暗色版提亮） */
+--c-success:#7BA07A;--c-warning:#D4A574;--c-danger:#C97474;
 /* 字号层次 */
 --fs-display:22px;--fs-h1:18px;--fs-h2:15px;--fs-body:14px;--fs-small:12px;--fs-tiny:11px;
-/* 圆角层次（克制，不再是14-16大圆角） */
+/* 圆角层次（克制） */
 --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;--r-full:9999px;
 /* 阴影层次 */
 --shadow-1:0 1px 3px var(--c-shadow-soft);--shadow-2:0 2px 8px var(--c-shadow);--shadow-3:0 4px 16px var(--c-shadow);
@@ -41,22 +43,28 @@
 --ease-out:cubic-bezier(0.16,1,0.3,1);--ease-in-out:cubic-bezier(0.4,0,0.2,1);
 --dur-fast:0.15s;--dur-base:0.25s;--dur-slow:0.4s;
 }
-/* 暗黑模式：墨黑底+米白字 */
-[data-theme="dark"]{
---c-bg1:#1A1A1A;--c-bg2:#1F1F1F;--c-bg3:#252525;
---c-surface:#2A2A2A;--c-surface-2:#333333;--c-elevated:#1F1F1F;
---c-fg:#E8E2D5;--c-fg-2:#B5B0A3;--c-fg-3:#8A8578;--c-fg-muted:#5A5A5A;
---c-primary:#8FA8C8;--c-primary-2:#A5B8D0;--c-tab-act:#8FA8C8;
---c-accent:rgba(143,168,200,0.10);--c-accent-2:rgba(165,184,208,0.15);
---c-shadow:rgba(0,0,0,0.3);--c-shadow-soft:rgba(0,0,0,0.15);
---c-border:rgba(232,226,213,0.10);--c-border-strong:rgba(232,226,213,0.22);
+/* 日间模式：暖白底+墨字+琥珀强调 */
+[data-theme="light"]{
+--c-bg1:#FAF6EE;--c-bg2:#F2EBDB;--c-bg3:#E8E0CC;
+--c-surface:#FFFCF5;--c-surface-2:#F5F0E2;--c-elevated:#FFFFFF;
+--c-fg:#2A2520;--c-fg-2:#5A5247;--c-fg-3:#8A8275;--c-fg-muted:#B5AC9C;
+--c-primary:#A07545;--c-primary-2:#B8865A;--c-tab-act:#A07545;
+--c-accent:rgba(160,117,69,0.10);--c-accent-2:rgba(184,134,90,0.15);
+--c-shadow:rgba(42,37,32,0.08);--c-shadow-soft:rgba(42,37,32,0.04);
+--c-border:rgba(42,37,32,0.12);--c-border-strong:rgba(42,37,32,0.24);
+--c-mod-health:#5A7A5A;--c-mod-finance:#8B6F47;--c-mod-growth:#6B5B8C;
+--c-mod-pet:#A57865;--c-mod-mind:#4A6B7A;--c-mod-relationship:#8C5A6B;--c-mod-insight:#7A6B4A;
+--c-success:#3A5A40;--c-warning:#8B6F1A;--c-danger:#8B2C2C;
 }
-/* 护眼模式（黄昏/晨光自动切换） */
+/* 护眼模式：暖米黄（黄昏阅读） */
 [data-theme="sepia"]{
---c-bg1:#F5E6D3;--c-bg2:#EDE0CC;--c-bg3:#E0D2B8;
---c-surface:#FAF0E0;--c-surface-2:#F0E5D0;--c-elevated:#FFFAF0;
---c-fg:#3A2A1A;--c-fg-2:#5A4A3A;--c-fg-3:#8A7A6A;--c-fg-muted:#B5A595;
---c-primary:#6B4A2C;--c-primary-2:#8B6A4C;--c-tab-act:#6B4A2C;
+--c-bg1:#F5E6CC;--c-bg2:#EDDDB8;--c-bg3:#E0D0A0;
+--c-surface:#FAF0DC;--c-surface-2:#F0E5C8;--c-elevated:#FFFAE8;
+--c-fg:#3A2A15;--c-fg-2:#5A4A2A;--c-fg-3:#8A7A5A;--c-fg-muted:#B5A585;
+--c-primary:#8B5A2B;--c-primary-2:#A06B3A;--c-tab-act:#8B5A2B;
+--c-accent:rgba(139,90,43,0.10);--c-accent-2:rgba(160,107,58,0.15);
+--c-shadow:rgba(58,42,21,0.10);--c-shadow-soft:rgba(58,42,21,0.05);
+--c-border:rgba(58,42,21,0.14);--c-border-strong:rgba(58,42,21,0.26);
 }
 *{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 html,body{min-height:100vh}
@@ -124,7 +132,7 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 .focus-card .status{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600}
 .focus-card .status.active{background:rgba(34,197,94,0.12);color:#16A34A}
 .focus-card .status.steady{background:rgba(251,191,36,0.12);color:#D97706}
-.focus-card .status.learning{background:rgba(44,62,92,0.12);color:var(--c-primary)}
+.focus-card .status.learning{background:var(--c-accent-2);color:var(--c-primary)}
 .quick-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
 .quick-module{background:var(--c-surface);border-radius:12px;padding:12px 4px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s}
 .quick-module:active{transform:scale(0.94)}
@@ -190,7 +198,7 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 .rec-toolbar{margin-bottom:12px}
 .rec-search{width:100%;padding:10px 14px;border:1px solid #E5E7EB;border-radius:20px;font-size:13px;background:#F9FAFB;box-sizing:border-box}
 .rec-search:focus{outline:none;border-color:var(--c-primary);background:#fff}
-.rec-today{background:linear-gradient(135deg,rgba(44,62,92,0.08),rgba(139,92,246,0.08));border-radius:14px;padding:10px 14px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#4B5563}
+.rec-today{background:linear-gradient(135deg,var(--c-accent),rgba(139,92,246,0.08));border-radius:14px;padding:10px 14px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#4B5563}
 .rec-today .rt-item{display:flex;align-items:center;gap:3px}
 .rec-today .rt-num{font-weight:700;color:var(--c-primary)}
 .rec-today .rt-empty{color:#9CA3AF;font-size:11px}
@@ -866,21 +874,20 @@ function parseNL(text){
 }
 
 var THEMES = {
-home:    {primary:'#2C3E5C',primary2:'#3D5273',tabAct:'#2C3E5C'},
-record:  {primary:'#4A6B7A',primary2:'#5A7B8A',tabAct:'#4A6B7A'},
-insight: {primary:'#7A6B4A',primary2:'#8A7B5A',tabAct:'#7A6B4A'},
-me:      {primary:'#5A7A5A',primary2:'#6A8A6A',tabAct:'#5A7A5A'}
+home:    {primary:'#D4A574',primary2:'#E0B585',tabAct:'#D4A574'},
+record:  {primary:'#7A9CB0',primary2:'#8AACBE',tabAct:'#7A9CB0'},
+insight: {primary:'#C9B07A',primary2:'#D9C08A',tabAct:'#C9B07A'},
+me:      {primary:'#7BA07A',primary2:'#8BB08A',tabAct:'#7BA07A'}
 };
 function applyTheme(t){
 var th=THEMES[t]||THEMES.home;
 var r=document.documentElement.style;
-// 禅意东方克制：只改强调色，背景保持温润米色
+// 深夜书房：只改强调色，背景恒为暖灰（暗色）或暖白（日间），由 data-theme 控制
 r.setProperty('--c-primary',th.primary);
 r.setProperty('--c-primary-2',th.primary2);
 r.setProperty('--c-tab-act',th.tabAct);
-r.setProperty('--c-accent',hexToRgba(th.primary,0.08));
-r.setProperty('--c-accent-2',hexToRgba(th.primary2,0.12));
-// 不改 --c-bg1/2/3（背景恒为米色）与 --c-shadow（保持柔墨）
+r.setProperty('--c-accent',hexToRgba(th.primary,0.12));
+r.setProperty('--c-accent-2',hexToRgba(th.primary2,0.18));
 }
 function hexToRgba(h,a){
 h=h.replace('#','');
@@ -955,7 +962,7 @@ function renderDetail(id){
   var actionsEl = document.getElementById('detailActions');
   if(actionsEl){
     if(!editId){
-      actionsEl.innerHTML = '<button onclick="copyLast()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:10px;padding:6px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(44,62,92,0.3);">复制上次</button>';
+      actionsEl.innerHTML = '<button onclick="copyLast()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:10px;padding:6px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px var(--c-shadow);">复制上次</button>';
     } else {
       actionsEl.innerHTML = '';
     }
@@ -2279,12 +2286,12 @@ async function openMindfulness(){
     var r2 = await fetch('/api/mindfulness/baseline'); var base = await r2.json();
     var html = '';
     if (base && base.interpretation) {
-      html += '<div style="background:rgba(44,62,92,0.08);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid var(--c-primary)">';
+      html += '<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid var(--c-primary)">';
       html += '<div style="font-size:12px;color:var(--c-primary);margin-bottom:6px">📊 心境基线</div>';
       html += '<div style="font-size:13px;color:#1A1A2E;line-height:1.6;white-space:pre-wrap">'+escapeHtml(base.interpretation)+'</div>';
       html += '</div>';
     }
-    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(44,62,92,0.15)">';
+    html += '<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid var(--c-border)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 新训练记录</div>';
     html += '<label style="font-size:11px;color:#6B7280">类型</label>';
     html += '<select id="mfType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px">';
@@ -2311,7 +2318,7 @@ async function openMindfulness(){
         if (m.trigger) html += '<div style="font-size:12px;color:#4B5563;margin-top:4px">触发：'+escapeHtml(m.trigger)+'</div>';
         html += '<div style="font-size:11px;color:'+dColor+';margin-top:4px">心境 '+m.beforeLevel+' → '+m.afterLevel+' ('+(m.delta>=0?'+':'')+m.delta+')</div>';
         if (m.method) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">方法：'+escapeHtml(m.method)+'</div>';
-        if (m.note) html += '<div style="font-size:11px;color:var(--c-primary);margin-top:4px;padding:4px 8px;background:rgba(44,62,92,0.06);border-radius:6px">📝 '+escapeHtml(m.note)+'</div>';
+        if (m.note) html += '<div style="font-size:11px;color:var(--c-primary);margin-top:4px;padding:4px 8px;background:var(--c-accent);border-radius:6px">📝 '+escapeHtml(m.note)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delMindfulness(\''+m.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -2419,7 +2426,7 @@ async function openReview(){
     var r2 = await fetch('/api/review/auto?period=week'); var autoWeek = await r2.json();
     var r3 = await fetch('/api/review/auto?period=month'); var autoMonth = await r3.json();
 
-    var html = '<div style="background:rgba(44,62,92,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid var(--c-primary)">';
+    var html = '<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid var(--c-primary)">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#1A1A2E">🤖 本周自动复盘</span><span style="font-size:10px;color:#9CA3AF">'+autoWeek.range+'</span></div>';
     html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap;margin-bottom:6px">'+escapeHtml(autoWeek.summary)+'</div>';
     if (autoWeek.suggestions && autoWeek.suggestions.length) {
@@ -2434,7 +2441,7 @@ async function openReview(){
     html += '<div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">'+escapeHtml(autoMonth.summary)+'</div>';
     html += '</div>';
 
-    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(44,62,92,0.15)">';
+    html += '<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid var(--c-border)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">📝 写一条自己的复盘</div>';
     html += '<select id="rvPeriod" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;margin-bottom:6px"><option value="week">本周</option><option value="month">本月</option></select>';
     html += '<textarea id="rvContent" placeholder="这周/月你最重要的反思是什么？" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:60px;resize:vertical;margin-bottom:6px"></textarea>';
@@ -2909,7 +2916,7 @@ async function openDeathTest(){
   openModal2('⚰️ 临终测试', '<div style="text-align:center;color:#9CA3AF;padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/death-test'); var list = await r.json();
-    var html = '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid rgba(44,62,92,0.15)">';
+    var html = '<div style="background:var(--c-accent);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid var(--c-border)">';
     html += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">💭 假如今天就是终点</div>';
     html += '<textarea id="dtRegrets" placeholder="最大的遗憾是什么？" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
     html += '<textarea id="dtUndone" placeholder="想做却没做的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:#1A1A2E;font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
@@ -2928,7 +2935,7 @@ async function openDeathTest(){
         if (d.regrets) html += '<div style="font-size:12px;color:#4B5563;margin-top:4px"><b style="color:#EF4444">遗憾：</b>'+escapeHtml(d.regrets)+'</div>';
         if (d.undone) html += '<div style="font-size:12px;color:#4B5563;margin-top:2px"><b style="color:#F59E0B">未做：</b>'+escapeHtml(d.undone)+'</div>';
         if (d.proudOf) html += '<div style="font-size:12px;color:#4B5563;margin-top:2px"><b style="color:#22C55E">骄傲：</b>'+escapeHtml(d.proudOf)+'</div>';
-        if (d.focus) html += '<div style="font-size:12px;color:var(--c-primary);margin-top:4px;padding:4px 8px;background:rgba(44,62,92,0.06);border-radius:6px">→ '+escapeHtml(d.focus)+'</div>';
+        if (d.focus) html += '<div style="font-size:12px;color:var(--c-primary);margin-top:4px;padding:4px 8px;background:var(--c-accent);border-radius:6px">→ '+escapeHtml(d.focus)+'</div>';
         html += '<div style="margin-top:6px"><button onclick="delDeathTest(\''+d.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
         html += '</div>';
       });
@@ -3112,7 +3119,7 @@ async function openMetacognition(){
   try {
     var r = await fetch('/api/eng/metacognition'); var d = await r.json();
     var html = '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">🧠 你在"如何"思考，比你"思考什么"更重要</div>';
-    if (d.score !== undefined) html += '<div style="background:rgba(44,62,92,0.08);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">元认知得分</div><div style="font-size:20px;font-weight:700;color:var(--c-primary)">' + d.score + '/10</div></div>';
+    if (d.score !== undefined) html += '<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">元认知得分</div><div style="font-size:20px;font-weight:700;color:var(--c-primary)">' + d.score + '/10</div></div>';
     if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
     if (d.details && d.details.length) {
       html += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">🔍 检测到的思维特征</div>';
@@ -3248,13 +3255,13 @@ function showCognitiveFeedback(res){
       }
     }
   }
-  if (res.reflection) parts.push('<div style="background:rgba(44,62,92,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
+  if (res.reflection) parts.push('<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:#1A1A2E;line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
   if (res.dailySummary) parts.push('<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">📊 '+escapeHtml(res.dailySummary)+'</div>');
   if (res.correlations && res.correlations.length > 0) {
     var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">🔗 关联发现</div>';
     res.correlations.forEach(function(c){
       var color = c.s === 'crit' ? '#EF4444' : c.s === 'high' ? '#F59E0B' : 'var(--c-primary)';
-      ch += '<div style="background:rgba(44,62,92,0.06);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
+      ch += '<div style="background:var(--c-accent);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
     });
     ch += '</div>';
     parts.push(ch);
@@ -3272,7 +3279,7 @@ function showCognitiveFeedback(res){
     parts.push('<div style="text-align:center;color:#9CA3AF;padding:20px;font-size:13px">已保存 ✓<br><br>多记录几次，认知引擎会开始发现你的模式。</div>');
   }
   if (res.reflection) {
-    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid rgba(44,62,92,0.3);border-radius:8px;background:transparent;color:var(--c-primary);font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
+    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid var(--c-shadow);border-radius:8px;background:transparent;color:var(--c-primary);font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
     window.__lastReflection = res.reflection;
   }
   openModal2('✨ 保存后的认知反馈', parts.join(''), '<button class="sv" onclick="closeModal2()">知道了</button>');
@@ -3461,7 +3468,7 @@ async function renderPlanList(){
     html += '</div>';
     // 对比信息
     if (cmp && cmp.message) {
-      html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#4B5563;line-height:1.6">' + cmp.message + '</div>';
+      html += '<div style="background:var(--c-accent);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#4B5563;line-height:1.6">' + cmp.message + '</div>';
     }
     // 创建按钮
     html += '<button onclick="openCreatePlan()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">+ 创建新' + (currentPlanType==='week'?'周':'月') + '计划</button>';
@@ -3580,7 +3587,7 @@ async function openCausal(){
       return;
     }
     var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">基于' + d.sampleSize + '条情绪记录 · 测试0-7天滞后相关性</div>';
-    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">🎯 因果 ≠ 相关。本引擎通过"滞后时间窗"分析：今天的情绪，是否由N天前的睡眠/锻炼导致。<br>滞后相关性越强，因果方向越可信。</div>';
+    html += '<div style="background:var(--c-accent);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">🎯 因果 ≠ 相关。本引擎通过"滞后时间窗"分析：今天的情绪，是否由N天前的睡眠/锻炼导致。<br>滞后相关性越强，因果方向越可信。</div>';
     if (d.factors && d.factors.length) {
       d.factors.forEach(function(f){
         var strengthColor = f.strength === '强' ? '#EF4444' : f.strength === '中' ? '#F59E0B' : '#9CA3AF';
@@ -3644,7 +3651,7 @@ async function openBaseline(){
       return;
     }
     var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">基于近' + d.days + '天数据建立个人常态基线</div>';
-    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
+    html += '<div style="background:var(--c-accent);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
     // 各维度基线
     var dims = d.baselines || {};
     var dimKeys = Object.keys(dims);
@@ -3709,7 +3716,7 @@ async function openLifeMilestone(){
   try {
     var r = await fetch('/api/life-milestone');
     var list = await r.json();
-    var html = '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">⚓ 人生节点=你回头看时，定义"你是谁"的那些时刻。<br>不是大事记，是转折点——它改变了你之后的方向。</div>';
+    var html = '<div style="background:var(--c-accent);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">⚓ 人生节点=你回头看时，定义"你是谁"的那些时刻。<br>不是大事记，是转折点——它改变了你之后的方向。</div>';
     html += '<button onclick="openCreateMilestone()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">+ 标记一个人生节点</button>';
     if (!list.length) {
       html += '<div style="text-align:center;color:#9CA3AF;padding:30px;font-size:13px;line-height:1.8">📭 暂无人生节点<br>标记一个：毕业、换工作、独立、觉醒...<br>都是你成为今天的自己的关键点</div>';
@@ -3805,7 +3812,7 @@ async function openSeasonal(){
       return;
     }
     var html = '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">基于' + d.sampleSize + '条情绪记录 · 按月/季节聚合</div>';
-    html += '<div style="background:rgba(44,62,92,0.06);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
+    html += '<div style="background:var(--c-accent);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#4B5563;line-height:1.6">' + d.insight + '</div>';
     // 季节对比
     if (d.seasonal && d.seasonal.length) {
       html += '<div style="background:var(--c-surface);border-radius:12px;padding:12px;margin-bottom:10px">';
@@ -3979,7 +3986,7 @@ function renderInsight(){
   var summary='';
   if(insightsCache && insightsCache.growth){
     var g=insightsCache.growth;
-    summary='<div style="background:rgba(44,62,92,0.08);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(44,62,92,0.15);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:14px;font-weight:700;color:var(--c-primary)">'+g.phase+'</span><span style="font-size:11px;color:#9CA3AF">'+g.progress+'%</span></div><div style="font-size:12px;color:#4B5563;">'+g.phaseDesc+' · 下一里程碑：'+g.nextMilestone+'</div><div style="margin-top:8px;height:4px;background:#E5E7EB;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));border-radius:4px"></div></div></div>';
+    summary='<div style="background:var(--c-accent);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--c-border);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:14px;font-weight:700;color:var(--c-primary)">'+g.phase+'</span><span style="font-size:11px;color:#9CA3AF">'+g.progress+'%</span></div><div style="font-size:12px;color:#4B5563;">'+g.phaseDesc+' · 下一里程碑：'+g.nextMilestone+'</div><div style="margin-top:8px;height:4px;background:#E5E7EB;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));border-radius:4px"></div></div></div>';
     if(insightsCache.correlations && insightsCache.correlations.length>0){
       summary+='<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:16px;"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:6px">🔗 发现关联</div>';
       insightsCache.correlations.slice(0,2).forEach(function(corr){ summary+='<div class="corr-item"><div class="title">'+corr.title+'</div><div class="detail">'+corr.detail+'</div></div>'; });
@@ -4068,7 +4075,7 @@ function renderEngDashboard(){
     var sp = s.selfPortrait;
     var portraitText = sp.summary || sp.portrait || sp.description || sp.narrative || '';
     if(portraitText){
-      html += '<div style="background:rgba(44,62,92,0.06);border-radius:14px;padding:12px 16px;margin-bottom:12px;border:1px solid rgba(44,62,92,0.15);">';
+      html += '<div style="background:var(--c-accent);border-radius:14px;padding:12px 16px;margin-bottom:12px;border:1px solid var(--c-border);">';
       html += '<div style="font-size:12px;font-weight:700;color:var(--c-primary);margin-bottom:6px;">🪞 自我画像</div>';
       html += '<div style="font-size:12px;color:#374151;line-height:1.6;">'+String(portraitText).substring(0,200)+'</div>';
       html += '</div>';
@@ -4228,7 +4235,7 @@ function renderMe(){
   var total = 0;
   SCENES.forEach(function(s){ total += (dataCache[s.id]||[]).length; });
   CORE_MODULES.forEach(function(m){ total += (dataCache[m.id]||[]).length; });
-  var header='<div style="background:rgba(44,62,92,0.08);border-radius:14px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(44,62,92,0.15);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;color:#1A1A2E;">📊 船长日志</span><span style="font-size:12px;color:var(--c-primary);font-weight:700;">共 '+total+' 条记录</span></div></div>';
+  var header='<div style="background:var(--c-accent);border-radius:14px;padding:12px 16px;margin-bottom:16px;border:1px solid var(--c-border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;color:#1A1A2E;">📊 船长日志</span><span style="font-size:12px;color:var(--c-primary);font-weight:700;">共 '+total+' 条记录</span></div></div>';
   // 只更新 header 容器，不再拼接到整个 innerHTML（修复累积渲染 bug）
   c.innerHTML=header;
   loadCognitiveCounts();
@@ -4456,29 +4463,28 @@ async function verifyLatestBackup(){
 })();
 
 // ============================================================
-// 主题切换（禅意东方：日/夜/护眼，按时段自动 + 手动覆盖）
+// 主题切换（深夜书房：暗色默认 + 日间琥珀 + 护眼黄昏，按时段自动）
 // ============================================================
 function applyAutoTheme() {
   var saved = localStorage.getItem('qz-theme');
-  if (saved) { setTheme(saved); return; }
-  // 未手动指定，按时段自动：6-17 日间，17-20 护眼，其余夜间
+  if (saved && saved !== 'dark') { setTheme(saved); return; }
+  // 未手动指定：6-17 日间，17-20 护眼，其余暗色（深夜书房默认）
   var h = new Date().getHours();
   if (h >= 6 && h < 17) setTheme('light');
   else if (h >= 17 && h < 20) setTheme('sepia');
-  else setTheme('dark');
+  else setTheme('dark');  // 默认暗色（移除 data-theme，回退到 :root）
 }
 function setTheme(name) {
-  if (name === 'light') document.documentElement.removeAttribute('data-theme');
+  if (name === 'dark') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.setAttribute('data-theme', name);
   localStorage.setItem('qz-theme', name);
-  // 更新切换按钮高亮
   document.querySelectorAll('.theme-btn').forEach(function(b){
     b.classList.toggle('act', b.dataset.theme === name);
   });
 }
 function toggleTheme() {
-  var cur = localStorage.getItem('qz-theme') || 'light';
-  var next = cur === 'light' ? 'dark' : (cur === 'dark' ? 'sepia' : 'light');
+  var cur = localStorage.getItem('qz-theme') || 'dark';
+  var next = cur === 'dark' ? 'light' : (cur === 'light' ? 'sepia' : 'dark');
   setTheme(next);
 }
 applyAutoTheme();
@@ -4702,7 +4708,7 @@ async function loadAchievements() {
       return;
     }
     container.innerHTML = data.unlocked.slice(0, 4).map(function(a) {
-      return '<span style="background:rgba(44,62,92,0.1);border-radius:12px;padding:2px 10px;font-size:11px;color:var(--c-primary);">' + a.name + '</span>';
+      return '<span style="background:var(--c-border);border-radius:12px;padding:2px 10px;font-size:11px;color:var(--c-primary);">' + a.name + '</span>';
     }).join('');
   } catch(e) { document.getElementById('achievementList').textContent = '加载失败'; }
   try { await fetch('/api/achievements/check', { method: 'POST' }); } catch(e) {}
@@ -4763,7 +4769,7 @@ async function loadWork() {
       var topSkills = skills.skills ? skills.skills.slice(0, 3) : [];
       if (topSkills.length > 0) {
         html += topSkills.map(function(s) {
-          return '<span style="display:inline-block;background:rgba(44,62,92,0.08);border-radius:8px;padding:2px 10px;font-size:11px;color:var(--c-primary);margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
+          return '<span style="display:inline-block;background:var(--c-accent);border-radius:8px;padding:2px 10px;font-size:11px;color:var(--c-primary);margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
         }).join('');
       } else {
         html += '<span style="color:#9CA3AF;font-size:12px;">还没有技能评分，点击下方添加</span>';
