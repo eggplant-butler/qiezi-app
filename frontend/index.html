@@ -396,7 +396,7 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div style="color:#6B7280;cursor:pointer;" onclick="openBackupMgr()">📂 备份管理</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="changePwd()">🔐 修改密码</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="openTrash()">♻️ 回收站</div>
-<div id="pwaInstallEntry" style="color:#8B5CF6;cursor:pointer;display:none;" onclick="triggerPwaInstall()">📲 安装到桌面</div>
+<div id="pwaInstallEntry" style="color:#8B5CF6;cursor:pointer;" onclick="triggerPwaInstall()">📲 安装到桌面</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="openMaintenance()">🛠️ 运维面板</div>
 <div style="color:#EF4444;cursor:pointer;" onclick="clearAll()">🗑️ 清空数据</div>
 <div style="color:#6B7280;cursor:pointer;" onclick="logout()">🚪 退出登录</div>
@@ -3903,15 +3903,28 @@ function renderInsight(){
       summary+='</div>';
     }
     if(insightsCache.suggestions && insightsCache.suggestions.length>0){
-      summary+='<div style="background:rgba(251,191,36,0.04);border-radius:14px;padding:12px 16px;margin-bottom:16px;border-left:3px solid #FBBF24;"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:6px">💡 今日建议 <span style="font-size:10px;color:#9CA3AF">点「转任务」加入待办</span></div>';
+      // 先把建议暂存到全局，用 data-idx 做事件委托，避免 onclick 字符串引号拼接漏洞
+      window.__SUG_CACHE__ = insightsCache.suggestions;
+      summary+='<div style="background:rgba(251,191,36,0.04);border-radius:14px;padding:12px 16px;margin-bottom:16px;border-left:3px solid #FBBF24;"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:6px">💡 今日建议 <span style="font-size:10px;color:#9CA3AF">点「+任务」加入待办</span></div>';
       insightsCache.suggestions.slice(0,3).forEach(function(s, i){
-        var sid = 'sug_'+i+'_'+Date.now();
         summary+='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed #F3F4F6;">';
-        summary+='<div style="font-size:12px;color:#374151;flex:1;">• '+s.text+'</div>';
-        summary+='<button onclick="suggestionToTodo(\''+encodeURIComponent(s.text).replace(/'/g,'%27')+'\','+(s.module?'\''+s.module+'\'':'null')+')" style="font-size:10px;color:#2563EB;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;margin-left:8px;white-space:nowrap;">+任务</button>';
+        summary+='<div style="font-size:12px;color:#374151;flex:1;">• '+(s.text||'').replace(/[<>&]/g,'')+'</div>';
+        summary+='<button data-sug-idx="'+i+'" class="btn-sug-todo" style="font-size:10px;color:#2563EB;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;margin-left:8px;white-space:nowrap;">+任务</button>';
         summary+='</div>';
       });
       summary+='</div>';
+      // 延迟绑定事件委托（因为要等 innerHTML 写入 DOM 后才找得到按钮）
+      setTimeout(function(){
+        document.querySelectorAll('.btn-sug-todo').forEach(function(btn){
+          btn.removeEventListener('click', btn.__handler || function(){});
+          btn.__handler = function(){
+            var idx = parseInt(btn.getAttribute('data-sug-idx'), 10);
+            var s = (window.__SUG_CACHE__ || [])[idx];
+            if(s) suggestionToTodo(encodeURIComponent(s.text), s.module || null);
+          };
+          btn.addEventListener('click', btn.__handler);
+        });
+      }, 50);
     }
   }
   if(!summary) summary='<div class="empty"><span class="ic">🔮</span>继续记录，系统会生成洞察</div>';
@@ -4060,11 +4073,16 @@ function renderEngDashboard(){
     html += '</div>';
   }
 
+  // 即使没有数据，也至少显示一张说明性卡片，让用户知道功能在正常工作
   if(!html){
-    el.innerHTML = '<div style="padding:12px;text-align:center;color:#9CA3AF;font-size:12px;">📊 暂无深度分析数据，继续记录解锁</div>';
-  } else {
-    el.innerHTML = html;
+    html = '<div style="background:linear-gradient(135deg,#EEF2FF 0%,#E0E7FF 100%);border-radius:14px;padding:14px 16px;margin-bottom:8px;">';
+    html += '<div style="font-size:12px;font-weight:700;color:#6366F1;margin-bottom:4px;">📊 认知仪表盘已就绪</div>';
+    html += '<div style="font-size:11px;color:#6B7280;line-height:1.5;">暂无足够数据生成深度分析。连续记录几天后，这里会出现：风险预警、自我画像、反熵增、反脆弱、30天轨迹、元认知、认知偏差等洞察。</div>';
+    html += '</div>';
   }
+  // 标题栏（总是显示）
+  var header = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px;"><div style="font-size:11px;font-weight:700;color:#9CA3AF;letter-spacing:0.5px;">🧠 认知仪表盘'+(engDashboardCache && engDashboardCache.sampleSize !== undefined ? ' · '+engDashboardCache.sampleSize+'条样本' : '')+'</div><button onclick="loadEngDashboard(true)" style="font-size:10px;color:#6366F1;background:transparent;border:1px solid rgba(99,102,241,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;">↻ 刷新</button></div>';
+  el.innerHTML = header + html;
 }
 
 // ============ v6.4.2 行动闭环 ============
@@ -4230,11 +4248,17 @@ function togglePrivacy(){ privacyOn=!privacyOn; alert(privacyOn?'👁️ 隐私�
 // ============ v6.4.2 运维面板 ============
 async function openMaintenance(){
   var d = document.getElementById('detail');
+  if(!d){ alert('运维面板初始化失败：detail 元素不存在'); return; }
   document.getElementById('detailTitle').textContent = '🛠️ 运维面板';
   document.getElementById('detailActions').innerHTML = '';
-  document.getElementById('detailContent').innerHTML = '<div style="padding:20px;text-align:center;color:#9CA3AF;">加载中...</div>';
-  d.classList.add('show');
-  await loadMaintenanceStatus();
+  document.getElementById('detailContent').innerHTML = '<div style="padding:20px;text-align:center;color:#6366F1;">🔄 加载中...</div>';
+  d.classList.remove('show');
+  d.classList.add('act');
+  try {
+    await loadMaintenanceStatus();
+  } catch(e){
+    document.getElementById('detailContent').innerHTML = '<div style="padding:20px;text-align:center;color:#EF4444;">加载失败：'+e.message+'</div>';
+  }
 }
 
 async function loadMaintenanceStatus(){
