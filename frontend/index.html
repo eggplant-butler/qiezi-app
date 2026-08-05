@@ -12,7 +12,7 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <!-- 版本指纹：deploy.sh 校验 + 前端自检（版本不匹配时强制刷新） -->
-<meta name="app-version" content="qiezi-v6.5.6">
+<meta name="app-version" content="qiezi-v6.5.7">
 <style>
 /* ========== 深夜书房 设计系统 v6.5.1 ==========
    暗色优先（默认）：暖灰底+米白字+琥珀强调
@@ -97,14 +97,16 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 #lock button{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:12px;padding:14px 30px;color:#fff;font-size:17px;font-weight:600;cursor:pointer;margin-top:16px;width:100%;box-shadow:0 6px 16px var(--c-shadow)}
 #lock button:active{transform:scale(0.98)}
 #lock .err{color:#EF4444;margin-top:12px;display:none;font-size:13px;text-align:center}
-#app{display:none;max-width:480px;margin:0 auto;padding:16px 16px 80px}
-.hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+#app{display:none;max-width:480px;margin:0 auto;padding:18px 16px 90px}
+/* v6.5.7 首页信息密度优化：更大间距+呼吸感 */
+.hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 .hd h1{font-size:var(--fs-display);font-weight:700;color:var(--c-fg);font-family:"Noto Serif SC",serif;letter-spacing:0.02em}
 .hd-r{display:flex;gap:8px;align-items:center}
 .hd-r .badge{background:var(--c-danger);color:#fff;font-size:10px;border-radius:var(--r-full);padding:0 8px;line-height:18px}
 .hd-r button{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r-full);padding:6px 12px;color:var(--c-fg-2);font-size:14px;cursor:pointer;box-shadow:var(--shadow-1);transition:all var(--dur-base)}
 .hd-r button:active{transform:scale(0.95)}
-.greet{background:var(--c-surface);border-radius:var(--r-lg);padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow-2);border-left:3px solid var(--c-primary);border:1px solid var(--c-border);border-left:3px solid var(--c-primary)}
+/* v6.5.7 问候卡：增加内边距+底部间距 */
+.greet{background:var(--c-surface);border-radius:var(--r-lg);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow-2);border-left:3px solid var(--c-primary);border:1px solid var(--c-border);border-left:3px solid var(--c-primary)}
 .greet .d{font-size:var(--fs-small);color:var(--c-fg-3)}
 .greet .t{font-size:var(--fs-h2);color:var(--c-fg-2);margin-top:4px;display:flex;justify-content:space-between;align-items:center}
 .greet .t strong{color:var(--c-fg)}
@@ -117,16 +119,19 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 .growth-bar .bar{height:6px;background:var(--c-surface-2);border-radius:var(--r-full);margin-top:8px;overflow:hidden}
 .growth-bar .bar .fill{height:100%;border-radius:var(--r-full);background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));transition:width 0.8s var(--ease-out)}
 .growth-bar .desc{font-size:var(--fs-tiny);color:var(--c-fg-3);margin-top:4px}
-.overview{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
-.overview-card{background:var(--c-surface);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+/* v6.5.7 概览卡：增大内边距+底部间距 */
+.overview{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+.overview-card{background:var(--c-surface);border-radius:14px;padding:14px 10px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .overview-card .num{font-size:22px;font-weight:700;color:var(--c-primary)}
 .overview-card .label{font-size:10px;color:var(--c-fg-2);margin-top:3px;font-weight:500}
-.input-area{background:var(--c-surface);border-radius:16px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+/* v6.5.7 输入区：增大内边距+底部间距 */
+.input-area{background:var(--c-surface);border-radius:16px;padding:12px 16px;margin-bottom:20px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .input-area input{flex:1;background:transparent;border:none;color:var(--c-fg);font-size:15px;outline:none;padding:6px 0}
 .input-area input::placeholder{color:var(--c-fg-3)}
 .input-area button{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px var(--c-shadow)}
-.focus-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.focus-card{background:var(--c-surface);border-radius:14px;padding:14px 14px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer;transition:transform .15s}
+/* v6.5.7 焦点卡：增大内边距+底部间距 */
+.focus-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.focus-card{background:var(--c-surface);border-radius:14px;padding:16px 16px;box-shadow:0 2px 10px rgba(0,0,0,0.05);cursor:pointer;transition:transform .15s}
 .focus-card:active{transform:scale(0.96)}
 .focus-card .top{display:flex;justify-content:space-between;align-items:center}
 .focus-card .ic{font-size:22px}
@@ -138,7 +143,7 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 .focus-card .status.active{background:rgba(123,160,122,0.15);color:var(--c-success)}
 .focus-card .status.steady{background:rgba(212,165,116,0.15);color:var(--c-warning)}
 .focus-card .status.learning{background:var(--c-accent-2);color:var(--c-primary)}
-.quick-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.quick-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
 .quick-module{background:var(--c-surface);border-radius:12px;padding:12px 4px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;transition:transform .15s}
 .quick-module:active{transform:scale(0.94)}
 .quick-module .ic{font-size:22px}
@@ -154,8 +159,8 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 .suggestion-item .actions button.done{background:rgba(123,160,122,0.15);color:var(--c-success)}
 .suggestion-item .actions button.skip{background:rgba(201,116,116,0.15);color:var(--c-danger)}
 .suggestion-item .feedback{font-size:11px;color:var(--c-fg-3);margin-top:5px}
-/* Section 标签：首页分组分隔 */
-.section-label{font-size:11px;font-weight:700;color:var(--c-fg-3);letter-spacing:0.5px;text-transform:uppercase;margin:18px 0 10px;padding-left:2px;display:flex;align-items:center;gap:6px}
+/* v6.5.7 Section 标签：增大上下间距 */
+.section-label{font-size:11px;font-weight:700;color:var(--c-fg-3);letter-spacing:0.5px;text-transform:uppercase;margin:22px 0 12px;padding-left:2px;display:flex;align-items:center;gap:6px}
 .section-label:first-of-type{margin-top:0}
 
 /* ====== 设置抽屉 ====== */
@@ -189,14 +194,17 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 /* 避免过渡影响 transform 动画 */
 .tab,.tab .ic,.tool-item,.quick-module,.focus-card,.scene-card,.dg-item,.modal-b{transition-property:background-color,border-color,color,box-shadow,transform}
 
-.bar{position:fixed;bottom:0;left:0;right:0;background:var(--c-bar-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--c-border);display:flex;padding:8px 0 18px;max-width:480px;margin:0 auto;z-index:100;box-shadow:0 -4px 18px var(--c-shadow-soft)}
-.tab{flex:1;text-align:center;color:var(--c-fg-3);font-size:var(--fs-tiny);cursor:pointer;padding:6px 0 4px;font-weight:500;transition:color var(--dur-base);position:relative}
-.tab .ic{font-size:22px;display:block;margin-bottom:3px;transition:transform var(--dur-base) var(--ease-out)}
-.tab:active .ic{transform:scale(0.9)}
+/* v6.5.7 底部Tab重做：增大触控区+视觉权重+激活态胶囊背景 */
+.bar{position:fixed;bottom:0;left:0;right:0;background:var(--c-bar-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--c-border);display:flex;padding:6px 0 20px;max-width:480px;margin:0 auto;z-index:100;box-shadow:0 -4px 18px var(--c-shadow-soft)}
+.tab{flex:1;text-align:center;color:var(--c-fg-3);font-size:10px;cursor:pointer;padding:8px 0 6px;font-weight:500;transition:color var(--dur-base),background var(--dur-base);position:relative;border-radius:var(--r-md);margin:0 4px}
+.tab .ic{font-size:22px;display:block;margin-bottom:2px;transition:transform var(--dur-base) var(--ease-out)}
+.tab:active .ic{transform:scale(0.88)}
+/* 激活态：文字加粗变色 + 图标上浮 + 胶囊背景 */
 .tab.act{color:var(--c-tab-act);font-weight:700}
-.tab.act .ic{transform:translateY(-2px) scale(1.05)}
-/* 激活指示点：底部琥珀圆点 */
-.tab.act::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--c-tab-act)}
+.tab.act .ic{transform:translateY(-3px) scale(1.08)}
+.tab.act{background:var(--c-accent)}
+/* 激活指示条：顶部琥珀横线（替代底部圆点，视觉权重更大） */
+.tab.act::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2.5px;border-radius:2px;background:var(--c-tab-act)}
 .pg{display:none}
 .pg.act{display:block;animation:fadeInUp var(--dur-base) var(--ease-out)}
 .detail{display:none;padding-bottom:80px}
@@ -240,15 +248,18 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 .rec-toolbar{margin-bottom:12px}
 .rec-search{width:100%;padding:10px 14px;border:1px solid var(--c-input-border);border-radius:20px;font-size:13px;background:var(--c-input-bg);color:var(--c-fg);box-sizing:border-box}
 .rec-search:focus{outline:none;border-color:var(--c-primary);background:var(--c-elevated)}
-.rec-today{background:linear-gradient(135deg,var(--c-accent),var(--c-accent-2));border-radius:14px;padding:10px 14px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--c-fg-2)}
+/* v6.5.7 日志Tab：增大间距 */
+.rec-today{background:linear-gradient(135deg,var(--c-accent),var(--c-accent-2));border-radius:14px;padding:12px 16px;margin-bottom:20px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--c-fg-2)}
 .rec-today .rt-item{display:flex;align-items:center;gap:3px}
 .rec-today .rt-num{font-weight:700;color:var(--c-primary)}
 .rec-today .rt-empty{color:var(--c-fg-3);font-size:11px}
-.rec-group{margin-bottom:18px}
-.rec-group .rg-title{font-size:13px;font-weight:700;color:var(--c-fg);margin-bottom:8px;padding-left:2px;display:flex;align-items:center;gap:8px}
+/* v6.5.7 日志分组：增大间距 */
+.rec-group{margin-bottom:22px}
+.rec-group .rg-title{font-size:13px;font-weight:700;color:var(--c-fg);margin-bottom:10px;padding-left:2px;display:flex;align-items:center;gap:8px}
 .rec-group .rg-sub{font-size:10px;color:var(--c-fg-3);font-weight:400}
 .rec-group.hidden{display:none}
-.tool-section{background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+/* v6.5.7 工具卡：增大间距+内边距 */
+.tool-section{background:var(--c-surface);border-radius:14px;padding:16px 18px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
 .tool-section .ts-title{font-size:13px;font-weight:600;color:var(--c-fg);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
 .tool-section .ts-sub{font-size:10px;color:var(--c-fg-3)}
 .tool-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
