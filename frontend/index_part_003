@@ -1,0 +1,723 @@
+te: document.getElementById('chNote').value.trim()
+  };
+  try {
+    var r = await fetch('/api/character', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openCharacter(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delCharacter(id){
+  if (!confirm('删除这份自评？')) return;
+  try { await fetch('/api/character/'+id, { method:'DELETE' }); openCharacter(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 3. 自我画像 ----
+async function openSelfPortrait(){
+  openModal2('🪞 自我画像', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/self-portrait'); var list = await r.json();
+    var html = '<div style="background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(168,85,247,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(139,92,246,0.2);text-align:center">';
+    html += '<button onclick="generatePortrait()" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary-2),var(--c-primary-2));color:#fff;font-weight:600;cursor:pointer">🪞 生成当前画像</button>';
+    html += '<div style="font-size:11px;color:var(--c-fg-3);margin-top:6px">基于你所有记录，系统会画出"你是谁"</div>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:var(--c-fg-3);padding:20px;font-size:13px;line-height:1.6">还没有画像。<br>画像不是你想成为谁，是你实际是谁。<br>基于你的记录，系统会诚实地告诉你答案。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin:6px 0">历史画像 '+list.length+' 份（最多保留12份）</div>';
+      list.forEach(function(p){
+        html += '<div style="background:var(--c-surface);border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid var(--c-primary-2)">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--c-primary-2)">'+p.date+' 画像</span><span style="font-size:10px;color:var(--c-fg-3)">基于'+p.sampleSize+'条</span></div>';
+        if (p.oneLine) html += '<div style="font-size:14px;color:var(--c-fg);font-weight:600;margin-top:6px">'+escapeHtml(p.oneLine)+'</div>';
+        if (p.narrative) html += '<div style="font-size:12px;color:#4B5563;margin-top:6px;line-height:1.7;white-space:pre-wrap">'+escapeHtml(p.narrative)+'</div>';
+        html += '<div style="margin-top:6px"><button onclick="delPortrait(\''+p.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('🪞 自我画像演化', html);
+  } catch(e) { openModal2('🪞 自我画像', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function generatePortrait(){
+  try {
+    var r = await fetch('/api/self-portrait/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({}) });
+    var d = await r.json();
+    if (d.success) { openSelfPortrait(); loadCognitiveCounts(); if (d.item && d.item.narrative) showCognitiveFeedback({success:true, reflection:d.item.narrative}); }
+    else alert(d.message || '生成失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delPortrait(id){
+  if (!confirm('删除这份画像？')) return;
+  try { await fetch('/api/self-portrait/'+id, { method:'DELETE' }); openSelfPortrait(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 4. 反熵增监控 ----
+async function openEntropy(){
+  openModal2('📉 反熵增监控', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  try {
+    var r1 = await fetch('/api/entropy'); var monitor = await r1.json();
+    var r2 = await fetch('/api/entropy/logs'); var logs = await r2.json();
+    var scoreColor = monitor.entropyScore > 8 ? '#EF4444' : monitor.entropyScore > 4 ? '#F59E0B' : '#22C55E';
+    var html = '<div style="background:rgba(245,158,11,0.08);border-radius:12px;padding:14px;margin-bottom:14px;border-left:3px solid '+scoreColor+'">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:600;color:var(--c-fg)">📊 当前熵增</span><span style="font-size:18px;font-weight:700;color:'+scoreColor+'">'+monitor.entropyScore+'</span></div>';
+    html += '<div style="font-size:12px;color:var(--c-fg);line-height:1.6;white-space:pre-wrap">'+escapeHtml(monitor.interpretation)+'</div>';
+    html += '</div>';
+    if (monitor.signals && monitor.signals.length > 0) {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin:6px 0 8px">⚠️ 信号 '+monitor.signals.length+' 条</div>';
+      monitor.signals.forEach(function(s){
+        var sc = s.severity === 'high' ? '#EF4444' : s.severity === 'med' ? '#F59E0B' : '#94A3B8';
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+sc+'">';
+        html += '<div style="font-size:12px;color:var(--c-fg)">'+escapeHtml(s.signal)+'</div>';
+        if (s.suggestion) html += '<div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">→ '+escapeHtml(s.suggestion)+'</div>';
+        html += '</div>';
+      });
+    }
+    html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-top:10px;border:1px solid #FFFFFF">';
+    html += '<div style="font-size:12px;color:var(--c-fg-2);margin-bottom:6px">📝 手动记录熵增信号</div>';
+    html += '<select id="epDim" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin-bottom:6px"><option>健康</option><option>关系</option><option>财务</option><option>工作</option><option>情绪</option><option>习惯</option></select>';
+    html += '<input id="epSignal" placeholder="信号（如：连续3天没联系家人）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin-bottom:6px">';
+    html += '<select id="epSev" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin-bottom:6px"><option value="low">轻度</option><option value="med" selected>中度</option><option value="high">严重</option></select>';
+    html += '<button onclick="saveEntropyLog()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">记录信号</button>';
+    html += '</div>';
+    if (logs.length > 0) {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin:10px 0 6px">手动记录 '+logs.length+' 条</div>';
+      logs.forEach(function(l){
+        var sc = l.severity === 'high' ? '#EF4444' : l.severity === 'med' ? '#F59E0B' : '#94A3B8';
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:8px 10px;margin-bottom:4px;border-left:3px solid '+(l.resolved?'#22C55E':sc)+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--c-fg-2)">'+l.dimension+'</span>'+(l.resolved?'<span style="font-size:10px;color:#22C55E">已处理</span>':'')+'</div>';
+        html += '<div style="font-size:12px;color:var(--c-fg);margin-top:2px">'+escapeHtml(l.signal)+'</div>';
+        if (l.note) html += '<div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">'+escapeHtml(l.note)+'</div>';
+        if (!l.resolved) html += '<button onclick="resolveEntropy(\''+l.id+'\')" style="font-size:10px;padding:3px 8px;border:1px solid rgba(34,197,94,0.3);border-radius:6px;background:rgba(34,197,94,0.06);color:#22C55E;cursor:pointer;margin-top:4px">标记已处理</button>';
+        html += '</div>';
+      });
+    }
+    openModal2('📉 反熵增监控', html);
+  } catch(e) { openModal2('📉 反熵增监控', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveEntropyLog(){
+  var data = {
+    dimension: document.getElementById('epDim').value,
+    signal: document.getElementById('epSignal').value.trim(),
+    severity: document.getElementById('epSev').value
+  };
+  if (!data.signal) { alert('请填写信号'); return; }
+  try {
+    var r = await fetch('/api/entropy/log', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openEntropy(); loadCognitiveCounts(); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function resolveEntropy(id){
+  try { await fetch('/api/entropy/log/'+id+'/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({}) }); openEntropy(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 5. 反脆弱缓冲评估 ----
+async function openAntifragile(){
+  openModal2('🛡️ 反脆弱评估', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  try {
+    var r1 = await fetch('/api/antifragile'); var cur = await r1.json();
+    var r2 = await fetch('/api/antifragile/logs'); var list = await r2.json();
+    var html = '';
+    if (cur && cur.interpretation) {
+      html += '<div style="background:rgba(34,197,94,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border-left:3px solid #22C55E">';
+      html += '<div style="font-size:12px;color:#22C55E;margin-bottom:6px">📊 当前评估</div>';
+      html += '<div style="font-size:13px;color:var(--c-fg);line-height:1.6;white-space:pre-wrap">'+escapeHtml(cur.interpretation)+'</div>';
+      html += '</div>';
+    }
+    html += '<div style="background:rgba(34,197,94,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(34,197,94,0.15)">';
+    html += '<div style="font-size:12px;color:var(--c-fg-2);margin-bottom:8px">📝 新评估（0-10）</div>';
+    var dims = [['financial','💰 财务缓冲','存6个月生活费前不算自由'],['skill','🎯 技能冗余','只会一件事是单点故障'],['social','👥 关系网络','深交3人胜过认识100人'],['health','💪 身体储备','健康归零一切归零'],['mental','🧠 心智韧性','遭遇挫折的反弹力']];
+    dims.forEach(function(d){
+      html += '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--c-fg)">'+d[1]+'</span><span id="af_'+d[0]+'_v" style="font-size:13px;color:#22C55E;font-weight:600">5</span></div><input id="af_'+d[0]+'" type="range" min="0" max="10" value="5" style="width:100%" oninput="document.getElementById(\'af_'+d[0]+'_v\').textContent=this.value"></div>';
+      html += '<div style="font-size:10px;color:var(--c-fg-3);margin-bottom:4px">'+d[2]+'</div>';
+    });
+    html += '<textarea id="afNote" placeholder="备注（可选）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveAntifragile()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#22C55E,#34D399);color:#fff;font-weight:600;cursor:pointer">保存评估</button>';
+    html += '</div>';
+    if (list.length > 0) {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin:6px 0">历史 '+list.length+' 份</div>';
+      list.slice(0, 5).forEach(function(a){
+        var total = a.financial + a.skill + a.social + a.health + a.mental;
+        var avg = (total/5).toFixed(1);
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid #22C55E">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--c-fg-3)">'+a.date+'</span><span style="font-size:13px;color:#22C55E;font-weight:600">均'+avg+'</span></div>';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;margin-top:6px;font-size:10px;text-align:center">';
+        html += '<div><div style="color:var(--c-fg-3)">财务</div><div style="color:var(--c-fg)">'+a.financial+'</div></div>';
+        html += '<div><div style="color:var(--c-fg-3)">技能</div><div style="color:var(--c-fg)">'+a.skill+'</div></div>';
+        html += '<div><div style="color:var(--c-fg-3)">关系</div><div style="color:var(--c-fg)">'+a.social+'</div></div>';
+        html += '<div><div style="color:var(--c-fg-3)">身体</div><div style="color:var(--c-fg)">'+a.health+'</div></div>';
+        html += '<div><div style="color:var(--c-fg-3)">心智</div><div style="color:var(--c-fg)">'+a.mental+'</div></div>';
+        html += '</div>';
+        html += '</div>';
+      });
+    }
+    openModal2('🛡️ 反脆弱缓冲评估', html);
+  } catch(e) { openModal2('🛡️ 反脆弱评估', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveAntifragile(){
+  var data = {
+    financial: document.getElementById('af_financial').value,
+    skill: document.getElementById('af_skill').value,
+    social: document.getElementById('af_social').value,
+    health: document.getElementById('af_health').value,
+    mental: document.getElementById('af_mental').value,
+    note: document.getElementById('afNote').value.trim()
+  };
+  try {
+    var r = await fetch('/api/antifragile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openAntifragile(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+// ============================================================
+// Phase 4：船长工具 - 5个功能弹窗
+// ============================================================
+
+// ---- 1. 北极星 ----
+async function openNorthStar(){
+  openModal2('⭐ 北极星坐标系', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/north-star'); var data = (await r.json())[0];
+    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2)">';
+    html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:10px">🧭 你的坐标系</div>';
+    html += '<label style="font-size:11px;color:#F59E0B;font-weight:600">⭐ 终局（你想活成什么样）</label>';
+    html += '<textarea id="nsUltimate" placeholder="如：一个自由、有爱、有创造力的人" style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin:4px 0 8px">'+escapeHtml(data ? data.ultimate || '' : '')+'</textarea>';
+    html += '<label style="font-size:11px;color:#F59E0B">5年目标</label>';
+    html += '<input id="nsFiveYear" placeholder="5年后要成为什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.fiveYear || '' : '')+'">';
+    html += '<label style="font-size:11px;color:#F59E0B">1年目标</label>';
+    html += '<input id="nsOneYear" placeholder="今年要达成什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.oneYear || '' : '')+'">';
+    html += '<label style="font-size:11px;color:#F59E0B">本季度</label>';
+    html += '<input id="nsQuarter" placeholder="这3个月做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisQuarter || '' : '')+'">';
+    html += '<label style="font-size:11px;color:#F59E0B">本周</label>';
+    html += '<input id="nsWeek" placeholder="这周做什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.thisWeek || '' : '')+'">';
+    html += '<label style="font-size:11px;color:#F59E0B">今天</label>';
+    html += '<input id="nsToday" placeholder="今天做什么让终局近1%" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin:4px 0 8px" value="'+escapeHtml(data ? data.today || '' : '')+'">';
+    html += '<button onclick="saveNorthStar()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;font-weight:600;cursor:pointer">保存坐标系</button>';
+    html += '</div>';
+    if (!data || !data.ultimate) {
+      html += '<div style="text-align:center;color:var(--c-fg-3);padding:16px;font-size:13px;line-height:1.6">没有终局，所有努力都是漂移。<br>写下你的北极星——所有日常记录都将对齐它。</div>';
+    }
+    openModal2('⭐ 北极星坐标系', html);
+  } catch(e) { openModal2('⭐ 北极星', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveNorthStar(){
+  var data = {
+    ultimate: document.getElementById('nsUltimate').value.trim(),
+    fiveYear: document.getElementById('nsFiveYear').value.trim(),
+    oneYear: document.getElementById('nsOneYear').value.trim(),
+    thisQuarter: document.getElementById('nsQuarter').value.trim(),
+    thisWeek: document.getElementById('nsWeek').value.trim(),
+    today: document.getElementById('nsToday').value.trim()
+  };
+  try {
+    var r = await fetch('/api/north-star', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openNorthStar(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+// ---- 2. 危机预案 ----
+async function openCrisisPlan(){
+  openModal2('🚨 危机预案', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/crisis-plan'); var list = await r.json();
+    var html = '<div style="background:rgba(239,68,68,0.06);border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid rgba(239,68,68,0.15)">';
+    html += '<div style="font-size:12px;color:var(--c-fg-2);margin-bottom:8px">📝 新危机预案</div>';
+    html += '<input id="cpScenario" placeholder="危机场景（如：失业/生病/分手）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin-bottom:6px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><select id="cpProb" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px"><option value="low">低概率</option><option value="med" selected>中概率</option><option value="high">高概率</option></select><select id="cpImpact" style="padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px"><option value="low">轻度</option><option value="med">中度</option><option value="high" selected>严重</option><option value="critical">致命</option></select></div>';
+    html += '<input id="cpPrecondition" placeholder="前置信号（如：连续3个月入不敷出）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin-bottom:6px">';
+    html += '<textarea id="cpImmediate" placeholder="立即行动（头24小时做什么）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="cpThreeDay" placeholder="3天计划（止血、稳住）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="cpRecovery" placeholder="恢复计划（长期）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:8px"></textarea>';
+    html += '<button onclick="saveCrisisPlan()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#EF4444,#F87171);color:#fff;font-weight:600;cursor:pointer">保存预案</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:var(--c-fg-3);padding:20px;font-size:13px;line-height:1.6">还没有危机预案。<br>危机来时，人会因为恐慌而冻结——预案的意义，是不用临时决策。<br>预想3-5个最可能的危机，写下应对剧本。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin:6px 0">共 '+list.length+' 个预案</div>';
+      list.forEach(function(c){
+        var pColor = c.probability === 'high' ? '#EF4444' : c.probability === 'med' ? '#F59E0B' : '#94A3B8';
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid '+pColor+'">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--c-fg);font-weight:600">'+escapeHtml(c.scenario)+'</span>'+(c.rehearsed?'<span style="font-size:10px;color:#22C55E">已演练</span>':'')+'</div>';
+        html += '<div style="font-size:11px;color:'+pColor+';margin-top:4px">概率'+c.probability+' · 影响'+c.impact+'</div>';
+        if (c.immediateAction) html += '<div style="font-size:11px;color:#4B5563;margin-top:4px"><b>立即：</b>'+escapeHtml(c.immediateAction)+'</div>';
+        if (c.threeDayPlan) html += '<div style="font-size:11px;color:#4B5563;margin-top:2px"><b>3天：</b>'+escapeHtml(c.threeDayPlan)+'</div>';
+        if (c.recoveryPlan) html += '<div style="font-size:11px;color:#4B5563;margin-top:2px"><b>恢复：</b>'+escapeHtml(c.recoveryPlan)+'</div>';
+        html += '<div style="display:flex;gap:6px;margin-top:6px">';
+        if (!c.rehearsed) html += '<button onclick="rehearseCrisis(\''+c.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(245,158,11,0.3);border-radius:8px;background:rgba(245,158,11,0.06);color:#F59E0B;cursor:pointer">演练</button>';
+        html += '<button onclick="delCrisisPlan(\''+c.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button>';
+        html += '</div></div>';
+      });
+    }
+    openModal2('🚨 危机预案（'+list.length+'）', html);
+  } catch(e) { openModal2('🚨 危机预案', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveCrisisPlan(){
+  var data = {
+    scenario: document.getElementById('cpScenario').value.trim(),
+    probability: document.getElementById('cpProb').value,
+    impact: document.getElementById('cpImpact').value,
+    precondition: document.getElementById('cpPrecondition').value.trim(),
+    immediateAction: document.getElementById('cpImmediate').value.trim(),
+    threeDayPlan: document.getElementById('cpThreeDay').value.trim(),
+    recoveryPlan: document.getElementById('cpRecovery').value.trim()
+  };
+  if (!data.scenario) { alert('请填写危机场景'); return; }
+  try {
+    var r = await fetch('/api/crisis-plan', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openCrisisPlan(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function rehearseCrisis(id){
+  var note = prompt('演练结果如何？预案是否可执行？');
+  if (note === null) return;
+  try { await fetch('/api/crisis-plan/'+id+'/rehearse', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({note:note}) }); openCrisisPlan(); }
+  catch(e) { alert('网络错误'); }
+}
+
+async function delCrisisPlan(id){
+  if (!confirm('删除这个预案？')) return;
+  try { await fetch('/api/crisis-plan/'+id, { method:'DELETE' }); openCrisisPlan(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 3. 临终测试 ----
+async function openDeathTest(){
+  openModal2('⚰️ 临终测试', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/death-test'); var list = await r.json();
+    var html = '<div style="background:var(--c-accent);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid var(--c-border)">';
+    html += '<div style="font-size:12px;color:var(--c-fg-2);margin-bottom:8px">💭 假如今天就是终点</div>';
+    html += '<textarea id="dtRegrets" placeholder="最大的遗憾是什么？" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:50px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtUndone" placeholder="想做却没做的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtProud" placeholder="让你骄傲的事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<textarea id="dtChange" placeholder="如果重来，你会改变什么" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:40px;resize:vertical;margin-bottom:6px"></textarea>';
+    html += '<input id="dtFocus" placeholder="由此刻起，最重要的一件事" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin-bottom:8px">';
+    html += '<button onclick="saveDeathTest()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),#818CF8);color:#fff;font-weight:600;cursor:pointer">记录</button>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:var(--c-fg-3);padding:20px;font-size:13px;line-height:1.6">还没有临终测试记录。<br>这不是诅咒，是反向校准——\n站在终点看现在，很多事就不纠结了。</div>';
+    } else {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin:6px 0">历史 '+list.length+' 次</div>';
+      list.forEach(function(d){
+        html += '<div style="background:var(--c-surface);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--c-primary)">';
+        html += '<div style="font-size:11px;color:var(--c-fg-3)">'+d.date+'</div>';
+        if (d.regrets) html += '<div style="font-size:12px;color:#4B5563;margin-top:4px"><b style="color:#EF4444">遗憾：</b>'+escapeHtml(d.regrets)+'</div>';
+        if (d.undone) html += '<div style="font-size:12px;color:#4B5563;margin-top:2px"><b style="color:#F59E0B">未做：</b>'+escapeHtml(d.undone)+'</div>';
+        if (d.proudOf) html += '<div style="font-size:12px;color:#4B5563;margin-top:2px"><b style="color:#22C55E">骄傲：</b>'+escapeHtml(d.proudOf)+'</div>';
+        if (d.focus) html += '<div style="font-size:12px;color:var(--c-primary);margin-top:4px;padding:4px 8px;background:var(--c-accent);border-radius:6px">→ '+escapeHtml(d.focus)+'</div>';
+        html += '<div style="margin-top:6px"><button onclick="delDeathTest(\''+d.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('⚰️ 临终测试（'+list.length+'）', html);
+  } catch(e) { openModal2('⚰️ 临终测试', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveDeathTest(){
+  var data = {
+    regrets: document.getElementById('dtRegrets').value.trim(),
+    undone: document.getElementById('dtUndone').value.trim(),
+    proudOf: document.getElementById('dtProud').value.trim(),
+    wouldChange: document.getElementById('dtChange').value.trim(),
+    focus: document.getElementById('dtFocus').value.trim()
+  };
+  try {
+    var r = await fetch('/api/death-test', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openDeathTest(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delDeathTest(id){
+  if (!confirm('删除这条记录？')) return;
+  try { await fetch('/api/death-test/'+id, { method:'DELETE' }); openDeathTest(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 4. 年度叙事 ----
+async function openNarrative(){
+  openModal2('📖 年度叙事', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/narrative'); var list = await r.json();
+    var curYear = new Date().getFullYear();
+    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(139,92,246,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2);text-align:center">';
+    html += '<div style="font-size:13px;color:var(--c-fg);margin-bottom:8px">生成 '+curYear+' 年的故事</div>';
+    html += '<button onclick="generateNarrative('+curYear+')" style="padding:10px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,var(--c-primary-2));color:#fff;font-weight:600;cursor:pointer">📖 生成年度叙事</button>';
+    html += '<div style="font-size:11px;color:var(--c-fg-3);margin-top:6px">基于你的所有记录，系统会写出"你这一年活成了什么"</div>';
+    html += '</div>';
+    if (list.length === 0) {
+      html += '<div style="text-align:center;color:var(--c-fg-3);padding:20px;font-size:13px;line-height:1.6">还没有年度叙事。<br>记录不是终点——这些数据要变成故事，变成判断力。</div>';
+    } else {
+      list.forEach(function(n){
+        html += '<div style="background:var(--c-surface);border-radius:12px;padding:14px;margin-bottom:8px;border-left:3px solid #F59E0B">';
+        html += '<div style="font-size:14px;color:#F59E0B;font-weight:600;margin-bottom:8px">📖 '+n.year+' 年叙事</div>';
+        if (n.story) html += '<div style="font-size:12px;color:var(--c-fg);line-height:1.8;white-space:pre-wrap">'+escapeHtml(n.story)+'</div>';
+        if (n.conclusion) html += '<div style="font-size:12px;color:var(--c-primary-2);margin-top:10px;padding:8px 10px;background:rgba(139,92,246,0.06);border-radius:6px;white-space:pre-wrap">'+escapeHtml(n.conclusion)+'</div>';
+        html += '<div style="margin-top:8px"><button onclick="delNarrative(\''+n.id+'\')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(239,68,68,0.2);border-radius:8px;background:transparent;color:#EF4444;cursor:pointer">删除</button></div>';
+        html += '</div>';
+      });
+    }
+    openModal2('📖 年度叙事', html);
+  } catch(e) { openModal2('📖 年度叙事', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function generateNarrative(year){
+  try {
+    var r = await fetch('/api/narrative/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({year:year}) });
+    var d = await r.json();
+    if (d.success) { openNarrative(); loadCognitiveCounts(); if (d.item && d.item.story) showCognitiveFeedback({success:true, reflection:d.item.story + '\n\n' + d.item.conclusion}); }
+    else alert(d.message || '生成失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+async function delNarrative(id){
+  if (!confirm('删除这份叙事？')) return;
+  try { await fetch('/api/narrative/'+id, { method:'DELETE' }); openNarrative(); loadCognitiveCounts(); }
+  catch(e) { alert('网络错误'); }
+}
+
+// ---- 5. 船长宣言 ----
+async function openManifesto(){
+  openModal2('📜 船长宣言', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/manifesto'); var data = (await r.json())[0];
+    var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2)">';
+    html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:8px">📜 你给自己的契约</div>';
+    html += '<input id="mfTitle" placeholder="标题（如：我的船长宣言）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin-bottom:6px" value="'+escapeHtml(data ? data.title || '' : '')+'">';
+    html += '<textarea id="mfBody" placeholder="写下你对自己的承诺——必须包含你愿意付出的代价。\n如：我承诺做一个诚实的人，即使诚实会让我失去机会。\n我承诺照顾身体，即使这意味着放弃一些享乐。\n..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:120px;resize:vertical;margin-bottom:8px">'+escapeHtml(data ? data.body || '' : '')+'</textarea>';
+    html += '<button onclick="saveManifesto()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-weight:600;cursor:pointer">'+(data ? '更新宣言' : '签订宣言')+'</button>';
+    html += '</div>';
+    if (!data) {
+      html += '<div style="text-align:center;color:var(--c-fg-3);padding:20px;font-size:13px;line-height:1.6">还没有宣言。<br>宣言不是口号，是契约——\n写下你愿意为什么付出代价，那才是真宣言。</div>';
+    } else {
+      html += '<div style="text-align:center;color:var(--c-fg-3);padding:10px;font-size:11px">签订于 '+new Date(data.signedAt).toLocaleString('zh-CN')+'</div>';
+    }
+    openModal2('📜 船长宣言', html);
+  } catch(e) { openModal2('📜 船长宣言', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+}
+
+async function saveManifesto(){
+  var data = {
+    title: document.getElementById('mfTitle').value.trim(),
+    body: document.getElementById('mfBody').value.trim()
+  };
+  if (!data.body) { alert('请写下你的宣言'); return; }
+  try {
+    var r = await fetch('/api/manifesto', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    var d = await r.json();
+    if (d.success) { openManifesto(); loadCognitiveCounts(); if (d.reflection) showCognitiveFeedback({success:true, reflection:d.reflection}); }
+    else alert(d.message || '保存失败');
+  } catch(e) { alert('网络错误：'+e.message); }
+}
+
+// ---- 首页计数 + 今日反馈 ----
+async function loadCognitiveCounts(){
+  try {
+    var r1 = await fetch('/api/principles'); var p = await r1.json();
+    var r2 = await fetch('/api/decisions'); var d = await r2.json();
+    var pe = document.getElementById('principleCount'); if (pe) pe.textContent = p.length + ' 条';
+    var de = document.getElementById('decisionCount'); if (de) de.textContent = d.length + ' 条';
+  } catch(e) {}
+  // Phase 2 计数
+  try {
+    var a1 = await fetch('/api/root-cause'); var rc = await a1.json();
+    var a2 = await fetch('/api/interpersonal'); var ip = await a2.json();
+    var a3 = await fetch('/api/mindfulness'); var mf = await a3.json();
+    var a4 = await fetch('/api/energy/audit'); var eg = await a4.json();
+    var a5 = await fetch('/api/reviews'); var rv = await a5.json();
+    var r1e = document.getElementById('rootCauseCount'); if (r1e) r1e.textContent = rc.length + ' 条';
+    var r2e = document.getElementById('interpersonalCount'); if (r2e) r2e.textContent = ip.length + ' 条';
+    var r3e = document.getElementById('mindfulnessCount'); if (r3e) r3e.textContent = mf.length + ' 次';
+    var r4e = document.getElementById('energyNet'); if (r4e) r4e.textContent = '净 ' + (eg.net || 0);
+    var r5e = document.getElementById('reviewCount'); if (r5e) r5e.textContent = rv.length + ' 条';
+  } catch(e) {}
+  // Phase 3 计数
+  try {
+    var b1 = await fetch('/api/beliefs'); var bl = await b1.json();
+    var b2 = await fetch('/api/character'); var ch = await b2.json();
+    var b3 = await fetch('/api/self-portrait'); var sp = await b3.json();
+    var b4 = await fetch('/api/entropy'); var en = await b4.json();
+    var b5 = await fetch('/api/antifragile'); var af = await b5.json();
+    var b1e = document.getElementById('beliefCount'); if (b1e) b1e.textContent = bl.length + ' 条';
+    var b2e = document.getElementById('characterCount'); if (b2e) b2e.textContent = ch.length + ' 份';
+    var b3e = document.getElementById('portraitCount'); if (b3e) b3e.textContent = sp.length + ' 份';
+    var b4e = document.getElementById('entropyScore'); if (b4e) b4e.textContent = '熵 ' + (en.entropyScore || 0);
+    var b5e = document.getElementById('antifragileAvg'); if (b5e) b5e.textContent = af && af.average ? '均' + af.average.toFixed(1) : '-';
+  } catch(e) {}
+  // Phase 4 计数
+  try {
+    var c1 = await fetch('/api/north-star'); var ns = await c1.json();
+    var c2 = await fetch('/api/crisis-plan'); var cp = await c2.json();
+    var c3 = await fetch('/api/death-test'); var dt = await c3.json();
+    var c4 = await fetch('/api/narrative'); var nr = await c4.json();
+    var c5 = await fetch('/api/manifesto'); var mf2 = await c5.json();
+    var c1e = document.getElementById('northStarStatus'); if (c1e) c1e.textContent = ns.length && ns[0].ultimate ? '已设' : '未设';
+    var c2e = document.getElementById('crisisCount'); if (c2e) c2e.textContent = cp.length + ' 个';
+    var c3e = document.getElementById('deathTestCount'); if (c3e) c3e.textContent = dt.length + ' 次';
+    var c4e = document.getElementById('narrativeCount'); if (c4e) c4e.textContent = nr.length + ' 份';
+    var c5e = document.getElementById('manifestoStatus'); if (c5e) c5e.textContent = mf2.length && mf2[0].body ? '已立' : '未立';
+  } catch(e) {}
+  // Phase 5 深度认知计数
+  try {
+    var d1 = await fetch('/api/eng/metacognition'); var mc = await d1.json();
+    var d2 = await fetch('/api/eng/cognitive-bias'); var cb = await d2.json();
+    var d3 = await fetch('/api/eng/trajectory?days=30'); var tj = await d3.json();
+    var d4 = await fetch('/api/eng/values-clarification'); var vc = await d4.json();
+    var d5 = await fetch('/api/eng/anti-human-nature'); var ah = await d5.json();
+    var d1e = document.getElementById('metacogScore'); if (d1e) d1e.textContent = mc.score ? mc.score + '/10' : '-';
+    var d2e = document.getElementById('biasScore'); if (d2e) d2e.textContent = cb.score ? cb.score + '偏差' : '-';
+    var d3e = document.getElementById('trajStatus'); if (d3e) d3e.textContent = tj.trend || '-';
+    var d4e = document.getElementById('alignScore'); if (d4e) d4e.textContent = vc.alignment ? vc.alignment + '/10' : '-';
+    var d5e = document.getElementById('antiScore'); if (d5e) d5e.textContent = ah.score ? ah.score + '/10' : '-';
+  } catch(e) {}
+  // v5.6 / v5.7 计数
+  try {
+    var e1 = await fetch('/api/health-trends?days=90'); var ht = await e1.json();
+    var e2 = await fetch('/api/plan'); var pl = await e2.json();
+    var e3 = await fetch('/api/life-milestone'); var lm = await e3.json();
+    var e1e = document.getElementById('healthTrendCnt'); if (e1e) e1e.textContent = (ht.weight||[]).length + (ht.bloodPressure||[]).length > 0 ? (ht.weight||[]).length + '点' : '-';
+    var e2e = document.getElementById('planCnt'); if (e2e) e2e.textContent = pl.length + ' 个';
+    var e3e = document.getElementById('milestoneCnt'); if (e3e) e3e.textContent = lm.length + ' 个';
+  } catch(e) {}
+}
+
+// ====== Phase 5 深度认知工具 ======
+async function openMetacognition(){
+  openModal2('🔄 元认知反思', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析思维方式中...</div>');
+  try {
+    var r = await fetch('/api/eng/metacognition'); var d = await r.json();
+    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">🧠 你在"如何"思考，比你"思考什么"更重要</div>';
+    if (d.score !== undefined) html += '<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">元认知得分</div><div style="font-size:20px;font-weight:700;color:var(--c-primary)">' + d.score + '/10</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.details && d.details.length) {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">🔍 检测到的思维特征</div>';
+      d.details.forEach(function(item){
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : item.severity === 'med' ? '#F59E0B' : '#10B981') + '"><div style="font-size:12px;color:var(--c-fg)">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
+      });
+    }
+    openModal2('🔄 元认知反思', html);
+  } catch(e) { openModal2('🔄 元认知反思', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
+}
+
+async function openCognitiveBias(){
+  openModal2('🎭 认知偏差检测', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析思维偏差中...</div>');
+  try {
+    var r = await fetch('/api/eng/cognitive-bias'); var d = await r.json();
+    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">⚠️ 你的大脑在偷偷骗你吗？</div>';
+    if (d.score !== undefined) html += '<div style="background:rgba(239,68,68,0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #EF4444"><div style="font-size:11px;color:#EF4444;margin-bottom:6px">检测到的偏差</div><div style="font-size:20px;font-weight:700;color:#EF4444">' + d.score + ' 个</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.details && d.details.length) {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">🎯 偏差详情</div>';
+      d.details.forEach(function(item){
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid #F59E0B"><div style="font-size:12px;color:var(--c-fg);font-weight:600">' + escapeHtml(item.name || item.type || '') + '</div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">' + escapeHtml(item.description || item.detail || '') + '</div></div>';
+      });
+    }
+    openModal2('🎭 认知偏差检测', html);
+  } catch(e) { openModal2('🎭 认知偏差检测', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
+}
+
+async function openTrajectory(){
+  openModal2('📈 轨迹分析', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析趋势中...</div>');
+  try {
+    var r = await fetch('/api/eng/trajectory?days=30'); var d = await r.json();
+    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">📊 近30天你在变好还是变差？</div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.trend) html += '<div style="background:rgba(' + (d.trend === '↓' ? '239,68,68' : d.trend === '↑' ? '16,185,129' : '107,114,128') + ',0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid ' + (d.trend === '↓' ? '#EF4444' : d.trend === '↑' ? '#10B981' : '#6B7280') + '"><div style="font-size:20px;font-weight:700">趋势：' + d.trend + ' ' + escapeHtml(d.trendLabel || '') + '</div></div>';
+    if (d.details && d.details.length) {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">📉 各维度变化</div>';
+      d.details.forEach(function(item){
+        var color = item.change > 0 ? '#10B981' : item.change < 0 ? '#EF4444' : '#6B7280';
+        html += '<div style="display:flex;justify-content:space-between;background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px"><span style="font-size:12px;color:var(--c-fg)">' + escapeHtml(item.label || item.dim || '') + '</span><span style="font-size:12px;color:' + color + ';font-weight:600">' + (item.change > 0 ? '+' : '') + escapeHtml(String(item.change)) + '</span></div>';
+      });
+    }
+    openModal2('📈 轨迹分析', html);
+  } catch(e) { openModal2('📈 轨迹分析', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
+}
+
+async function openSecondOrder(){
+  openModal2('⚡ 二阶效应分析', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析连锁反应中...</div>');
+  try {
+    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">⚡ 你做的每件事都有连锁反应</div>';
+    html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px"><div style="font-size:12px;color:var(--c-fg-2);margin-bottom:8px">选择一个要分析的领域：</div>';
+    var mods = [['sleep','😴 睡眠'],['finance','💰 财务'],['emotion','😊 情绪'],['exercise','🏃 运动'],['diet','🥗 饮食'],['work','💼 工作']];
+    mods.forEach(function(m){
+      html += '<button onclick="analyzeSecondOrder(\'' + m[0] + '\')" style="width:100%;padding:10px;margin-bottom:6px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer">' + m[1] + '</button>';
+    });
+    html += '</div>';
+    openModal2('⚡ 二阶效应分析', html);
+  } catch(e) { openModal2('⚡ 二阶效应分析', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
+}
+
+async function analyzeSecondOrder(mid){
+  try {
+    var r = await fetch('/api/eng/second-order', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mid:mid})});
+    var d = await r.json();
+    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">⚡ <strong>' + escapeHtml(mid) + '</strong> 的连锁效应</div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.chain && d.chain.length) {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">🔗 效应链</div>';
+      d.chain.forEach(function(item, i){
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (i === 0 ? 'var(--c-primary)' : i === 1 ? '#F59E0B' : '#EF4444') + '"><div style="font-size:11px;color:var(--c-fg-3)">第' + (i+1) + '阶效应</div><div style="font-size:12px;color:var(--c-fg);margin-top:2px">' + escapeHtml(item) + '</div></div>';
+      });
+    }
+    openModal2('⚡ 二阶效应：' + escapeHtml(mid), html);
+  } catch(e) { alert('分析失败：' + e.message); }
+}
+
+async function openValues(){
+  openModal2('🎯 价值观澄清', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析真实价值观中...</div>');
+  try {
+    var r = await fetch('/api/eng/values-clarification'); var d = await r.json();
+    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">🎯 你宣称的价值观 vs 你实际在做什么</div>';
+    if (d.alignment !== undefined) html += '<div style="background:rgba(16,185,129,0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #10B981"><div style="font-size:11px;color:#10B981;margin-bottom:6px">人生对齐度</div><div style="font-size:20px;font-weight:700;color:#10B981">' + d.alignment + '/10</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.details && d.details.length) {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">💎 你的真实价值观</div>';
+      d.details.forEach(function(item){
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid var(--c-primary-2)"><div style="font-size:12px;color:var(--c-fg);font-weight:600">' + escapeHtml(item.label || item.name || '') + '</div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">' + escapeHtml(item.detail || item.description || '') + '</div></div>';
+      });
+    }
+    openModal2('🎯 价值观澄清', html);
+  } catch(e) { openModal2('🎯 价值观澄清', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
+}
+
+async function openAntiHuman(){
+  openModal2('🚫 反人性检测', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">检测人性弱点中...</div>');
+  try {
+    var r = await fetch('/api/eng/anti-human-nature'); var d = await r.json();
+    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">🚫 对抗人性弱点，才能超越自己</div>';
+    if (d.score !== undefined) html += '<div style="background:rgba(245,158,11,0.08);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #F59E0B"><div style="font-size:11px;color:#F59E0B;margin-bottom:6px">反人性指数</div><div style="font-size:20px;font-weight:700;color:#F59E0B">' + d.score + '/10</div></div>';
+    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
+    if (d.details && d.details.length) {
+      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">⚠️ 检测到的人性弱点</div>';
+      d.details.forEach(function(item){
+        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : '#F59E0B') + '"><div style="font-size:12px;color:var(--c-fg);font-weight:600">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
+      });
+    }
+    openModal2('🚫 反人性检测', html);
+  } catch(e) { openModal2('🚫 反人性检测', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
+}
+
+function showTodayReflection(text){
+  var card = document.getElementById('todayReflectionCard');
+  var txt = document.getElementById('todayReflectionText');
+  if (text && card && txt) { txt.innerHTML = escapeHtml(text).replace(/\n/g, '<br>'); card.style.display = 'block'; }
+}
+
+// ---- 保存记录后的认知反馈弹窗 ----
+function showCognitiveFeedback(res){
+  if (!res || !res.success) return;
+  var parts = [];
+  // 预算超支提醒（仅财务场景）
+  if(res.budget){
+    var b = res.budget;
+    var budgetAmount = parseFloat(b.budget) || 0;
+    var spent = parseFloat(b.spent) || 0;
+    var remaining = budgetAmount - spent;
+    var over = b.over || remaining < 0;
+    if(budgetAmount > 0){
+      if(over){
+        parts.push('<div style="background:rgba(239,68,68,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #EF4444;"><div style="font-size:11px;color:#EF4444;margin-bottom:6px;font-weight:700;">⚠️ 预算超支提醒</div><div style="font-size:13px;color:var(--c-fg);line-height:1.6;">已用 <strong style="color:#EF4444;">¥'+spent.toFixed(2)+'</strong> / 预算 ¥'+budgetAmount.toFixed(2)+'<br><span style="color:#EF4444;font-weight:700;">超支 ¥'+Math.abs(remaining).toFixed(2)+'！</span></div></div>');
+      } else {
+        parts.push('<div style="background:rgba(34,197,94,0.08);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid #22C55E;"><div style="font-size:11px;color:#22C55E;margin-bottom:6px;font-weight:700;">💰 本月预算</div><div style="font-size:13px;color:var(--c-fg);line-height:1.6;">已用 ¥'+spent.toFixed(2)+' / 预算 ¥'+budgetAmount.toFixed(2)+'<br>剩余 <strong style="color:#22C55E;">¥'+remaining.toFixed(2)+'</strong></div></div>');
+      }
+    }
+  }
+  if (res.reflection) parts.push('<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:10px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">🧠 认知引擎反思</div><div style="font-size:13px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">'+escapeHtml(res.reflection)+'</div></div>');
+  if (res.dailySummary) parts.push('<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">📊 '+escapeHtml(res.dailySummary)+'</div>');
+  if (res.correlations && res.correlations.length > 0) {
+    var ch = '<div style="margin-bottom:10px"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">🔗 关联发现</div>';
+    res.correlations.forEach(function(c){
+      var color = c.s === 'crit' ? '#EF4444' : c.s === 'high' ? '#F59E0B' : 'var(--c-primary)';
+      ch += '<div style="background:var(--c-accent);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+color+';font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap">'+escapeHtml(c.m)+'</div>';
+    });
+    ch += '</div>';
+    parts.push(ch);
+  }
+  if (res.risks && res.risks.length > 0) {
+    var rh = '<div style="margin-bottom:10px"><div style="font-size:11px;color:#EF4444;margin-bottom:6px">⚠️ 风险预警</div>';
+    res.risks.forEach(function(r){
+      var bg = r.l === 'high' ? 'rgba(239,68,68,0.1)' : r.l === 'med' ? 'rgba(245,158,11,0.1)' : '#FFFFFF';
+      rh += '<div style="background:'+bg+';border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+(r.l==='high'?'#EF4444':r.l==='med'?'#F59E0B':'#94A3B8')+';font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap">'+escapeHtml(r.t)+'</div>';
+    });
+    rh += '</div>';
+    parts.push(rh);
+  }
+  if (parts.length === 0) {
+    parts.push('<div style="text-align:center;color:var(--c-fg-3);padding:20px;font-size:13px">已保存 ✓<br><br>多记录几次，认知引擎会开始发现你的模式。</div>');
+  }
+  if (res.reflection) {
+    parts.push('<div style="margin-top:10px"><button onclick="quickAddPrincipleFromReflection()" style="width:100%;padding:8px;border:1px solid var(--c-shadow);border-radius:8px;background:transparent;color:var(--c-primary);font-size:12px;cursor:pointer">📐 把反思提炼为原则</button></div>');
+    window.__lastReflection = res.reflection;
+  }
+  openModal2('✨ 保存后的认知反馈', parts.join(''), '<button class="sv" onclick="closeModal2()">知道了</button>');
+}
+
+function quickAddPrincipleFromReflection(){
+  var text = window.__lastReflection || '';
+  var shortened = text.split('\n')[0]; // 取第一行作为原则候选
+  var p = prompt('提炼为原则：', shortened);
+  if (!p) return;
+  fetch('/api/principles', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:p, source:'反思提炼'}) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) { closeModal2(); loadCognitiveCounts(); alert('✅ 已加入原则库'); }
+      else alert(d.message || '失败');
+    })
+    .catch(function(){ alert('网络错误'); });
+}
+
+// 简单HTML转义
+function escapeHtml(s){
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// v5.6 健康指标趋势
+// ============================================================
+async function openHealthTrends(){
+  openModal2('💉 健康指标趋势', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  try {
+    var r = await fetch('/api/health-trends?days=90');
+    var d = await r.json();
+    var w = d.weight || [];
+    var bp = d.bloodPressure || [];
+    var s = d.stats || {};
+    var html = '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:10px">读取身体模块中体重/血压记录 · 最近90天</div>';
+    // 统计卡片
+    if (s.weight || s.bp) {
+      html += '<div style="display:flex;gap:8px;margin-bottom:14px">';
+      if (s.weight) {
+        var trendColor = s.weight.trend === '上升' ? '#EF4444' : s.weight.trend === '下降' ? '#10B981' : 'var(--c-primary)';
+        html += '<div style="flex:1;background:var(--c-surface);border-radius:10px;padding:10px">';
+        html += '<div style="font-size:11px;color:var(--c-fg-3)">⚖️ 体重</div>';
+        html += '<div style="font-size:18px;font-weight:700;color:var(--c-fg);margin-top:2px">' + s.weight.last + ' <span style="font-size:11px;color:var(--c-fg-3);font-weight:400">kg</span></div>';
+        html += '<div style="font-size:11px;color:' + trendColor + ';margin-top:2px">' + s.weight.trend + (s.weight.change >= 0 ? ' +' : ' ') + s.weight.change + 'kg</div>';
+        html += '<div style="font-size:10px;color:var(--c-fg-3);margin-top:4px">区间 ' + s.weight.min + '-' + s.weight.max + ' · 均' + s.weight.avg + '</div>';
+        html += '</div>';
+      }
+      if (s.bp) {
+        var bpColor = s.bp.level === '偏高' ? '#EF4444' : s.bp.level === '偏低' ? '#F59E0B' : '#10B981';
+        html += '<div style="flex:1;background:var(--c-surface);border-radius:10px;padding:10px">';
+        html += '<div style="font-size:11px;color:var(--c-fg-3)">🩸 血压</div>';
+        html += '<div style="font-size:18px;font-weight:700;color:var(--c-fg);margin-top:2px
