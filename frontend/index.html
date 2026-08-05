@@ -157,6 +157,38 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 /* Section 标签：首页分组分隔 */
 .section-label{font-size:11px;font-weight:700;color:var(--c-fg-3);letter-spacing:0.5px;text-transform:uppercase;margin:18px 0 10px;padding-left:2px;display:flex;align-items:center;gap:6px}
 .section-label:first-of-type{margin-top:0}
+
+/* ====== 设置抽屉 ====== */
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity var(--dur-base);z-index:200}
+.drawer-mask.act{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:300px;max-width:85vw;background:var(--c-bg2);box-shadow:-8px 0 32px rgba(0,0,0,0.3);transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-out);z-index:201;display:flex;flex-direction:column;overflow:hidden}
+.drawer.act{transform:translateX(0)}
+.drawer-hd{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--c-border);flex-shrink:0}
+.drawer-body{flex:1;overflow-y:auto;padding:8px 0;-webkit-overflow-scrolling:touch}
+.drawer-group{margin-bottom:8px}
+.dg-title{font-size:10px;font-weight:700;color:var(--c-fg-muted);letter-spacing:1px;text-transform:uppercase;padding:12px 18px 6px}
+.dg-item{display:flex;align-items:center;gap:12px;padding:12px 18px;font-size:14px;color:var(--c-fg);cursor:pointer;transition:background var(--dur-fast)}
+.dg-item:active{background:var(--c-surface-2)}
+.dg-item .dg-arrow{margin-left:auto;color:var(--c-fg-muted);font-size:18px}
+.dg-item.danger{color:var(--c-danger)}
+
+/* ====== 阶段3 动效 ====== */
+/* 卡片交错入场（每个子项延迟 30ms） */
+.stagger > *{opacity:0;transform:translateY(8px);animation:staggerIn var(--dur-base) var(--ease-out) forwards}
+.stagger > *:nth-child(1){animation-delay:0.02s}
+.stagger > *:nth-child(2){animation-delay:0.06s}
+.stagger > *:nth-child(3){animation-delay:0.10s}
+.stagger > *:nth-child(4){animation-delay:0.14s}
+.stagger > *:nth-child(5){animation-delay:0.18s}
+.stagger > *:nth-child(6){animation-delay:0.22s}
+.stagger > *:nth-child(7){animation-delay:0.26s}
+.stagger > *:nth-child(8){animation-delay:0.30s}
+@keyframes staggerIn{to{opacity:1;transform:translateY(0)}}
+/* 主题切换全局过渡 */
+*{transition-property:background-color,border-color,color,box-shadow;transition-duration:0.3s;transition-timing-function:var(--ease-out)}
+/* 避免过渡影响 transform 动画 */
+.tab,.tab .ic,.tool-item,.quick-module,.focus-card,.scene-card,.dg-item,.modal-b{transition-property:background-color,border-color,color,box-shadow,transform}
+
 .bar{position:fixed;bottom:0;left:0;right:0;background:var(--c-bar-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--c-border);display:flex;padding:8px 0 18px;max-width:480px;margin:0 auto;z-index:100;box-shadow:0 -4px 18px var(--c-shadow-soft)}
 .tab{flex:1;text-align:center;color:var(--c-fg-3);font-size:var(--fs-tiny);cursor:pointer;padding:6px 0 4px;font-weight:500;transition:color var(--dur-base);position:relative}
 .tab .ic{font-size:22px;display:block;margin-bottom:3px;transition:transform var(--dur-base) var(--ease-out)}
@@ -240,7 +272,7 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 </div>
 </div>
 <div id="app">
-<div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="toggleTheme()" title="切换主题">🌓</button><button onclick="togglePrivacy()" title="隐私模式">👁️</button><button onclick="switchTab('me')" title="设置">⚙️</button></div></div>
+<div class="hd"><h1>🍆 茄子管家</h1><div class="hd-r"><span class="badge" id="remindBadge" style="display:none">•</span><button onclick="toggleTheme()" title="切换主题">🌓</button><button onclick="togglePrivacy()" title="隐私模式">👁️</button><button onclick="openDrawer()" title="设置">⚙️</button></div></div>
 <div class="pg act" id="pgHome">
 <div class="greet"><div class="d" id="todayD"></div><div class="t"><span id="greetT">加载中...</span><span class="phase-badge" id="phaseBadge">🌱 萌芽期</span></div></div>
 
@@ -470,23 +502,42 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 </div>
 </div>
 
-<div class="tool-section">
-<div class="ts-title">👤 个人中心</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="color:var(--c-fg-2)">版本：v6.4 船长版</div>
-<div style="color:#2563EB;cursor:pointer;" onclick="restoreLatest()">⏪ 恢复最近备份</div>
-<div style="color:var(--c-fg-2);cursor:pointer;" onclick="exportData()">💾 导出备份</div>
-<div style="color:var(--c-fg-2);cursor:pointer;" onclick="openBackupMgr()">📂 备份管理</div>
-<div style="color:var(--c-fg-2);cursor:pointer;" onclick="changePwd()">🔐 修改密码</div>
-<div style="color:var(--c-fg-2);cursor:pointer;" onclick="openTrash()">♻️ 回收站</div>
-<div id="pwaInstallEntry" style="color:var(--c-primary-2);cursor:pointer;" onclick="triggerPwaInstall()">📲 安装到桌面</div>
-<div style="color:var(--c-fg-2);cursor:pointer;" onclick="openMaintenance()">🛠️ 运维面板</div>
-<div style="color:#EF4444;cursor:pointer;" onclick="clearAll()">🗑️ 清空数据</div>
-<div style="color:var(--c-fg-2);cursor:pointer;" onclick="logout()">🚪 退出登录</div>
-</div>
 </div>
 
-</div>
+<!-- ====== 设置抽屉（从右侧滑入）====== -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-hd">
+    <span style="font-size:16px;font-weight:700;color:var(--c-fg);font-family:'Noto Serif SC',serif">⚙️ 设置</span>
+    <button onclick="closeDrawer()" style="background:transparent;border:none;font-size:22px;color:var(--c-fg-3);cursor:pointer;padding:0 4px;">×</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-group">
+      <div class="dg-title">外观</div>
+      <div class="dg-item" onclick="toggleTheme()"><span>🌓</span><span>切换主题</span><span class="dg-arrow">›</span></div>
+      <div class="dg-item" onclick="togglePrivacy()"><span>👁️</span><span>隐私模式</span><span class="dg-arrow">›</span></div>
+    </div>
+    <div class="drawer-group">
+      <div class="dg-title">数据</div>
+      <div class="dg-item" onclick="restoreLatest()"><span>⏪</span><span>恢复最近备份</span><span class="dg-arrow">›</span></div>
+      <div class="dg-item" onclick="exportData()"><span>💾</span><span>导出备份</span><span class="dg-arrow">›</span></div>
+      <div class="dg-item" onclick="openBackupMgr()"><span>📂</span><span>备份管理</span><span class="dg-arrow">›</span></div>
+      <div class="dg-item" onclick="openTrash()"><span>♻️</span><span>回收站</span><span class="dg-arrow">›</span></div>
+      <div class="dg-item" onclick="openMaintenance()"><span>🛠️</span><span>运维面板</span><span class="dg-arrow">›</span></div>
+    </div>
+    <div class="drawer-group">
+      <div class="dg-title">账户</div>
+      <div class="dg-item" onclick="changePwd()"><span>🔐</span><span>修改密码</span><span class="dg-arrow">›</span></div>
+      <div class="dg-item" id="pwaInstallEntry2" onclick="triggerPwaInstall()" style="display:none"><span>📲</span><span>安装到桌面</span><span class="dg-arrow">›</span></div>
+      <div class="dg-item" onclick="logout()"><span>🚪</span><span>退出登录</span><span class="dg-arrow">›</span></div>
+    </div>
+    <div class="drawer-group">
+      <div class="dg-title">危险区</div>
+      <div class="dg-item danger" onclick="clearAll()"><span>🗑️</span><span>清空全部数据</span><span class="dg-arrow">›</span></div>
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--c-fg-muted);padding:16px 0 8px">茄子管家 · 船长版</div>
+  </div>
+</aside>
 
 <div class="detail" id="detail"><button class="back" onclick="closeDetail()">‹ 返回</button><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><h2 id="detailTitle" style="margin:0;"></h2><div id="detailActions"></div></div><div id="detailContent"></div><button class="add" onclick="openAdd()">+</button></div>
 
@@ -923,12 +974,32 @@ document.querySelectorAll('.pg').forEach(function(el){ el.classList.remove('act'
 document.querySelectorAll('.tab').forEach(function(el){ if(el.getAttribute('data-tab')===t) el.classList.add('act'); });
 var targetId = 'pg' + t.charAt(0).toUpperCase() + t.slice(1);
 var pg = document.getElementById(targetId);
-if(pg) pg.classList.add('act');
+if(pg){
+  pg.classList.add('act');
+  // 触发卡片交错入场动画
+  pg.classList.remove('stagger');
+  void pg.offsetWidth;  // 强制重排，重置动画
+  pg.classList.add('stagger');
+}
 applyTheme(t);
 if(t==='record') renderRecord();
 else if(t==='insight') renderInsight();
 else if(t==='me') renderMe();
 else if(t==='home') renderHome();
+}
+
+// ====== 设置抽屉 ======
+function openDrawer(){
+  var d = document.getElementById('drawer');
+  var m = document.getElementById('drawerMask');
+  if(d){ d.classList.add('act'); }
+  if(m){ m.classList.add('act'); }
+}
+function closeDrawer(){
+  var d = document.getElementById('drawer');
+  var m = document.getElementById('drawerMask');
+  if(d){ d.classList.remove('act'); }
+  if(m){ m.classList.remove('act'); }
 }
 
 var budgetCache = null;
@@ -4980,9 +5051,8 @@ window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   deferredInstallPrompt = e;
   console.log('[PWA] 可安装提示已捕获，待用户触发');
-  // 在船长Tab显示安装入口（仅当未安装时）
-  var installEntry = document.getElementById('pwaInstallEntry');
-  if (installEntry) installEntry.style.display = 'block';
+  // 在设置抽屉显示安装入口（仅当未安装时）
+  document.querySelectorAll('#pwaInstallEntry, #pwaInstallEntry2').forEach(function(el){ el.style.display = 'flex'; });
 });
 
 async function triggerPwaInstall() {
@@ -4994,16 +5064,14 @@ async function triggerPwaInstall() {
   var choice = await deferredInstallPrompt.userChoice;
   if (choice.outcome === 'accepted') {
     console.log('[PWA] 用户已安装');
-    var installEntry = document.getElementById('pwaInstallEntry');
-    if (installEntry) installEntry.style.display = 'none';
+    document.querySelectorAll('#pwaInstallEntry, #pwaInstallEntry2').forEach(function(el){ el.style.display = 'none'; });
   }
   deferredInstallPrompt = null;
 }
 
 // 已安装则隐藏入口
 window.addEventListener('appinstalled', function() {
-  var installEntry = document.getElementById('pwaInstallEntry');
-  if (installEntry) installEntry.style.display = 'none';
+  document.querySelectorAll('#pwaInstallEntry, #pwaInstallEntry2').forEach(function(el){ el.style.display = 'none'; });
   console.log('[PWA] 应用已安装');
 });
 </script>
