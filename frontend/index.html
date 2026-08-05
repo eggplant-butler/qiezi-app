@@ -12,7 +12,7 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <!-- 版本指纹：deploy.sh 校验 + 前端自检（版本不匹配时强制刷新） -->
-<meta name="app-version" content="qiezi-v6.5.9">
+<meta name="app-version" content="qiezi-v6.6.0">
 <style>
 /* ========== 深夜书房 设计系统 v6.5.1 ==========
    暗色优先（默认）：暖灰底+米白字+琥珀强调
@@ -81,6 +81,35 @@ h1,h2,h3,.serif,.display{font-family:"Noto Serif SC","Songti SC","SimSun",serif;
 /* 骨架屏（加载占位） */
 .skeleton{background:linear-gradient(90deg,var(--c-surface-2) 0%,var(--c-surface) 50%,var(--c-surface-2) 100%);background-size:200% 100%;animation:skeleton-pulse 1.4s ease-in-out infinite;border-radius:var(--r-md)}
 @keyframes skeleton-pulse{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* v6.6.0 隐私模式：模糊敏感内容（财务金额、日记内容、情绪记录等） */
+body.privacy-mode .overview-card .num,
+body.privacy-mode .finance-amount,
+body.privacy-mode .diary-content,
+body.privacy-mode .emotion-content,
+body.privacy-mode .log-item .content,
+body.privacy-mode .log-item .note,
+body.privacy-mode .log-item .text,
+body.privacy-mode .quick-note textarea,
+body.privacy-mode .insight-item .detail,
+body.privacy-mode .corr-item .detail,
+body.privacy-mode .eng-risk-item,
+body.privacy-mode .self-portrait-text,
+body.privacy-mode .reminder-title {
+  filter: blur(6px);
+  transition: filter 0.2s;
+  cursor: default;
+}
+/* 隐私模式下点击模糊区域临时解除（hover/focus 时显示） */
+body.privacy-mode .overview-card:hover .num,
+body.privacy-mode .log-item:hover .content,
+body.privacy-mode .log-item:hover .note,
+body.privacy-mode .log-item:hover .text,
+body.privacy-mode .diary-content:hover,
+body.privacy-mode .emotion-content:hover {
+  filter: none;
+  transition: filter 0.15s;
+}
 /* 卡片入场动画（staggered 淡入上移） */
 .fade-in{opacity:0;transform:translateY(8px);animation:fadeInUp var(--dur-slow) var(--ease-out) forwards}
 @keyframes fadeInUp{to{opacity:1;transform:translateY(0)}}
@@ -4967,7 +4996,28 @@ function clearAll(){
     })
     .catch(function(e){ alert('网络错误：' + e.message); });
 }
-function togglePrivacy(){ privacyOn=!privacyOn; alert(privacyOn?'👁️ 隐私模式已开启':'👁️ 隐私模式已关闭'); }
+// v6.6.0 隐私模式：模糊敏感内容，切换时即时生效
+function togglePrivacy(){
+  privacyOn=!privacyOn;
+  document.body.classList.toggle('privacy-mode', privacyOn);
+  // 顶部按钮反馈
+  var btn = event && event.currentTarget;
+  if (btn) btn.style.opacity = privacyOn ? '0.6' : '1';
+  // 轻提示（非阻塞）
+  showToast(privacyOn ? '👁️ 隐私模式已开启' : '👁️ 隐私模式已关闭');
+}
+// 简易 toast 提示（替代 alert，不阻塞操作）
+function showToast(msg, duration){
+  duration = duration || 2000;
+  var existing = document.getElementById('__toast');
+  if (existing) existing.remove();
+  var t = document.createElement('div');
+  t.id = '__toast';
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;z-index:9999;transition:opacity 0.3s;pointer-events:none;max-width:90vw;text-align:center;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, duration);
+}
 
 // ============ v6.4.2 运维面板 ============
 async function openMaintenance(){
