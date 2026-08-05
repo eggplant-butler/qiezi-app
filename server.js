@@ -1710,6 +1710,88 @@ const ENG = {
     return s;
   },
 
+  // 生理→情绪预测：基于今日生理信号预测情绪，供前端预填
+  // 返回 { rating, mood, moodLabel, reason, factors, base, delta } 或 null
+  predict(mid, data, hist) {
+    const physioMods = ['sleep', 'exercise', 'diet', 'body', 'health'];
+    if (physioMods.indexOf(mid) === -1) return null;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // 今日已记录情绪则不打扰
+    const todayEmotion = hist.find(x => x.mid === 'emotion' && (x.ts || '').split('T')[0] === today);
+    if (todayEmotion) return null;
+
+    // 收集今日生理信号
+    const todayRecs = hist.filter(x => (x.ts || '').split('T')[0] === today);
+    const sleepRec = todayRecs.find(x => x.mid === 'sleep') || hist.find(x => x.mid === 'sleep');
+    const exRec = todayRecs.find(x => x.mid === 'exercise');
+    const dietRecs = todayRecs.filter(x => x.mid === 'diet');
+    const bodyRec = todayRecs.find(x => x.mid === 'body' || x.mid === 'health');
+
+    // 基线：近5次情绪均值（无历史用6）
+    const emoHist = hist.filter(x => x.mid === 'emotion').slice(0, 5);
+    let base = emoHist.length
+      ? emoHist.reduce((s, x) => s + parseFloat(x.data?.rating || x.data?.level || 5), 0) / emoHist.length
+      : 6;
+    base = Math.round(base);
+
+    const factors = [];
+    const reasonParts = [];
+    let delta = 0;
+
+    // 睡眠影响（最关键）
+    const sleepHours = sleepRec ? parseFloat(sleepRec.data?.hours || sleepRec.data?.duration || 0) : 0;
+    if (sleepHours > 0) {
+      if (sleepHours < 5) { delta -= 3; factors.push('sleep_critical'); reasonParts.push(`睡眠仅${sleepHours}h(严重不足)`); }
+      else if (sleepHours < 6) { delta -= 2; factors.push('sleep_low'); reasonParts.push(`睡眠${sleepHours}h(不足)`); }
+      else if (sleepHours < 7) { delta -= 1; factors.push('sleep_slight'); reasonParts.push(`睡眠${sleepHours}h(偏少)`); }
+      else if (sleepHours <= 9) { delta += 1; factors.push('sleep_good'); reasonParts.push(`睡眠${sleepHours}h(充足)`); }
+      else { factors.push('sleep_excess'); reasonParts.push(`睡眠${sleepHours}h(偏多)`); }
+      const sq = sleepRec.data?.quality;
+      if (sq === '很差') { delta -= 1; reasonParts.push('睡眠质量差'); }
+      else if (sq === '噩梦') { delta -= 1; reasonParts.push('有噩梦'); }
+    }
+
+    // 运动影响
+    const exMin = exRec ? parseFloat(exRec.data?.duration || 0) : 0;
+    if (exMin >= 60) { delta += 2; factors.push('exercise_strong'); reasonParts.push(`运动${exMin}min`); }
+    else if (exMin >= 30) { delta += 1; factors.push('exercise_mod'); reasonParts.push(`运动${exMin}min`); }
+    else if (exMin > 0) { factors.push('exercise_light'); reasonParts.push(`轻度运动${exMin}min`); }
+
+    // 饮食影响
+    dietRecs.forEach(d => {
+      const sat = d.data?.satiety;
+      if (sat === '吃撑' || sat === '很饱') { delta -= 1; factors.push('diet_overeat'); reasonParts.push('饮食过饱'); }
+      const c = (d.data?.content || '').toString();
+      if (/沙拉|蔬菜|清淡|粗粮|鸡胸|糙米/.test(c)) { delta += 1; factors.push('diet_healthy'); reasonParts.push('饮食健康'); }
+    });
+
+    // 身体症状影响
+    if (bodyRec) {
+      const sev = parseInt(bodyRec.data?.severity || 0);
+      if (sev >= 4) { delta -= 2; factors.push('body_severe'); reasonParts.push(`身体不适(严重度${sev})`); }
+      else if (sev >= 2) { delta -= 1; factors.push('body_mild'); reasonParts.push(`身体不适(严重度${sev})`); }
+    }
+
+    // 无信号或净影响为零则不建议
+    if (delta === 0 && factors.length === 0) return null;
+    if (delta === 0) return null;
+
+    const rating = Math.max(1, Math.min(10, base + delta));
+
+    let mood, moodLabel;
+    if (rating >= 9) { mood = '😊开心'; moodLabel = '开心'; }
+    else if (rating >= 7) { mood = '😌平静'; moodLabel = '平静'; }
+    else if (rating >= 5) { mood = '😐平淡'; moodLabel = '平淡'; }
+    else if (rating >= 3) { mood = '😴疲惫'; moodLabel = '疲惫'; }
+    else { mood = '😔低落'; moodLabel = '低落'; }
+
+    const reason = reasonParts.length ? '基于今日：' + reasonParts.join('、') : '基于近期生理数据';
+
+    return { rating, mood, moodLabel, reason, factors: factors, base: base, delta: delta };
+  },
+
   // 构造统一历史格式
   buildHistory() {
     // 合并后：learn 数据会镜像到 growth；body/medical 会镜像到 health
@@ -3941,6 +4023,8 @@ app.post('/api/record/add', (req, res) => {
   const correlations = ENG.correlate(hist);
   const risks = ENG.risks(hist);
   const dailySummary = ENG.daily(hist);
+  // 生理→情绪预测（仅新增记录时触发，避免编辑时重复打扰）
+  const emotionSuggestion = !editId ? ENG.predict(mid, data, hist) : null;
 
   let budget = null;
   if (mid === 'finance' && data.type === '支出') {
@@ -3973,6 +4057,7 @@ app.post('/api/record/add', (req, res) => {
     risks,
     dailySummary,
     budget,
+    emotionSuggestion,
     linkedModules: linkedModules.length ? linkedModules : undefined
   });
 });
@@ -5655,37 +5740,43 @@ process.on('uncaughtException', (err) => {
 
 // 回收站 API 已在通用 CRUD 之前定义，避免被 /api/:module 截获
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  logger.info({ port: PORT }, '🍆 茄子管家启动');
-});
-
-// 优雅关闭：收到信号时停止接受新请求，等现有请求结束，关闭数据库
-let isShuttingDown = false;
-function gracefulShutdown(signal) {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
-  logger.warn({ signal }, 'gracefulShutdown 开始');
-  // 停止备份定时器
-  try { clearInterval(backupInterval); clearInterval(walInterval); clearInterval(dailyInterval); } catch (e) {}
-  server.close((err) => {
-    if (err) logger.error({ msg: err.message }, 'gracefulShutdown server.close 错误');
-    else logger.info('gracefulShutdown HTTP 服务已停止');
-    try {
-      // WAL checkpoint 后关闭数据库，避免数据丢失
-      db.pragma('wal_checkpoint(TRUNCATE)');
-      db.close();
-      logger.info('gracefulShutdown 数据库已关闭');
-    } catch (e) {
-      logger.error({ msg: e.message }, 'gracefulShutdown 数据库关闭错误');
-    }
-    // 信号触发正常退出 0；uncaughtException 触发退出 1，便于 PM2/监控识别异常重启
-    process.exit(signal === 'uncaughtException' ? 1 : 0);
+// 仅在直接运行时启动 HTTP 服务与信号处理（便于单元测试 require）
+if (require.main === module) {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    logger.info({ port: PORT }, '🍆 茄子管家启动');
   });
-  // 兜底：5 秒后强制退出，避免卡死
-  setTimeout(() => {
-    logger.error('gracefulShutdown 超时强制退出');
-    process.exit(1);
-  }, 5000).unref();
+
+  // 优雅关闭：收到信号时停止接受新请求，等现有请求结束，关闭数据库
+  let isShuttingDown = false;
+  function gracefulShutdown(signal) {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    logger.warn({ signal }, 'gracefulShutdown 开始');
+    // 停止备份定时器
+    try { clearInterval(backupInterval); clearInterval(walInterval); clearInterval(dailyInterval); } catch (e) {}
+    server.close((err) => {
+      if (err) logger.error({ msg: err.message }, 'gracefulShutdown server.close 错误');
+      else logger.info('gracefulShutdown HTTP 服务已停止');
+      try {
+        // WAL checkpoint 后关闭数据库，避免数据丢失
+        db.pragma('wal_checkpoint(TRUNCATE)');
+        db.close();
+        logger.info('gracefulShutdown 数据库已关闭');
+      } catch (e) {
+        logger.error({ msg: e.message }, 'gracefulShutdown 数据库关闭错误');
+      }
+      // 信号触发正常退出 0；uncaughtException 触发退出 1，便于 PM2/监控识别异常重启
+      process.exit(signal === 'uncaughtException' ? 1 : 0);
+    });
+    // 兜底：5 秒后强制退出，避免卡死
+    setTimeout(() => {
+      logger.error('gracefulShutdown 超时强制退出');
+      process.exit(1);
+    }, 5000).unref();
+  }
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// 导出供单元测试使用
+module.exports = { ENG, app };
