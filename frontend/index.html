@@ -208,8 +208,9 @@ body{background:linear-gradient(180deg,var(--c-bg1) 0%,var(--c-bg2) 45%,var(--c-
 <div class="pg" id="pgRecord">
 
 <div class="rec-toolbar">
-<input class="rec-search" id="recSearch" placeholder="🔍 搜索模块名..." oninput="filterScenes(this.value)">
+<input class="rec-search" id="recSearch" placeholder="🔍 搜索记录内容/模块名..." oninput="filterScenes(this.value)">
 </div>
+<div id="searchResults" style="display:none;"></div>
 
 <div class="rec-today" id="recToday"></div>
 
@@ -1783,6 +1784,18 @@ async function saveRecord(){
         if (item) Object.assign(item, res.item);
       } else {
         dataCache[curScene].push(res.item);
+      }
+      // 刷新联动模块的 dataCache（联动记录立即可见）
+      if (res.linkedModules && res.linkedModules.length) {
+        res.linkedModules.forEach(function(mod) {
+          if (mod !== curScene) {
+            apiFetch(mod).then(function() {
+              if (curScene === mod || document.querySelector('[data-scene="' + mod + '"]')) {
+                renderDetail(mod);
+              }
+            });
+          }
+        });
       }
       closeModal();
       renderDetail(curScene);
@@ -3753,7 +3766,7 @@ async function openSeasonal(){
 
 // 日志Tab：按生活域分组 + 今日统计 + 搜索
 var RECORD_GROUPS = {
-  life:    {ids:['health','diet','sleep','emotion','pet'], title:'生活基础', icon:'🌱', sub:'健康·饮食·睡眠·情绪·宠物'},
+  life:    {ids:['health','diet','sleep','emotion','exercise','pet'], title:'生活基础', icon:'🌱', sub:'健康·饮食·睡眠·情绪·锻炼·宠物'},
   growth:  {ids:['growth','think','diary','photo'], title:'成长认知', icon:'📚', sub:'成长·思考·日记·摄影'},
   action:  {ids:['work','home','travel','time','relation','todo'], title:'行动场景', icon:'💼', sub:'工作·居住·出行·时间·关系·待办'},
   asset:   {ids:['finance','inventory','space'], title:'资产管理', icon:'📦', sub:'财务·库存·空间'}
@@ -3816,16 +3829,53 @@ function renderRecToday(){
 }
 function filterScenes(q){
   q = (q||'').trim().toLowerCase();
+  if(!q){
+    // 无搜索词时恢复全部显示
+    document.querySelectorAll('.rec-group').forEach(function(g){ g.classList.remove('hidden'); });
+    document.querySelectorAll('.scene-card').forEach(function(c){ c.style.display=''; });
+    document.getElementById('searchResults') && (document.getElementById('searchResults').style.display='none');
+    return;
+  }
+  // 全文搜索：遍历所有模块的记录内容
+  var hits = [];
+  var allMods = Object.keys(MODULE_META).concat(['spirit','medical','body','learn']);
+  allMods.forEach(function(mid){
+    var recs = dataCache[mid] || [];
+    recs.forEach(function(r){
+      var text = JSON.stringify(r).toLowerCase();
+      if(text.indexOf(q) !== -1){
+        hits.push({ mid:mid, name:(MODULE_META[mid]||{name:mid}).name, rec:r });
+      }
+    });
+  });
+  // 同时过滤场景卡
   document.querySelectorAll('.rec-group').forEach(function(g){
     var anyVisible = false;
     g.querySelectorAll('.scene-card').forEach(function(card){
       var name = (card.getAttribute('data-name')||'').toLowerCase();
-      var match = !q || name.indexOf(q) !== -1;
+      var match = name.indexOf(q) !== -1;
       card.style.display = match ? '' : 'none';
       if(match) anyVisible = true;
     });
     g.classList.toggle('hidden', !anyVisible);
   });
+  // 展示搜索结果面板
+  var sr = document.getElementById('searchResults');
+  if(!sr) return;
+  sr.style.display = hits.length > 0 ? 'block' : 'block';
+  if(hits.length === 0){
+    sr.innerHTML = '<div style="padding:12px;text-align:center;color:#888;font-size:13px;">未找到包含"' + q + '"的记录</div>';
+  } else {
+    sr.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#888;">找到 ' + hits.length + ' 条匹配记录</div>' +
+      hits.slice(0,50).map(function(h){
+        var title = h.rec.content || h.rec.symptom || h.rec.task || h.rec.person || h.rec.name || h.rec.title || h.rec.note || '(无标题)';
+        var date = h.rec.date || (h.rec.created||'').split('T')[0] || '';
+        return '<div class="search-hit" data-mid="'+h.mid+'" onclick="openScene(\''+h.mid+'\')" style="padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;">'+
+          '<span style="font-size:12px;color:#999;">'+date+'</span> '+
+          '<span style="font-weight:600;font-size:14px;">'+String(title).substring(0,60)+'</span> '+
+          '<span style="font-size:12px;color:#aaa;">'+h.name+'</span></div>';
+      }).join('');
+  }
 }
 
 function renderInsight(){
@@ -3946,9 +3996,18 @@ async function restoreBackup(fname){
 function pad0(n){ return n<10?'0'+n:''+n; }
 function clearAll(){
   if(!confirm('确定清空全部数据？不可恢复！\n建议先去「📂 备份管理」下载一份备份。')) return;
-  SCENES.forEach(function(s){ localStorage.removeItem(KEY+s.id); });
-  CORE_MODULES.forEach(function(m){ localStorage.removeItem(KEY+m.id); });
-  alert('已清空'); location.reload();
+  if(!confirm('再次确认：所有记录将被永久删除，确定继续？')) return;
+  fetch('/api/clear-all', { method:'POST', headers:{'Content-Type':'application/json'} })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(res.success){
+        Object.keys(dataCache).forEach(function(k){ dataCache[k] = []; });
+        alert('已清空全部数据'); location.reload();
+      } else {
+        alert('清空失败：' + (res.message || '未知错误'));
+      }
+    })
+    .catch(function(e){ alert('网络错误：' + e.message); });
 }
 function togglePrivacy(){ privacyOn=!privacyOn; alert(privacyOn?'👁️ 隐私模式已开启':'👁️ 隐私模式已关闭'); }
 

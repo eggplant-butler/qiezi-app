@@ -558,9 +558,26 @@ app.get('/api/daily-question/history', (req, res) => {
 
 app.get('/api/insights', (req, res) => {
   const all = {};
-  const modules = ['finance','sleep','exercise','emotion','diet','diary','photo','think','work','body','relation','growth','spirit','home','travel'];
+  const modules = ['finance','sleep','exercise','emotion','diet','diary','photo','think','work','body','relation','growth','spirit','home','travel','pet','health','todo','time','inventory','space','medical','learn'];
   modules.forEach(m => { all[m] = readData(m); });
-  res.json(generateInsights(all));
+  const result = generateInsights(all);
+  // 合并 ENG 引擎的深度分析（统一一套洞察）
+  try {
+    const hist = ENG.buildHistory();
+    const engCorr = ENG.correlate(hist);
+    const engRisks = ENG.risks(hist);
+    if (engCorr && engCorr.length) {
+      engCorr.forEach(function(c) {
+        if (!result.correlations.some(function(x) { return x.type === c.t; })) {
+          result.correlations.push({ type: c.t, title: c.s === 'high' ? '⚠️ ' + (c.m || '').split('\n')[0] : (c.m || '').split('\n')[0], detail: c.m || '' });
+        }
+      });
+    }
+    if (engRisks && engRisks.length) {
+      result.engRisks = engRisks;
+    }
+  } catch (e) { console.error('[insights] ENG merge:', e.message); }
+  res.json(result);
 });
 
 // ============ 完整洞察引擎 ============
@@ -671,6 +688,55 @@ function generateInsights(data) {
     });
     if (q < 3) {
       result.suggestions.push({ id: 's5', text: '📷 近期摄影质量偏低，建议专注一个主题深入练习', module: 'photo', status: 'pending' });
+    }
+  }
+
+  // ---- 5b. 宠物花费关联 ----
+  const petRecords = (data.pet || []).filter(r => r.date && r.date >= ms);
+  if (petRecords.length > 0) {
+    const petCost = petRecords.reduce((s, r) => s + (parseFloat(r.cost) || 0), 0);
+    result.correlations.push({
+      type: 'pet_cost',
+      title: '🐾 宠物花费',
+      detail: `近30天${petRecords.length}次记录，花费${petCost.toFixed(0)}元`
+    });
+    if (petCost > 500) {
+      result.suggestions.push({ id: 's_pet', text: '🐾 宠物花费较高，关注是否有非必要支出', module: 'pet', status: 'pending' });
+    }
+  }
+
+  // ---- 5c. 健康与情绪关联 ----
+  const healthRecs = (data.health || []).concat(data.body || []).concat(data.medical || []).filter(r => r.date && r.date >= ms);
+  const emoRecs = (data.emotion || []).filter(r => r.date && r.date >= ms);
+  if (healthRecs.length >= 2 && emoRecs.length >= 3) {
+    const healthDates = new Set(healthRecs.map(r => r.date));
+    const emoOnHealthDays = emoRecs.filter(r => healthDates.has(r.date));
+    const emoOther = emoRecs.filter(r => !healthDates.has(r.date));
+    if (emoOnHealthDays.length > 0 && emoOther.length > 0) {
+      const avgOn = emoOnHealthDays.reduce((s, r) => s + (parseFloat(r.rating) || 0), 0) / emoOnHealthDays.length;
+      const avgOff = emoOther.reduce((s, r) => s + (parseFloat(r.rating) || 0), 0) / emoOther.length;
+      if (Math.abs(avgOn - avgOff) > 0.5) {
+        result.correlations.push({
+          type: 'health_mood',
+          title: '🏥 健康与情绪',
+          detail: `就医/症状日情绪${avgOn.toFixed(1)}分，健康日${avgOff.toFixed(1)}分`
+        });
+      }
+    }
+  }
+
+  // ---- 5d. 待办完成率 ----
+  const todos = (data.todo || []).filter(r => r.date && r.date >= ms);
+  if (todos.length >= 3) {
+    const done = todos.filter(r => r.status === '已完成').length;
+    const rate = Math.round((done / todos.length) * 100);
+    result.correlations.push({
+      type: 'todo_rate',
+      title: '📋 待办完成率',
+      detail: `近30天${todos.length}项，完成${done}项，完成率${rate}%`
+    });
+    if (rate < 40) {
+      result.suggestions.push({ id: 's_todo', text: '📋 待办完成率偏低，建议拆分大任务为小步骤', module: 'todo', status: 'pending' });
     }
   }
 
@@ -1349,7 +1415,7 @@ const ENG = {
     // 4. 近3笔高消费
     const fin = hist.filter(x => x.mid === 'finance').slice(0, 3);
     if (fin.length >= 3) {
-      const spend = fin.filter(x => x.data?.type === 'expense').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+      const spend = fin.filter(x => x.data?.type === 'expense' || x.data?.type === '支出').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
       if (spend >= 1000) out.push({ t:'high_spend', s:'med', m:`近3笔支出合计${spend.toFixed(0)}元。\n这是计划内，还是情绪驱动？\n后者不是钱的问题，是填补的欲望。` });
     }
 
@@ -1544,8 +1610,8 @@ const ENG = {
     const fin = hist.filter(x => x.mid === 'finance');
     if (fin.length >= 5) {
       const last30 = fin.slice(0, 30);
-      const exp = last30.filter(x => x.data?.type === 'expense').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
-      const inc = last30.filter(x => x.data?.type === 'income').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+      const exp = last30.filter(x => x.data?.type === 'expense' || x.data?.type === '支出').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+      const inc = last30.filter(x => x.data?.type === 'income' || x.data?.type === '收入').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
       if (exp > inc && inc > 0) out.push({ l:'med', c:'finance', t:`近30天支出${exp.toFixed(0)}元 > 收入${inc.toFixed(0)}元。\n短期可忍，长期是慢性失血。` });
     }
     const ex = hist.filter(x => x.mid === 'exercise').slice(0, 14);
@@ -1572,14 +1638,18 @@ const ENG = {
   // 构造统一历史格式
   buildHistory() {
     // 合并后：learn 数据会镜像到 growth；body/medical 会镜像到 health
-    // 保留旧 mid 兜底，避免迁移前数据丢失
+    // 保留旧 mid 兜底，但用 id 去重避免同一条记录被统计两次
     const mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo','health'];
     const hist = [];
+    const seenIds = new Set(); // 按 record.id 去重
     mods.forEach(m => {
       const records = readData(m);
       if (!Array.isArray(records)) return;
       records.forEach(r => {
         if (!r) return;
+        // 如果有 id 且已见过，跳过（迁移镜像的重复记录）
+        if (r.id && seenIds.has(r.id)) return;
+        if (r.id) seenIds.add(r.id);
         hist.push({
           mid: m,
           ts: r.created || r.date || r.createdAt || new Date().toISOString(),
@@ -2343,8 +2413,8 @@ const ENG = {
 
     // 损失厌恶：是否对"损失"的敏感度远高于"收益"
     if (fin.length >= 5) {
-      const expenses = fin.filter(x => x.data?.type === 'expense');
-      const income = fin.filter(x => x.data?.type === 'income');
+      const expenses = fin.filter(x => x.data?.type === 'expense' || x.data?.type === '支出');
+      const income = fin.filter(x => x.data?.type === 'income' || x.data?.type === '收入');
       const totalExp = expenses.reduce((s, x) => s + parseFloat(x.data?.amount || 0), 0);
       const totalInc = income.reduce((s, x) => s + parseFloat(x.data?.amount || 0), 0);
       const lossAversion = totalExp > totalInc * 1.5 && totalInc > 0 ? 1 : 0;
@@ -3485,106 +3555,97 @@ app.post('/api/record/add', (req, res) => {
   writeData(mid, list);
 
   // === 跨模块联动引擎 ===
+  const linkedModules = []; // 记录哪些模块被联动刷新了，返回给前端
+  const linkDate = data.date || new Date().toISOString().split('T')[0];
+  const linkId = item.id;
+
+  // 统一去重函数：检查目标模块是否已有来自同一源记录的联动数据
+  function hasLinked(targetMid, sourceMid, sourceId) {
+    try {
+      const list = readData(targetMid);
+      return list.some(function(x) { return x._linkedModule === sourceMid && x._linkedId === sourceId; });
+    } catch (e) { return false; }
+  }
+
   // 1. 宠物花费 → 自动创建财务支出记录
   if (mid === 'pet' && !editId && data.cost && parseFloat(data.cost) > 0) {
-    try {
-      const finList = readData('finance');
-      const finItem = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-        type: '支出',
-        amount: parseFloat(data.cost),
-        category: '宠物',
-        content: (data.petName || '宠物') + ' - ' + (data.action || '花费'),
-        paymentMethod: '',
-        date: data.date || new Date().toISOString().split('T')[0],
-        _linkedModule: 'pet',
-        _linkedId: item.id,
-        created: new Date().toISOString()
-      };
-      finList.push(finItem);
-      writeData('finance', finList);
-    } catch (e) { console.error('[linkage] pet→finance:', e.message); }
+    if (!hasLinked('finance', 'pet', linkId)) {
+      try {
+        const finList = readData('finance');
+        finList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          type: '支出', amount: parseFloat(data.cost), category: '宠物',
+          content: (data.petName || '宠物') + ' - ' + (data.action || '花费'),
+          paymentMethod: '', date: linkDate,
+          _linkedModule: 'pet', _linkedId: linkId, created: new Date().toISOString()
+        });
+        writeData('finance', finList);
+        linkedModules.push('finance');
+      } catch (e) { console.error('[linkage] pet→finance:', e.message); }
+    }
   }
-  // 2. 医疗/健康花费 → 自动创建财务支出记录（兼容 body/medical/health 三种 mid）
+  // 2. 医疗/健康花费 → 自动创建财务支出记录
   if (!editId && data.cost && parseFloat(data.cost) > 0 && (mid === 'medical' || mid === 'health')) {
-    try {
-      const finList = readData('finance');
-      const finItem = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-        type: '支出',
-        amount: parseFloat(data.cost),
-        category: '医疗',
-        content: (data.hospital || data.symptom || '就医') + ' - ' + (data.type || data.sceneType || ''),
-        paymentMethod: data.paymentMethod || '',
-        date: data.date || new Date().toISOString().split('T')[0],
-        _linkedModule: mid,
-        _linkedId: item.id,
-        created: new Date().toISOString()
-      };
-      finList.push(finItem);
-      writeData('finance', finList);
-    } catch (e) { console.error('[linkage] health→finance:', e.message); }
+    if (!hasLinked('finance', mid, linkId)) {
+      try {
+        const finList = readData('finance');
+        finList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          type: '支出', amount: parseFloat(data.cost), category: '医疗',
+          content: (data.hospital || data.symptom || '就医') + ' - ' + (data.type || data.sceneType || ''),
+          paymentMethod: data.paymentMethod || '', date: linkDate,
+          _linkedModule: mid, _linkedId: linkId, created: new Date().toISOString()
+        });
+        writeData('finance', finList);
+        linkedModules.push('finance');
+      } catch (e) { console.error('[linkage] health→finance:', e.message); }
+    }
   }
   // 3. 出行花费 → 自动创建财务支出记录
   if (mid === 'travel' && !editId && data.cost && parseFloat(data.cost) > 0) {
-    try {
-      const finList = readData('finance');
-      // 出行目的推断分类：旅行→娱乐/上班→交通/购物→购物
-      let cat = '交通';
-      if (data.purpose === '旅行') cat = '娱乐';
-      else if (data.purpose === '购物') cat = '购物';
-      else if (data.purpose === '约会') cat = '娱乐';
-      const finItem = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-        type: '支出',
-        amount: parseFloat(data.cost),
-        category: cat,
-        content: (data.transport || '出行') + ' - ' + (data.purpose || '') + (data.from && data.to ? ' ' + data.from + '→' + data.to : ''),
-        paymentMethod: '',
-        date: data.date || new Date().toISOString().split('T')[0],
-        _linkedModule: 'travel',
-        _linkedId: item.id,
-        created: new Date().toISOString()
-      };
-      finList.push(finItem);
-      writeData('finance', finList);
-    } catch (e) { console.error('[linkage] travel→finance:', e.message); }
+    if (!hasLinked('finance', 'travel', linkId)) {
+      try {
+        const finList = readData('finance');
+        let cat = '交通';
+        if (data.purpose === '旅行') cat = '娱乐';
+        else if (data.purpose === '购物') cat = '购物';
+        else if (data.purpose === '约会') cat = '娱乐';
+        finList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          type: '支出', amount: parseFloat(data.cost), category: cat,
+          content: (data.transport || '出行') + ' - ' + (data.purpose || '') + (data.from && data.to ? ' ' + data.from + '→' + data.to : ''),
+          paymentMethod: '', date: linkDate,
+          _linkedModule: 'travel', _linkedId: linkId, created: new Date().toISOString()
+        });
+        writeData('finance', finList);
+        linkedModules.push('finance');
+      } catch (e) { console.error('[linkage] travel→finance:', e.message); }
+    }
   }
-  // 4. 人情消费（关系模块花费）→ 自动创建财务支出记录
+  // 4. 人情消费 → 自动创建财务支出记录
   if (mid === 'relation' && !editId && data.cost && parseFloat(data.cost) > 0) {
-    try {
-      const finList = readData('finance');
-      // favorType 推断分类：随份子/送礼/请客→娱乐或其他
-      let cat = '其他';
-      if (data.favorType === '随份子' || data.favorType === '送礼' || data.favorType === '请客') cat = '娱乐';
-      else if (data.favorType === '借出' || data.favorType === '借入') cat = '其他';
-      const finItem = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-        type: '支出',
-        amount: parseFloat(data.cost),
-        category: cat,
-        content: (data.person || data.role || '关系') + ' - ' + (data.favorType || data.interaction || '人情'),
-        paymentMethod: '',
-        date: data.date || new Date().toISOString().split('T')[0],
-        _linkedModule: 'relation',
-        _linkedId: item.id,
-        created: new Date().toISOString()
-      };
-      finList.push(finItem);
-      writeData('finance', finList);
-    } catch (e) { console.error('[linkage] relation→finance:', e.message); }
+    if (!hasLinked('finance', 'relation', linkId)) {
+      try {
+        const finList = readData('finance');
+        let cat = '其他';
+        if (data.favorType === '随份子' || data.favorType === '送礼' || data.favorType === '请客') cat = '娱乐';
+        finList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          type: '支出', amount: parseFloat(data.cost), category: cat,
+          content: (data.person || data.role || '关系') + ' - ' + (data.favorType || data.interaction || '人情'),
+          paymentMethod: '', date: linkDate,
+          _linkedModule: 'relation', _linkedId: linkId, created: new Date().toISOString()
+        });
+        writeData('finance', finList);
+        linkedModules.push('finance');
+      } catch (e) { console.error('[linkage] relation→finance:', e.message); }
+    }
   }
-  // 5. 工作记录 → 自动创建时间分配记录（减少重复填写）
+  // 5. 工作记录 → 自动创建时间分配记录
   if (mid === 'work' && !editId) {
-    try {
-      const date = data.date || new Date().toISOString().split('T')[0];
-      const timeList = readData('time');
-      // 防止重复：同日期已存在 work→time 联动记录则跳过
-      const exists = timeList.some(function(t) {
-        return (t._linkedModule === 'work') && (t._linkedId === item.id);
-      });
-      if (!exists) {
-        // 从 focusLevel 和 meaning 推导 time.value
+    if (!hasLinked('time', 'work', linkId)) {
+      try {
+        const timeList = readData('time');
         let value = '一般';
         const fl = parseInt(String(data.focusLevel || '3').charAt(0), 10);
         const mn = parseInt(String(data.meaning || '3'), 10);
@@ -3593,93 +3654,79 @@ app.post('/api/record/add', (req, res) => {
         else if (avg >= 3.2) value = '比较有';
         else if (avg <= 1.8) value = '后悔';
         else if (avg <= 2.4) value = '浪费';
-        // 默认 8 小时工作，除非 role/income 推断调整
-        let dur = 480;
-        const timeItem = {
+        timeList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-          category: '工作',
-          duration: dur,
-          value: value,
+          category: '工作', duration: 480, value: value,
           content: (data.role || '工作') + ' - ' + (data.task ? String(data.task).substring(0, 50) : ''),
-          date: date,
-          _linkedModule: 'work',
-          _linkedId: item.id,
-          created: new Date().toISOString()
-        };
-        timeList.push(timeItem);
+          date: linkDate,
+          _linkedModule: 'work', _linkedId: linkId, created: new Date().toISOString()
+        });
         writeData('time', timeList);
-      }
-    } catch (e) { console.error('[linkage] work→time:', e.message); }
+        linkedModules.push('time');
+      } catch (e) { console.error('[linkage] work→time:', e.message); }
+    }
   }
-  // 6. 居住记录：花费→财务；购买/丢弃→库存自动变更
+  // 6. 居住记录：花费→财务；购买/丢弃→库存
   if (mid === 'home' && !editId) {
-    try {
-      const date = data.date || new Date().toISOString().split('T')[0];
-      // 6a 花费自动记账
-      if (data.cost && parseFloat(data.cost) > 0) {
-        const finList = readData('finance');
-        let cat = '其他';
-        if (data.action === '购买') cat = '购物';
-        else if (data.action === '搬家') cat = '其他';
-        const finItem = {
-          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-          type: '支出',
-          amount: parseFloat(data.cost),
-          category: cat,
-          content: (data.space || '居住') + ' - ' + (data.action || '') + (data.items ? ' ' + data.items : ''),
-          paymentMethod: '',
-          date: date,
-          _linkedModule: 'home',
-          _linkedId: item.id,
-          created: new Date().toISOString()
-        };
-        finList.push(finItem);
-        writeData('finance', finList);
-      }
-      // 6b 购买：自动写入 inventory（如果填了 items）
-      if ((data.action === '购买' || data.action === '其他(买)') && data.items) {
-        const invList = readData('inventory');
-        const names = String(data.items).split(/[,，、/;\s]+/).filter(function(x) { return x.trim().length > 0; });
-        for (const n of names) {
-          const invItem = {
+    // 6a 花费自动记账
+    if (data.cost && parseFloat(data.cost) > 0) {
+      if (!hasLinked('finance', 'home', linkId)) {
+        try {
+          const finList = readData('finance');
+          let cat = '其他';
+          if (data.action === '购买') cat = '购物';
+          finList.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-            name: n,
-            category: '其他',
-            quantity: 1,
-            price: data.cost && names.length === 1 ? parseFloat(data.cost) : undefined,
-            purchaseDate: date,
-            location: data.space || '',
-            usageFreq: '偶尔',
-            condition: '良好',
-            necessity: '3-偶尔用',
-            declutter: '保留',
-            _linkedModule: 'home',
-            _linkedId: item.id,
-            created: new Date().toISOString()
-          };
-          invList.push(invItem);
-        }
-        writeData('inventory', invList);
+            type: '支出', amount: parseFloat(data.cost), category: cat,
+            content: (data.space || '居住') + ' - ' + (data.action || '') + (data.items ? ' ' + data.items : ''),
+            paymentMethod: '', date: linkDate,
+            _linkedModule: 'home', _linkedId: linkId, created: new Date().toISOString()
+          });
+          writeData('finance', finList);
+          linkedModules.push('finance');
+        } catch (e) { console.error('[linkage] home→finance:', e.message); }
       }
-      // 6c 丢弃：找到同名 inventory 标记 declutter=已捐赠/出售，不删数据保留审计
-      if ((data.action === '丢弃' || data.action === '其他(丢)') && data.items) {
+    }
+    // 6b 购买 → 自动写入 inventory
+    if ((data.action === '购买') && data.items) {
+      if (!hasLinked('inventory', 'home', linkId)) {
+        try {
+          const invList = readData('inventory');
+          const names = String(data.items).split(/[,，、/;\s]+/).filter(function(x) { return x.trim().length > 0; });
+          for (const n of names) {
+            invList.push({
+              id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+              name: n, category: '其他', quantity: 1,
+              price: data.cost && names.length === 1 ? parseFloat(data.cost) : undefined,
+              purchaseDate: linkDate, location: data.space || '',
+              usageFreq: '偶尔', condition: '良好', necessity: '3-偶尔用', declutter: '保留',
+              _linkedModule: 'home', _linkedId: linkId, created: new Date().toISOString()
+            });
+          }
+          writeData('inventory', invList);
+          linkedModules.push('inventory');
+        } catch (e) { console.error('[linkage] home→inventory:', e.message); }
+      }
+    }
+    // 6c 丢弃 → 标记 inventory 断舍离
+    if ((data.action === '丢弃') && data.items) {
+      try {
         const invList = readData('inventory');
         const names = String(data.items).split(/[,，、/;\s]+/).filter(function(x) { return x.trim().length > 0; });
         let changed = false;
         for (const inv of invList) {
+          if (inv._linkedModule === 'home' && inv._linkedId === linkId) continue; // 跳过自己联动的
           for (const n of names) {
             if (inv.name === n || (inv.name && inv.name.indexOf(n) !== -1)) {
               inv.declutter = '已捐赠/出售';
-              inv._linkedModule = 'home';
-              inv._linkedId = item.id;
-              changed = true;
-              break;
+              inv._linkedModule = 'home'; inv._linkedId = linkId;
+              changed = true; break;
             }
           }
         }
-        if (changed) writeData('inventory', invList);
-      }
-    } catch (e) { console.error('[linkage] home→finance/inventory:', e.message); }
+        if (changed) { writeData('inventory', invList); linkedModules.push('inventory'); }
+      } catch (e) { console.error('[linkage] home→inventory(丢弃):', e.message); }
+    }
   }
 
   // 生成认知反馈
@@ -3719,7 +3766,8 @@ app.post('/api/record/add', (req, res) => {
     correlations,
     risks,
     dailySummary,
-    budget
+    budget,
+    linkedModules: linkedModules.length ? linkedModules : undefined
   });
 });
 
@@ -4904,6 +4952,32 @@ app.delete('/api/trash', (req, res) => {
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ success: false, message: '清空失败' });
+  }
+});
+
+// 清空全部业务数据（仅清空 VALID_MODULES 内的记录，保留 deleted 回收站与系统配置）
+app.post('/api/clear-all', (req, res) => {
+  try {
+    const cleared = [];
+    VALID_MODULES.forEach(m => {
+      try {
+        const before = readData(m);
+        if (before.length > 0) {
+          writeData(m, []);
+          cleared.push(m + ':' + before.length);
+        }
+      } catch (e) {
+        console.error('[clear-all] 清空失败 mid=' + m + ':', e.message);
+      }
+    });
+    // 同时清空回收站
+    try { writeData('deleted', []); } catch (e) {}
+    walCheckpoint();
+    console.log('[clear-all] 已清空模块:', cleared.join(', ') || '无数据');
+    res.json({ success: true, cleared: cleared, message: '已清空全部业务数据' });
+  } catch (e) {
+    console.error('[clear-all]', e.message);
+    res.status(500).json({ success: false, message: '清空失败: ' + e.message });
   }
 });
 
