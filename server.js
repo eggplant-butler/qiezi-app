@@ -5379,6 +5379,16 @@ app.post('/api/backup/verify/:file', (req, res) => {
     res.status(500).json({ success: false, message: '校验失败: ' + e.message });
   }
 });
+// 手动触发备份（用于验证加密格式 + 管理）
+app.post('/api/backup/create', async (req, res) => {
+  try {
+    const r = await doBackup();
+    res.json({ success: true, ...r, encrypted: true, message: '备份成功（AES-256-GCM 加密）' });
+  } catch (e) {
+    console.error('[backup/create]', e.message);
+    res.status(500).json({ success: false, message: '备份失败: ' + e.message });
+  }
+});
 // 定时兜底备份：每小时检查 + 启动立即检查
 const backupInterval = setInterval(async () => {
   if (!hasTodayBackup()) await doBackup();
