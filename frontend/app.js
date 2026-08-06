@@ -916,8 +916,8 @@ function renderDetail(id){
       if(item.amount) l+=' ¥'+item.amount;
       if(item.rating) l+=' · 评分'+item.rating;
     }
-    var dateStr=item.date?'<div class="sb">'+item.date+'</div>':'';
-    return '<div class="rec"><div><div class="tt">'+l+'</div>'+dateStr+'</div><div class="ac"><button onclick="editRec(\''+id+'\',\''+item.id+'\')">✏️</button><button class="dl" onclick="delRec(\''+id+'\',\''+item.id+'\')">🗑️</button></div></div>';
+    var dateStr=item.date?'<div class="sb">'+escapeHtml(item.date)+'</div>':'';
+    return '<div class="rec"><div><div class="tt">'+escapeHtml(l)+'</div>'+dateStr+'</div><div class="ac"><button onclick="editRec(\''+escapeHtml(id)+'\',\''+escapeHtml(item.id)+'\')">✏️</button><button class="dl" onclick="delRec(\''+escapeHtml(id)+'\',\''+escapeHtml(item.id)+'\')">🗑️</button></div></div>';
   }).join('')+'</div>';
 }
 
@@ -1419,13 +1419,13 @@ function renderFormHtml(sceneId, item){
       f.options.forEach(function(opt){
         var v = String(opt);
         var selected = String(val) === v ? ' selected' : '';
-        fieldHtml += '<option value="'+opt+'"'+selected+'>'+opt+'</option>';
+        fieldHtml += '<option value="'+escapeHtml(opt)+'"'+selected+'>'+escapeHtml(opt)+'</option>';
       });
       fieldHtml += '</select>';
     } else if(f.type === 'textarea'){
-      fieldHtml += '<textarea id="f_'+f.key+'" rows="3" placeholder="'+(f.placeholder||'')+'">'+val+'</textarea>';
+      fieldHtml += '<textarea id="f_'+f.key+'" rows="3" placeholder="'+escapeHtml(f.placeholder||'')+'">'+escapeHtml(val)+'</textarea>';
     } else {
-      fieldHtml += '<input id="f_'+f.key+'" type="'+f.type+'" placeholder="'+(f.placeholder||'')+'" value="'+val+'">';
+      fieldHtml += '<input id="f_'+f.key+'" type="'+f.type+'" placeholder="'+escapeHtml(f.placeholder||'')+'" value="'+escapeHtml(val)+'">';
       if(f.type === 'text' && !item){
         var recents = getRecentTexts(sceneId, f.key);
         if(recents.length){
@@ -1515,7 +1515,7 @@ function editRec(sceneId,id){
   if(formHtml){
     document.getElementById('modalBody').innerHTML = formHtml;
   } else {
-    document.getElementById('modalBody').innerHTML = '<label>内容</label><input id="f_c" value="'+(item.content||'')+'"><label>日期</label><input type="date" id="f_d" value="'+(item.date||TODAY)+'"><label>评分</label><select id="f_r"><option value="">无</option>'+[1,2,3,4,5].map(function(r){ return '<option '+(item.rating==r?'selected':'')+'>'+r+'</option>'; }).join('')+'</select><label>备注</label><textarea id="f_n" rows="2">'+(item.note||'')+'</textarea>';
+    document.getElementById('modalBody').innerHTML = '<label>内容</label><input id="f_c" value="'+escapeHtml(item.content||'')+'"><label>日期</label><input type="date" id="f_d" value="'+escapeHtml(item.date||TODAY)+'"><label>评分</label><select id="f_r"><option value="">无</option>'+[1,2,3,4,5].map(function(r){ return '<option '+(item.rating==r?'selected':'')+'>'+r+'</option>'; }).join('')+'</select><label>备注</label><textarea id="f_n" rows="2">'+escapeHtml(item.note||'')+'</textarea>';
   }
   bindFormEvents(sceneId);
   document.getElementById('modal').classList.add('act');
@@ -3689,16 +3689,16 @@ function filterScenes(q){
   if(!sr) return;
   sr.style.display = hits.length > 0 ? 'block' : 'block';
   if(hits.length === 0){
-    sr.innerHTML = '<div style="padding:12px;text-align:center;color:#888;font-size:13px;">未找到包含"' + q + '"的记录</div>';
+    sr.innerHTML = '<div style="padding:12px;text-align:center;color:#888;font-size:13px;">未找到包含"' + escapeHtml(q) + '"的记录</div>';
   } else {
     sr.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#888;">找到 ' + hits.length + ' 条匹配记录</div>' +
       hits.slice(0,50).map(function(h){
         var title = h.rec.content || h.rec.symptom || h.rec.task || h.rec.person || h.rec.name || h.rec.title || h.rec.note || '(无标题)';
         var date = h.rec.date || (h.rec.created||'').split('T')[0] || '';
-        return '<div class="search-hit" data-mid="'+h.mid+'" onclick="openScene(\''+h.mid+'\')" style="padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;">'+
-          '<span style="font-size:12px;color:#999;">'+date+'</span> '+
-          '<span style="font-weight:600;font-size:14px;">'+String(title).substring(0,60)+'</span> '+
-          '<span style="font-size:12px;color:#aaa;">'+h.name+'</span></div>';
+        return '<div class="search-hit" data-mid="'+escapeHtml(h.mid)+'" onclick="openScene(\''+escapeHtml(h.mid)+'\')" style="padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;">'+
+          '<span style="font-size:12px;color:#999;">'+escapeHtml(date)+'</span> '+
+          '<span style="font-weight:600;font-size:14px;">'+escapeHtml(String(title).substring(0,60))+'</span> '+
+          '<span style="font-size:12px;color:#aaa;">'+escapeHtml(h.name)+'</span></div>';
       }).join('');
   }
 }
@@ -4577,18 +4577,18 @@ async function verifyLatestBackup(){
   }
   var latest = list[0];
   var el = document.getElementById('verifyList');
-  el.innerHTML = '<span style="color:var(--c-fg-2);">🔍 校验中：'+latest.name+'...</span>';
+  el.innerHTML = '<span style="color:var(--c-fg-2);">🔍 校验中：'+escapeHtml(latest.name)+'...</span>';
   try {
     var r2 = await fetch('/api/backup/verify/' + encodeURIComponent(latest.name), { method: 'POST' });
     var res = await r2.json();
     if(res && res.success){
       var detail = res.fileCount ? '包含 '+res.fileCount+' 个文件' : '校验通过';
-      el.innerHTML = '<span style="color:#10B981;">✅ '+latest.name+'<br>'+detail+'</span>';
+      el.innerHTML = '<span style="color:#10B981;">✅ '+escapeHtml(latest.name)+'<br>'+detail+'</span>';
     } else {
-      el.innerHTML = '<span style="color:#EF4444;">❌ '+latest.name+'<br>'+(res && res.message || '校验失败')+'</span>';
+      el.innerHTML = '<span style="color:#EF4444;">❌ '+escapeHtml(latest.name)+'<br>'+escapeHtml(res && res.message || '校验失败')+'</span>';
     }
   } catch(e){
-    el.innerHTML = '<span style="color:#EF4444;">校验出错：'+e.message+'</span>';
+    el.innerHTML = '<span style="color:#EF4444;">校验出错：'+escapeHtml(e.message)+'</span>';
   }
 }
 
