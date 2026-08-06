@@ -12,8 +12,27 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>🍆 茄子管家 · 船长版</title>
 <!-- 版本指纹：deploy.sh 校验 + 前端自检（版本不匹配时强制刷新） -->
-<meta name="app-version" content="qiezi-v6.9.8">
-<link rel="stylesheet" href="/styles.css?v=6.9.8">
+<meta name="app-version" content="qiezi-v6.9.19">
+<!-- v6.9.12: 修复登录后停在登录界面——去掉 display 的 !important（保留 position/inset/z-index 兜底），
+     否则 CSS 的 display:!important 会覆盖 JS 的 style.display 切换，导致 login()/checkSession() 切换 UI 失效 -->
+<!-- v6.9.11: 内联关键 CSS 兜底——即使外部 CSS/SW 缓存出问题，锁屏也能覆盖全屏、仪表盘保持隐藏 -->
+<style>
+/* 关键兜底：锁屏全屏覆盖、仪表盘默认隐藏。注意 display 不可加 !important，否则 JS 切换会失效 */
+#lock{position:fixed!important;inset:0!important;z-index:9999!important;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;background:#252019}
+#app{display:none;max-width:480px;margin:0 auto;padding:18px 16px 90px}
+/* 登录卡片基础样式（不依赖外部 CSS） */
+#lock .login-card{background:#332D24;border-radius:20px;padding:40px 32px 36px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center;border:1px solid rgba(232,223,208,.1)}
+#lock .login-ic{width:72px;height:72px;border-radius:16px;background:linear-gradient(135deg,#D4A574,#E0B585);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:40px}
+#lock .login-title{font-size:24px;font-weight:70px;color:#D4A574;margin-bottom:6px;letter-spacing:1px}
+#lock .login-sub{font-size:13px;color:#B5AC9C;margin-bottom:28px}
+#lock input{background:#3D362C;border:1px solid rgba(232,223,208,.15);border-radius:10px;padding:14px 18px;width:100%;color:#E8DFD0;font-size:16px;text-align:left;outline:none;transition:border-color .2s;box-sizing:border-box}
+#lock input::placeholder{color:#5C5547;text-align:center}
+#lock input:focus{border-color:#D4A574;box-shadow:0 0 0 3px rgba(212,165,116,.12)}
+#lock button{background:linear-gradient(135deg,#D4A574,#E0B585);border:none;border-radius:12px;padding:14px 30px;color:#fff;font-size:17px;font-weight:600;cursor:pointer;margin-top:16px;width:100%;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+#lock button:active{transform:scale(.98)}
+#lock .err{color:#EF4444;margin-top:12px;display:none;font-size:13px;text-align:center}
+</style>
+<link rel="stylesheet" href="/styles.css?v=6.9.19">
 </head>
 <body>
 <div id="lock">
@@ -350,8 +369,8 @@
 </div>
 
 
-<script src="/app.js?v=6.9.8"></script>
+<script src="/app.js?v=6.9.19" defer></script>
 <!-- Service Worker 注册：离线缓存 + 后台静默更新 + 旧版本自动注销 -->
-<script src="/sw-register.js?v=6.9.8"></script>
+<script src="/sw-register.js?v=6.9.19" defer></script>
 </body>
 </html>

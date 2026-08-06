@@ -7,6 +7,14 @@ function reportClientError(payload) {
     }
   } catch (_) {}
 }
+// v6.9.11: 防御性修复——在任何业务逻辑前，强制确保 #app 隐藏、#lock 覆盖全屏
+// 防止 SW 缓存/外部 CSS 加载异常导致布局崩溃（锁屏漏出仪表盘）
+(function(){
+  var _app = document.getElementById('app');
+  var _lock = document.getElementById('lock');
+  if (_app) _app.style.display = 'none';
+  if (_lock) { _lock.style.display = 'flex'; _lock.style.position = 'fixed'; _lock.style.inset = '0'; _lock.style.zIndex = '9999'; }
+})();
 window.addEventListener('error', function(e) {
   reportClientError({
     type: 'error',
@@ -87,9 +95,16 @@ function __shouldBlockRefresh(reason) {
   return false;
 }
 
-// ============ 认证：覆盖 fetch 自动注入 token + 401 自动登出 + v6.5.8 离线检测 ============
+// ============ 认证：覆盖 fetch 自动注入 token + 401 自动登出 + 离线检测 + 超时重试 ============
 var _origFetch = window.fetch;
 var __isOffline = false;
+// 带超时的 fetch：AbortController 控制超时，默认 10s
+function fetchWithTimeout(url, opts, timeoutMs) {
+  var ctrl = new AbortController();
+  var opts2 = Object.assign({}, opts, { signal: ctrl.signal });
+  var to = setTimeout(function() { ctrl.abort(); }, timeoutMs || 10000);
+  return _origFetch(url, opts2).finally(function() { clearTimeout(to); });
+}
 window.fetch = function(url, opts) {
   opts = opts || {};
   opts.headers = opts.headers || {};
@@ -98,7 +113,22 @@ window.fetch = function(url, opts) {
       opts.headers['Authorization'] = 'Bearer ' + TOKEN;
     }
   }
-  return _origFetch(url, opts).then(function(resp) {
+  // v6.9.10: GET 请求自动重试 1 次（弱网瞬时失败兜底）
+  var isGet = !opts.method || opts.method === 'GET';
+  var isApi = typeof url === 'string' && url.startsWith('/api/');
+  var tryFetch = function() { return fetchWithTimeout(url, opts, 8000); };
+  var chain = tryFetch();
+  if (isApi && isGet) {
+    // GET 失败（网络错/超时）时延迟 1s 重试一次
+    chain = chain.catch(function(err) {
+      return new Promise(function(resolve, reject) {
+        setTimeout(function() {
+          tryFetch().then(resolve, reject);
+        }, 1000);
+      });
+    });
+  }
+  return chain.then(function(resp) {
     // v6.5.8 离线检测：SW 返回 __offline 标记时显示提示
     if (resp.headers.get('content-type') && resp.headers.get('content-type').includes('json')) {
       var clone = resp.clone();
@@ -113,17 +143,26 @@ window.fetch = function(url, opts) {
         }
       }).catch(function(){});
     }
+    // v6.9.17: 401 处理降级——只对 /api/me 的 401 清 token（这是明确的认证检查），
+    // 其他接口 401 可能是 SW 缓存/网络抖动，先给一次重试机会，避免误清 token
     if (resp.status === 401 && typeof url === 'string' && url.startsWith('/api/') && !url.includes('/api/login')) {
-      TOKEN = '';
-      localStorage.removeItem(TOKEN_KEY);
-      var app = document.getElementById('app');
-      var lock = document.getElementById('lock');
-      if (app && lock) {
-        app.style.display = 'none';
-        lock.style.display = 'flex';
-        var err = document.getElementById('pwdErr');
-        if (err) { err.textContent = '登录已过期，请重新登录'; err.style.display = 'block'; }
+      // 计数本次会话内的 401 次数，连续 2 次才真正登出
+      window.__auth401Count = (window.__auth401Count || 0) + 1;
+      if (window.__auth401Count >= 2 || url === '/api/me') {
+        TOKEN = '';
+        localStorage.removeItem(TOKEN_KEY);
+        var app = document.getElementById('app');
+        var lock = document.getElementById('lock');
+        if (app && lock) {
+          app.style.display = 'none';
+          lock.style.display = 'flex';
+          var err = document.getElementById('pwdErr');
+          if (err) { err.textContent = '登录已过期，请重新登录'; err.style.display = 'block'; }
+        }
       }
+    } else if (resp.ok) {
+      // 请求成功，重置 401 计数
+      window.__auth401Count = 0;
     }
     return resp;
   });
@@ -245,14 +284,17 @@ window.addEventListener('online', function() {
   updateOfflineBanner();
   setTimeout(function() { flushPendingQueue(true); }, 800);
 });
-// 轻量 Toast
+// 轻量 Toast（统一实现，支持 kind: success/warn/default + 可选 duration）
+// 注意：全局仅此一个 showToast，避免之前 250/4602 两处定义冲突
 var __toastTimer = null;
-function showToast(msg, kind) {
+function showToast(msg, kind, duration) {
+  // 兼容旧调用 showToast(msg, duration) —— 第二参数为数字时视为 duration
+  if (typeof kind === 'number') { duration = kind; kind = 'default'; }
   var t = document.getElementById('app-toast');
   if (!t) {
     t = document.createElement('div');
     t.id = 'app-toast';
-    t.style.cssText = 'position:fixed;left:50%;top:70px;transform:translateX(-50%);padding:10px 18px;border-radius:10px;z-index:99999;font-size:13px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.18);transition:opacity .3s;opacity:0;pointer-events:none;';
+    t.style.cssText = 'position:fixed;left:50%;top:70px;transform:translateX(-50%);padding:10px 18px;border-radius:10px;z-index:99999;font-size:13px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.18);transition:opacity .3s;opacity:0;pointer-events:none;max-width:90vw;text-align:center;';
     document.body.appendChild(t);
   }
   t.style.background = kind === 'success' ? '#10B981' : kind === 'warn' ? '#F59E0B' : '#6B7280';
@@ -260,7 +302,7 @@ function showToast(msg, kind) {
   t.textContent = msg;
   t.style.opacity = '1';
   if (__toastTimer) clearTimeout(__toastTimer);
-  __toastTimer = setTimeout(function() { t.style.opacity = '0'; }, 2800);
+  __toastTimer = setTimeout(function() { t.style.opacity = '0'; }, duration || 2800);
 }
 
 var SCENES = [
@@ -363,20 +405,40 @@ async function login(){
 document.getElementById('pwdI').addEventListener('keydown', function(e){ if(e.key === 'Enter') login(); });
 
 // 启动时检查是否已登录（token 是否有效）
+// v6.9.17: 网络失败时重试2次（共3次），避免弱网下误回退到登录页
 async function checkSession() {
   if (!TOKEN) return false;
-  try {
-    var r = await fetch('/api/me');
-    return r.ok;
-  } catch(e) { return false; }
+  for (var i = 0; i < 3; i++) {
+    try {
+      var r = await fetch('/api/me');
+      if (r.ok) return true;
+      if (r.status === 401) return false;  // 明确未登录，不重试
+      // 其他状态码（5xx等）继续重试
+    } catch(e) {
+      // 网络错误，继续重试
+    }
+    if (i < 2) await new Promise(function(res){ setTimeout(res, 1500); });
+  }
+  return false;
 }
 // 页面加载时自动登录
+// v6.9.17: checkSession 失败但 token 仍在时，不立即回退登录页，先显示重试提示
 (async function() {
-  if (await checkSession()) {
+  var ok = await checkSession();
+  if (ok) {
     document.getElementById('lock').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     applyTheme('home');
     initApp();
+  } else if (TOKEN) {
+    // token 还在但验证失败（可能是网络问题）→ 显示重试按钮而非直接清 token
+    var err = document.getElementById('pwdErr');
+    if (err) { err.textContent = '网络不稳定，点击重试'; err.style.display = 'block'; }
+    var btn = document.querySelector('#lock button');
+    if (btn) {
+      btn.textContent = '重试连接';
+      btn.setAttribute('onclick', 'location.reload()');
+    }
   }
 })();
 
@@ -392,19 +454,19 @@ async function initApp() {
   // v6.5.8 首屏优化：先显示骨架屏，数据到达后切换为真实内容
   var skeleton = document.getElementById('homeSkeleton');
   var content = document.getElementById('homeContent');
-  // 首屏聚合加载：一次请求拉取全部 19 个模块 + insights 并发，替代串行 19 次请求
+  // v6.9.18 首屏聚合加载：bootstrap(23模块) + insights-plus(insights+dashboard) 并发，替代 2+串行 27+ 请求
   try {
     const [bootResp, insResp] = await Promise.all([
-      fetch('/api/bootstrap'),
-      fetch('/api/insights')
+      fetch('/api/bootstrap?_='+Date.now()),
+      fetch('/api/insights-plus?_='+Date.now())
     ]);
     const boot = await bootResp.json();
-    // 将聚合数据填入 dataCache
-    for (var m in boot) {
-      if (Array.isArray(boot[m])) dataCache[m] = boot[m];
-    }
-    // insights 并发拉取
-    try { insightsCache = await insResp.json(); } catch(e) { insightsCache = null; }
+    for (var m in boot) { if (Array.isArray(boot[m])) dataCache[m] = boot[m]; }
+    try {
+      const ins = await insResp.json();
+      insightsCache = ins.insights || null;
+      engDashboardCache = ins.dashboard || null;
+    } catch(e) { insightsCache = null; engDashboardCache = null; }
   } catch(e) {
     // 聚合接口失败时降级为逐模块串行（兜底）
     var mods = ['finance','sleep','exercise','emotion','diet','diary','learn','photo','think','inventory','space','work','home','travel','body','relation','time','growth','spirit','pet','medical','todo','health'];
@@ -2860,189 +2922,96 @@ async function saveManifesto(){
 // ---- 首页计数 + 今日反馈 ----
 async function loadCognitiveCounts(){
   try {
-    var r1 = await fetch('/api/principles'); var p = await r1.json();
-    var r2 = await fetch('/api/decisions'); var d = await r2.json();
-    var pe = document.getElementById('principleCount'); if (pe) pe.textContent = p.length + ' 条';
-    var de = document.getElementById('decisionCount'); if (de) de.textContent = d.length + ' 条';
+    var r = await fetch('/api/cognitive-counts');
+    var d = await r.json();
+    var pe = document.getElementById('principleCount'); if (pe) pe.textContent = (d.principles||0) + ' \u6761';
+    var de = document.getElementById('decisionCount'); if (de) de.textContent = (d.decisions||0) + ' \u6761';
+    var r1e = document.getElementById('rootCauseCount'); if (r1e) r1e.textContent = (d.rootCause||0) + ' \u6761';
+    var r2e = document.getElementById('interpersonalCount'); if (r2e) r2e.textContent = (d.interpersonal||0) + ' \u6761';
+    var r3e = document.getElementById('mindfulnessCount'); if (r3e) r3e.textContent = (d.mindfulness||0) + ' \u6b21';
+    var r4e = document.getElementById('energyNet'); if (r4e) r4e.textContent = '\u51c0 ' + (d.energyNet != null ? d.energyNet : 0);
+    var r5e = document.getElementById('reviewCount'); if (r5e) r5e.textContent = (d.reviews||0) + ' \u6761';
+    var b1e = document.getElementById('beliefCount'); if (b1e) b1e.textContent = (d.beliefs||0) + ' \u6761';
+    var b2e = document.getElementById('characterCount'); if (b2e) b2e.textContent = (d.character||0) + ' \u4efd';
+    var b3e = document.getElementById('portraitCount'); if (b3e) b3e.textContent = (d.selfPortrait||0) + ' \u4efd';
+    var b4e = document.getElementById('entropyScore'); if (b4e) b4e.textContent = '\u71b5 ' + (d.entropyScore != null ? d.entropyScore : 0);
+    var b5e = document.getElementById('antifragileAvg'); if (b5e) b5e.textContent = d.antifragileAvg != null ? '\u5747' + Number(d.antifragileAvg).toFixed(1) : '-';
+    var c1e = document.getElementById('northStarStatus'); if (c1e) c1e.textContent = d.northStar || '\u672a\u8bbe';
+    var c2e = document.getElementById('crisisCount'); if (c2e) c2e.textContent = (d.crisis||0) + ' \u4e2a';
+    var c3e = document.getElementById('deathTestCount'); if (c3e) c3e.textContent = (d.deathTest||0) + ' \u6b21';
+    var c4e = document.getElementById('narrativeCount'); if (c4e) c4e.textContent = (d.narrative||0) + ' \u4efd';
+    var c5e = document.getElementById('manifestoStatus'); if (c5e) c5e.textContent = d.manifesto || '\u672a\u7acb';
+    var d1e = document.getElementById('metacogScore'); if (d1e) d1e.textContent = d.metacog && d.metacog.score != null ? d.metacog.score + '/10' : '-';
+    var d2e = document.getElementById('biasScore'); if (d2e) d2e.textContent = d.bias && d.bias.score != null ? d.bias.score + '\u504f\u5dee' : '-';
+    var d3e = document.getElementById('trajStatus'); if (d3e) d3e.textContent = d.trajectory && d.trajectory.trend ? d.trajectory.trend : '-';
+    var d4e = document.getElementById('alignScore'); if (d4e) d4e.textContent = d.values && d.values.alignment != null ? d.values.alignment + '/10' : '-';
+    var d5e = document.getElementById('antiScore'); if (d5e) d5e.textContent = d.antiHuman && d.antiHuman.score != null ? d.antiHuman.score + '/10' : '-';
+    var e1e = document.getElementById('healthTrendCnt'); if (e1e) e1e.textContent = d.healthTrendCnt != null ? d.healthTrendCnt + '\u70b9' : '-';
+    var e2e = document.getElementById('planCnt'); if (e2e) e2e.textContent = (d.plan||0) + ' \u4e2a';
+    var e3e = document.getElementById('milestoneCnt'); if (e3e) e3e.textContent = (d.lifeMilestone||0) + ' \u4e2a';
+    return;
   } catch(e) {}
-  // Phase 2 计数
+  // --- 聚合接口失败：并发降级（块内 Promise.all，不再串行 ---
   try {
-    var a1 = await fetch('/api/root-cause'); var rc = await a1.json();
-    var a2 = await fetch('/api/interpersonal'); var ip = await a2.json();
-    var a3 = await fetch('/api/mindfulness'); var mf = await a3.json();
-    var a4 = await fetch('/api/energy/audit'); var eg = await a4.json();
-    var a5 = await fetch('/api/reviews'); var rv = await a5.json();
-    var r1e = document.getElementById('rootCauseCount'); if (r1e) r1e.textContent = rc.length + ' 条';
-    var r2e = document.getElementById('interpersonalCount'); if (r2e) r2e.textContent = ip.length + ' 条';
-    var r3e = document.getElementById('mindfulnessCount'); if (r3e) r3e.textContent = mf.length + ' 次';
-    var r4e = document.getElementById('energyNet'); if (r4e) r4e.textContent = '净 ' + (eg.net || 0);
-    var r5e = document.getElementById('reviewCount'); if (r5e) r5e.textContent = rv.length + ' 条';
+    var res = await Promise.all([fetch('/api/principles'), fetch('/api/decisions')]);
+    var [p0,p1] = await Promise.all([res[0].json(), res[1].json()]);
+    var pe = document.getElementById('principleCount'); if (pe) pe.textContent = p0.length + ' \u6761';
+    var de = document.getElementById('decisionCount'); if (de) de.textContent = p1.length + ' \u6761';
   } catch(e) {}
-  // Phase 3 计数
   try {
-    var b1 = await fetch('/api/beliefs'); var bl = await b1.json();
-    var b2 = await fetch('/api/character'); var ch = await b2.json();
-    var b3 = await fetch('/api/self-portrait'); var sp = await b3.json();
-    var b4 = await fetch('/api/entropy'); var en = await b4.json();
-    var b5 = await fetch('/api/antifragile'); var af = await b5.json();
-    var b1e = document.getElementById('beliefCount'); if (b1e) b1e.textContent = bl.length + ' 条';
-    var b2e = document.getElementById('characterCount'); if (b2e) b2e.textContent = ch.length + ' 份';
-    var b3e = document.getElementById('portraitCount'); if (b3e) b3e.textContent = sp.length + ' 份';
-    var b4e = document.getElementById('entropyScore'); if (b4e) b4e.textContent = '熵 ' + (en.entropyScore || 0);
-    var b5e = document.getElementById('antifragileAvg'); if (b5e) b5e.textContent = af && af.average ? '均' + af.average.toFixed(1) : '-';
+    var res = await Promise.all([
+      fetch('/api/root-cause'),fetch('/api/interpersonal'),fetch('/api/mindfulness'),fetch('/api/energy/audit'),fetch('/api/reviews')
+    ]);
+    var [rc,ip,mf,eg,rv] = await Promise.all(res.map(r=>r.json()));
+    var r1e = document.getElementById('rootCauseCount'); if (r1e) r1e.textContent = rc.length + ' \u6761';
+    var r2e = document.getElementById('interpersonalCount'); if (r2e) r2e.textContent = ip.length + ' \u6761';
+    var r3e = document.getElementById('mindfulnessCount'); if (r3e) r3e.textContent = mf.length + ' \u6b21';
+    var r4e = document.getElementById('energyNet'); if (r4e) r4e.textContent = '\u51c0 ' + (eg.net || 0);
+    var r5e = document.getElementById('reviewCount'); if (r5e) r5e.textContent = rv.length + ' \u6761';
   } catch(e) {}
-  // Phase 4 计数
   try {
-    var c1 = await fetch('/api/north-star'); var ns = await c1.json();
-    var c2 = await fetch('/api/crisis-plan'); var cp = await c2.json();
-    var c3 = await fetch('/api/death-test'); var dt = await c3.json();
-    var c4 = await fetch('/api/narrative'); var nr = await c4.json();
-    var c5 = await fetch('/api/manifesto'); var mf2 = await c5.json();
-    var c1e = document.getElementById('northStarStatus'); if (c1e) c1e.textContent = ns.length && ns[0].ultimate ? '已设' : '未设';
-    var c2e = document.getElementById('crisisCount'); if (c2e) c2e.textContent = cp.length + ' 个';
-    var c3e = document.getElementById('deathTestCount'); if (c3e) c3e.textContent = dt.length + ' 次';
-    var c4e = document.getElementById('narrativeCount'); if (c4e) c4e.textContent = nr.length + ' 份';
-    var c5e = document.getElementById('manifestoStatus'); if (c5e) c5e.textContent = mf2.length && mf2[0].body ? '已立' : '未立';
+    var res = await Promise.all([
+      fetch('/api/beliefs'),fetch('/api/character'),fetch('/api/self-portrait'),fetch('/api/entropy'),fetch('/api/antifragile')
+    ]);
+    var [bl,ch,sp,en,af] = await Promise.all(res.map(r=>r.json()));
+    var b1e = document.getElementById('beliefCount'); if (b1e) b1e.textContent = bl.length + ' \u6761';
+    var b2e = document.getElementById('characterCount'); if (b2e) b2e.textContent = ch.length + ' \u4efd';
+    var b3e = document.getElementById('portraitCount'); if (b3e) b3e.textContent = sp.length + ' \u4efd';
+    var b4e = document.getElementById('entropyScore'); if (b4e) b4e.textContent = '\u71b5 ' + (en.entropyScore || 0);
+    var b5e = document.getElementById('antifragileAvg'); if (b5e) b5e.textContent = af && af.average ? '\u5747' + af.average.toFixed(1) : '-';
   } catch(e) {}
-  // Phase 5 深度认知计数
   try {
-    var d1 = await fetch('/api/eng/metacognition'); var mc = await d1.json();
-    var d2 = await fetch('/api/eng/cognitive-bias'); var cb = await d2.json();
-    var d3 = await fetch('/api/eng/trajectory?days=30'); var tj = await d3.json();
-    var d4 = await fetch('/api/eng/values-clarification'); var vc = await d4.json();
-    var d5 = await fetch('/api/eng/anti-human-nature'); var ah = await d5.json();
+    var res = await Promise.all([
+      fetch('/api/north-star'),fetch('/api/crisis-plan'),fetch('/api/death-test'),fetch('/api/narrative'),fetch('/api/manifesto')
+    ]);
+    var [ns,cp,dt,nr,mf2] = await Promise.all(res.map(r=>r.json()));
+    var c1e = document.getElementById('northStarStatus'); if (c1e) c1e.textContent = ns.length && ns[0].ultimate ? '\u5df2\u8bbe' : '\u672a\u8bbe';
+    var c2e = document.getElementById('crisisCount'); if (c2e) c2e.textContent = cp.length + ' \u4e2a';
+    var c3e = document.getElementById('deathTestCount'); if (c3e) c3e.textContent = dt.length + ' \u6b21';
+    var c4e = document.getElementById('narrativeCount'); if (c4e) c4e.textContent = nr.length + ' \u4efd';
+    var c5e = document.getElementById('manifestoStatus'); if (c5e) c5e.textContent = mf2.length && mf2[0].body ? '\u5df2\u7acb' : '\u672a\u7acb';
+  } catch(e) {}
+  try {
+    var res = await Promise.all([
+      fetch('/api/eng/metacognition'),fetch('/api/eng/cognitive-bias'),fetch('/api/eng/trajectory?days=30'),fetch('/api/eng/values-clarification'),fetch('/api/eng/anti-human-nature')
+    ]);
+    var [mc,cb,tj,vc,ah] = await Promise.all(res.map(r=>r.json()));
     var d1e = document.getElementById('metacogScore'); if (d1e) d1e.textContent = mc.score ? mc.score + '/10' : '-';
-    var d2e = document.getElementById('biasScore'); if (d2e) d2e.textContent = cb.score ? cb.score + '偏差' : '-';
+    var d2e = document.getElementById('biasScore'); if (d2e) d2e.textContent = cb.score ? cb.score + '\u504f\u5dee' : '-';
     var d3e = document.getElementById('trajStatus'); if (d3e) d3e.textContent = tj.trend || '-';
     var d4e = document.getElementById('alignScore'); if (d4e) d4e.textContent = vc.alignment ? vc.alignment + '/10' : '-';
     var d5e = document.getElementById('antiScore'); if (d5e) d5e.textContent = ah.score ? ah.score + '/10' : '-';
   } catch(e) {}
-  // v5.6 / v5.7 计数
   try {
-    var e1 = await fetch('/api/health-trends?days=90'); var ht = await e1.json();
-    var e2 = await fetch('/api/plan'); var pl = await e2.json();
-    var e3 = await fetch('/api/life-milestone'); var lm = await e3.json();
-    var e1e = document.getElementById('healthTrendCnt'); if (e1e) e1e.textContent = (ht.weight||[]).length + (ht.bloodPressure||[]).length > 0 ? (ht.weight||[]).length + '点' : '-';
-    var e2e = document.getElementById('planCnt'); if (e2e) e2e.textContent = pl.length + ' 个';
-    var e3e = document.getElementById('milestoneCnt'); if (e3e) e3e.textContent = lm.length + ' 个';
+    var res = await Promise.all([
+      fetch('/api/health-trends?days=90'),fetch('/api/plan'),fetch('/api/life-milestone')
+    ]);
+    var [ht,pl,lm] = await Promise.all(res.map(r=>r.json()));
+    var e1e = document.getElementById('healthTrendCnt');
+    if (e1e) e1e.textContent = (ht.weight||[]).length + (ht.bloodPressure||[]).length > 0 ? ((ht.weight||[]).length + (ht.bloodPressure||[]).length) + '\u70b9' : '-';
+    var e2e = document.getElementById('planCnt'); if (e2e) e2e.textContent = pl.length + ' \u4e2a';
+    var e3e = document.getElementById('milestoneCnt'); if (e3e) e3e.textContent = lm.length + ' \u4e2a';
   } catch(e) {}
-}
-
-// ====== Phase 5 深度认知工具 ======
-async function openMetacognition(){
-  openModal2('🔄 元认知反思', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析思维方式中...</div>');
-  try {
-    var r = await fetch('/api/eng/metacognition'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">🧠 你在"如何"思考，比你"思考什么"更重要</div>';
-    if (d.score !== undefined) html += '<div style="background:var(--c-accent);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid var(--c-primary)"><div style="font-size:11px;color:var(--c-primary);margin-bottom:6px">元认知得分</div><div style="font-size:20px;font-weight:700;color:var(--c-primary)">' + d.score + '/10</div></div>';
-    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">🔍 检测到的思维特征</div>';
-      d.details.forEach(function(item){
-        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : item.severity === 'med' ? '#F59E0B' : '#10B981') + '"><div style="font-size:12px;color:var(--c-fg)">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
-      });
-    }
-    openModal2('🔄 元认知反思', html);
-  } catch(e) { openModal2('🔄 元认知反思', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function openCognitiveBias(){
-  openModal2('🎭 认知偏差检测', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析思维偏差中...</div>');
-  try {
-    var r = await fetch('/api/eng/cognitive-bias'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">⚠️ 你的大脑在偷偷骗你吗？</div>';
-    if (d.score !== undefined) html += '<div style="background:rgba(239,68,68,0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #EF4444"><div style="font-size:11px;color:#EF4444;margin-bottom:6px">检测到的偏差</div><div style="font-size:20px;font-weight:700;color:#EF4444">' + d.score + ' 个</div></div>';
-    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">🎯 偏差详情</div>';
-      d.details.forEach(function(item){
-        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid #F59E0B"><div style="font-size:12px;color:var(--c-fg);font-weight:600">' + escapeHtml(item.name || item.type || '') + '</div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">' + escapeHtml(item.description || item.detail || '') + '</div></div>';
-      });
-    }
-    openModal2('🎭 认知偏差检测', html);
-  } catch(e) { openModal2('🎭 认知偏差检测', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function openTrajectory(){
-  openModal2('📈 轨迹分析', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析趋势中...</div>');
-  try {
-    var r = await fetch('/api/eng/trajectory?days=30'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">📊 近30天你在变好还是变差？</div>';
-    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.trend) html += '<div style="background:rgba(' + (d.trend === '↓' ? '239,68,68' : d.trend === '↑' ? '16,185,129' : '107,114,128') + ',0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid ' + (d.trend === '↓' ? '#EF4444' : d.trend === '↑' ? '#10B981' : '#6B7280') + '"><div style="font-size:20px;font-weight:700">趋势：' + d.trend + ' ' + escapeHtml(d.trendLabel || '') + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">📉 各维度变化</div>';
-      d.details.forEach(function(item){
-        var color = item.change > 0 ? '#10B981' : item.change < 0 ? '#EF4444' : '#6B7280';
-        html += '<div style="display:flex;justify-content:space-between;background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px"><span style="font-size:12px;color:var(--c-fg)">' + escapeHtml(item.label || item.dim || '') + '</span><span style="font-size:12px;color:' + color + ';font-weight:600">' + (item.change > 0 ? '+' : '') + escapeHtml(String(item.change)) + '</span></div>';
-      });
-    }
-    openModal2('📈 轨迹分析', html);
-  } catch(e) { openModal2('📈 轨迹分析', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function openSecondOrder(){
-  openModal2('⚡ 二阶效应分析', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析连锁反应中...</div>');
-  try {
-    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">⚡ 你做的每件事都有连锁反应</div>';
-    html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px"><div style="font-size:12px;color:var(--c-fg-2);margin-bottom:8px">选择一个要分析的领域：</div>';
-    var mods = [['sleep','😴 睡眠'],['finance','💰 财务'],['emotion','😊 情绪'],['exercise','🏃 运动'],['diet','🥗 饮食'],['work','💼 工作']];
-    mods.forEach(function(m){
-      html += '<button onclick="analyzeSecondOrder(\'' + m[0] + '\')" style="width:100%;padding:10px;margin-bottom:6px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;font-size:13px;font-weight:600;cursor:pointer">' + m[1] + '</button>';
-    });
-    html += '</div>';
-    openModal2('⚡ 二阶效应分析', html);
-  } catch(e) { openModal2('⚡ 二阶效应分析', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function analyzeSecondOrder(mid){
-  try {
-    var r = await fetch('/api/eng/second-order', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mid:mid})});
-    var d = await r.json();
-    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">⚡ <strong>' + escapeHtml(mid) + '</strong> 的连锁效应</div>';
-    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.chain && d.chain.length) {
-      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">🔗 效应链</div>';
-      d.chain.forEach(function(item, i){
-        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (i === 0 ? 'var(--c-primary)' : i === 1 ? '#F59E0B' : '#EF4444') + '"><div style="font-size:11px;color:var(--c-fg-3)">第' + (i+1) + '阶效应</div><div style="font-size:12px;color:var(--c-fg);margin-top:2px">' + escapeHtml(item) + '</div></div>';
-      });
-    }
-    openModal2('⚡ 二阶效应：' + escapeHtml(mid), html);
-  } catch(e) { alert('分析失败：' + e.message); }
-}
-
-async function openValues(){
-  openModal2('🎯 价值观澄清', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">分析真实价值观中...</div>');
-  try {
-    var r = await fetch('/api/eng/values-clarification'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">🎯 你宣称的价值观 vs 你实际在做什么</div>';
-    if (d.alignment !== undefined) html += '<div style="background:rgba(16,185,129,0.06);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #10B981"><div style="font-size:11px;color:#10B981;margin-bottom:6px">人生对齐度</div><div style="font-size:20px;font-weight:700;color:#10B981">' + d.alignment + '/10</div></div>';
-    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">💎 你的真实价值观</div>';
-      d.details.forEach(function(item){
-        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid var(--c-primary-2)"><div style="font-size:12px;color:var(--c-fg);font-weight:600">' + escapeHtml(item.label || item.name || '') + '</div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">' + escapeHtml(item.detail || item.description || '') + '</div></div>';
-      });
-    }
-    openModal2('🎯 价值观澄清', html);
-  } catch(e) { openModal2('🎯 价值观澄清', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
-}
-
-async function openAntiHuman(){
-  openModal2('🚫 反人性检测', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">检测人性弱点中...</div>');
-  try {
-    var r = await fetch('/api/eng/anti-human-nature'); var d = await r.json();
-    var html = '<div style="font-size:13px;color:var(--c-fg-2);margin-bottom:12px">🚫 对抗人性弱点，才能超越自己</div>';
-    if (d.score !== undefined) html += '<div style="background:rgba(245,158,11,0.08);border-radius:10px;padding:12px;margin-bottom:12px;border-left:3px solid #F59E0B"><div style="font-size:11px;color:#F59E0B;margin-bottom:6px">反人性指数</div><div style="font-size:20px;font-weight:700;color:#F59E0B">' + d.score + '/10</div></div>';
-    if (d.text) html += '<div style="background:var(--c-surface);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #F5F7FA"><div style="font-size:12px;color:var(--c-fg);line-height:1.7;white-space:pre-wrap">' + escapeHtml(d.text) + '</div></div>';
-    if (d.details && d.details.length) {
-      html += '<div style="font-size:11px;color:var(--c-fg-3);margin-bottom:8px">⚠️ 检测到的人性弱点</div>';
-      d.details.forEach(function(item){
-        html += '<div style="background:var(--c-surface);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ' + (item.severity === 'high' ? '#EF4444' : '#F59E0B') + '"><div style="font-size:12px;color:var(--c-fg);font-weight:600">' + escapeHtml(item.label || item.type || '') + '</div><div style="font-size:11px;color:var(--c-fg-2);margin-top:2px">' + escapeHtml(item.detail || item.message || '') + '</div></div>';
-      });
-    }
-    openModal2('🚫 反人性检测', html);
-  } catch(e) { openModal2('🚫 反人性检测', '<div style="color:#EF4444;padding:20px">加载失败：' + e.message + '</div>'); }
 }
 
 function showTodayReflection(text){
@@ -4597,18 +4566,6 @@ function togglePrivacy(){
   if (btn) btn.style.opacity = privacyOn ? '0.6' : '1';
   // 轻提示（非阻塞）
   showToast(privacyOn ? '👁️ 隐私模式已开启' : '👁️ 隐私模式已关闭');
-}
-// 简易 toast 提示（替代 alert，不阻塞操作）
-function showToast(msg, duration){
-  duration = duration || 2000;
-  var existing = document.getElementById('__toast');
-  if (existing) existing.remove();
-  var t = document.createElement('div');
-  t.id = '__toast';
-  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;z-index:9999;transition:opacity 0.3s;pointer-events:none;max-width:90vw;text-align:center;';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, duration);
 }
 
 // ============ v6.4.2 运维面板 ============

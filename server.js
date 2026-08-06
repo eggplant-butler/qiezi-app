@@ -50,6 +50,17 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS kv(
     key TEXT PRIMARY KEY, value TEXT
   );
+  -- 审计日志表：记录关键安全操作（登录/恢复/删除/清空/改密）
+  CREATE TABLE IF NOT EXISTS audit_log(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    action TEXT NOT NULL,
+    ip TEXT,
+    detail TEXT,
+    success INTEGER DEFAULT 1
+  );
+  CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(ts DESC);
+  CREATE INDEX IF NOT EXISTS idx_audit_action_ts ON audit_log(action, ts DESC);
   -- 复合索引：按模块+创建时间查询（最高频场景：首页列表、模块时间线）
   CREATE INDEX IF NOT EXISTS idx_records_mid_created ON records(mid, created DESC);
   -- ID 索引：按 ID 查询/删除单条记录
@@ -57,6 +68,30 @@ db.exec(`
   -- 创建时间索引：按时间范围查询（如"最近7天"、"本月"）
   CREATE INDEX IF NOT EXISTS idx_records_created ON records(created DESC);
 `);
+
+// 审计日志函数：记录关键安全操作
+const _auditStmt = db.prepare('INSERT INTO audit_log(ts, action, ip, detail, success) VALUES(?,?,?,?,?)');
+function auditLog(action, ip, detail, success) {
+  try {
+    _auditStmt.run(new Date().toISOString(), action, ip || '', JSON.stringify(detail || {}).slice(0, 500), success === false ? 0 : 1);
+  } catch (e) { console.error('[auditLog]', e.message); }
+}
+// 审计日志保留天数（超过则清理）
+const AUDIT_LOG_RETAIN_DAYS = 90;
+// 清理超过保留期的审计日志，返回删除条数
+const _auditCleanupStmt = db.prepare("DELETE FROM audit_log WHERE ts < ?");
+function cleanupAuditLog(retainDays) {
+  try {
+    const days = retainDays || AUDIT_LOG_RETAIN_DAYS;
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+    const info = _auditCleanupStmt.run(cutoff);
+    if (info.changes > 0) console.log('[cleanupAuditLog] 清理', info.changes, '条（保留', days, '天）');
+    return info.changes || 0;
+  } catch (e) {
+    console.error('[cleanupAuditLog]', e.message);
+    return 0;
+  }
+}
 
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -332,20 +367,49 @@ function verifyPassword(pwd) {
   const hash = crypto.scryptSync(pwd, PASSWORD_SALT, 64).toString('hex');
   return hash.length === PASSWORD_HASH.length && crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(PASSWORD_HASH));
 }
+function parseCookies(req) {
+  try {
+    const h = req.headers.cookie || '';
+    const out = {};
+    h.split(';').forEach(pair => {
+      const i = pair.indexOf('=');
+      if (i > 0) out[pair.slice(0,i).trim()] = decodeURIComponent(pair.slice(i+1).trim());
+    });
+    return out;
+  } catch(e) { return {}; }
+}
+
 function requireAuth(req, res, next) {
+  // v6.9.18: 双重鉴权——Authorization header 优先，cookie 兜底
+  // 解决旧 SW 缓存的 app.js 不注入 Authorization header 的问题
+  let token = null;
   const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
+  if (auth && auth.startsWith('Bearer ')) {
+    token = auth.slice(7);
+  } else {
+    const cookies = parseCookies(req);
+    if (cookies.qzos_token) token = cookies.qzos_token;
+  }
+  if (!token) {
     return res.status(401).json({ success: false, message: '未登录' });
   }
-  const payload = verifyToken(auth.slice(7));
+  const payload = verifyToken(token);
   if (!payload) {
     return res.status(401).json({ success: false, message: '登录已过期，请重新登录' });
   }
   req.user = payload;
+  // 回写 cookie 续期
+  res.cookie('qzos_token', token, {
+    httpOnly: false, sameSite: 'lax', path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
   next();
 }
 initAuth();
 
+// v6.9.16 修复：HTTP 环境下 upgradeInsecureRequests 会把 API 请求强制升级为 HTTPS，
+// 但服务器只有 HTTP（端口3000），导致请求全部失败 → 登录后几十秒"登录已过期"
+// 同时 HSTS 在 HTTP 下有害无益（浏览器一年内强制 HTTPS），一并禁用
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -353,17 +417,17 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'blob:'],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", 'http:', 'https:'],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
-      frameAncestors: ["'self'"],
-      upgradeInsecureRequests: []
+      frameAncestors: ["'self'"]
+      // upgradeInsecureRequests 已移除（HTTP 环境下会把请求升级到不存在的 HTTPS）
     }
   },
   crossOriginEmbedderPolicy: false,
-  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  hsts: false,  // HTTP 环境禁用 HSTS
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   permissionsPolicy: {
     camera: [], microphone: [], geolocation: [], payment: [], usb: []
@@ -533,20 +597,64 @@ app.post('/api/login', loginLimiter, (req, res) => {
   const { password } = req.body || {};
   if (!password) return res.status(400).json({ success: false, message: '请输入密码' });
   if (!verifyPassword(password)) {
+    auditLog('login_fail', req.ip, { reason: 'wrong_password' }, false);
     // 500ms 延迟减缓暴力破解
     setTimeout(() => res.status(401).json({ success: false, message: '密码错误' }), 500);
     return;
   }
+  auditLog('login_ok', req.ip, { user: 'captain' }, true);
   const token = signToken({ user: 'captain' });
+  // v6.9.18: 登录设 cookie，兜底旧 SW 不注入 Authorization header
+  res.cookie('qzos_token', token, {
+    httpOnly: false, sameSite: 'lax', path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
   res.json({ success: true, token, expiresIn: 7 * 24 * 60 * 60 * 1000 });
 });
 
 // ============ 认证中间件：以下所有 /api/ 路由需携带有效 JWT ============
+app.post('/api/logout', (req, res) => {
+  res.clearCookie('qzos_token', { path: '/' });
+  res.json({ success: true });
+});
+
 app.use('/api/', requireAuth);
 
 // 验证当前 token 是否有效（前端启动时检查）
 app.get('/api/me', (req, res) => {
   res.json({ success: true, user: req.user.user });
+});
+
+// 审计日志查询：支持按 action 过滤、时间范围、分页
+// 示例: /api/audit-log?action=login_fail&limit=50&page=1
+app.get('/api/audit-log', (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const offset = (page - 1) * limit;
+    const action = (req.query.action || '').trim();
+    const from = (req.query.from || '').trim();   // ISO 起始
+    const to = (req.query.to || '').trim();        // ISO 结束
+    const where = [];
+    const params = [];
+    if (action) { where.push('action = ?'); params.push(action); }
+    if (from)   { where.push('ts >= ?'); params.push(from); }
+    if (to)     { where.push('ts <= ?'); params.push(to); }
+    const whereSql = where.length ? ('WHERE ' + where.join(' AND ')) : '';
+    const total = db.prepare('SELECT COUNT(*) as c FROM audit_log ' + whereSql).get(...params).c;
+    const rows = db.prepare('SELECT id, ts, action, ip, detail, success FROM audit_log ' + whereSql + ' ORDER BY ts DESC LIMIT ? OFFSET ?')
+      .all(...params, limit, offset);
+    // detail JSON 解析（容错）
+    const items = rows.map(r => {
+      let detail = null;
+      try { detail = r.detail ? JSON.parse(r.detail) : null; } catch (e) { detail = r.detail; }
+      return { id: r.id, ts: r.ts, action: r.action, ip: r.ip, detail, success: !!r.success };
+    });
+    res.json({ success: true, total, page, limit, items });
+  } catch (e) {
+    console.error('[GET /api/audit-log]', e.message);
+    res.status(500).json({ success: false, message: '查询审计日志失败' });
+  }
 });
 
 // 修改密码
@@ -560,10 +668,12 @@ app.post('/api/change-password', (req, res) => {
       return res.status(400).json({ success: false, message: '新密码需4-100位' });
     }
     createAuthConfig(newPassword);
+    auditLog('change_password', req.ip, {}, true);
     const token = signToken({ user: 'captain' });
     res.json({ success: true, message: '密码已修改', token });
   } catch (e) {
     console.error('[change-password]', e.message);
+    auditLog('change_password', req.ip, { error: e.message }, false);
     res.status(500).json({ success: false, message: '密码修改失败，请重试' });
   }
 });
@@ -4986,19 +5096,125 @@ const PACK_GZ_EXT = '.pack.gz';
 const OLD_DB_EXT = '.db';
 const BACKUP_PACK_VERSION = 2;
 // P0-4: 备份加密密钥（独立文件，不包含在备份中，防止拿到备份即可解密）
-const BACKUP_KEY_FILE = path.join(DATA_DIR, 'backup.key');
+// P2-2: 密钥轮换机制——维护"当前密钥 + 历史密钥链"，轮换后旧备份仍可解密
+const BACKUP_KEY_FILE = path.join(DATA_DIR, 'backup.key');           // 兼容回退：当前密钥的镜像
+const BACKUP_KEYCHAIN_FILE = path.join(DATA_DIR, 'backup.keys.json'); // 密钥链（当前+历史）
+// 密钥自动轮换周期（天）：到点后自动生成新密钥并归档旧密钥
+const BACKUP_KEY_ROTATE_DAYS = 90;
+// 历史密钥最多保留条数（防止无限增长，超出的最旧密钥淘汰）
+const BACKUP_KEY_HISTORY_MAX = 4;
+
+// 读取密钥链：{ version, current, currentSince, history: [{key, since, until}] }
+function loadBackupKeychain() {
+  try {
+    if (fs.existsSync(BACKUP_KEYCHAIN_FILE)) {
+      const kc = JSON.parse(fs.readFileSync(BACKUP_KEYCHAIN_FILE, 'utf8'));
+      if (kc && typeof kc.current === 'string' && kc.current.length === 64) {
+        if (!Array.isArray(kc.history)) kc.history = [];
+        return kc;
+      }
+    }
+  } catch (e) { console.error('[loadBackupKeychain]', e.message); }
+  return null;
+}
+
+// 原子写入密钥链（temp + rename），并同步镜像到 backup.key
+function saveBackupKeychain(kc) {
+  try {
+    const tmp = BACKUP_KEYCHAIN_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(kc, null, 2), { mode: 0o600 });
+    fs.renameSync(tmp, BACKUP_KEYCHAIN_FILE);
+    // 同步镜像当前密钥到 backup.key（兼容旧代码回退读取）
+    try { fs.writeFileSync(BACKUP_KEY_FILE, kc.current, { mode: 0o600 }); } catch (e) {}
+  } catch (e) { console.error('[saveBackupKeychain]', e.message); }
+}
+
+// 获取当前加密密钥（用于加密新备份）
 function getBackupKey() {
+  const kc = loadBackupKeychain();
+  if (kc) return Buffer.from(kc.current, 'hex');
+  // 迁移路径：旧 backup.key 存在 → 升级为密钥链
   try {
     if (fs.existsSync(BACKUP_KEY_FILE)) {
       const k = fs.readFileSync(BACKUP_KEY_FILE, 'utf8').trim();
-      if (k.length === 64) return Buffer.from(k, 'hex'); // 32 bytes
+      if (k.length === 64) {
+        const migrated = { version: 1, current: k, currentSince: new Date().toISOString(), history: [] };
+        saveBackupKeychain(migrated);
+        return Buffer.from(k, 'hex');
+      }
     }
   } catch (e) {}
-  // 首次：自动生成 256-bit 密钥并持久化
+  // 首次：生成新密钥并初始化密钥链
   const newKey = crypto.randomBytes(32);
-  try { fs.writeFileSync(BACKUP_KEY_FILE, newKey.toString('hex'), { mode: 0o600 }); } catch (e) {}
+  const kc2 = { version: 1, current: newKey.toString('hex'), currentSince: new Date().toISOString(), history: [] };
+  saveBackupKeychain(kc2);
   return newKey;
 }
+
+// 获取全部密钥（当前 + 历史），用于解密时遍历尝试。返回 [{key: Buffer, label: 'current'|'history', since}]
+function getAllBackupKeys() {
+  // 确保密钥链已初始化（首次会迁移/生成）
+  getBackupKey();
+  const kc = loadBackupKeychain() || { current: '', currentSince: '', history: [] };
+  const list = [];
+  if (kc.current && kc.current.length === 64) {
+    list.push({ key: Buffer.from(kc.current, 'hex'), label: 'current', since: kc.currentSince });
+  }
+  for (const h of kc.history) {
+    if (h && h.key && h.key.length === 64) {
+      list.push({ key: Buffer.from(h.key, 'hex'), label: 'history', since: h.since });
+    }
+  }
+  return list;
+}
+
+// 轮换备份密钥：生成新密钥，旧密钥归档到 history。返回 { rotated, since, fingerprint }
+function rotateBackupKey() {
+  // 确保已初始化
+  getBackupKey();
+  const kc = loadBackupKeychain();
+  if (!kc) throw new Error('密钥链未初始化');
+  const now = new Date().toISOString();
+  const oldKey = kc.current;
+  const oldSince = kc.currentSince;
+  const newKey = crypto.randomBytes(32).toString('hex');
+  // 归档旧密钥
+  const history = kc.history ? kc.history.slice() : [];
+  history.unshift({ key: oldKey, since: oldSince || now, until: now });
+  // 淘汰超出上限的最旧密钥
+  if (history.length > BACKUP_KEY_HISTORY_MAX) {
+    history.length = BACKUP_KEY_HISTORY_MAX;
+  }
+  const updated = { version: 1, current: newKey, currentSince: now, history };
+  saveBackupKeychain(updated);
+  return { rotated: true, since: now, fingerprint: newKey.slice(0, 8) };
+}
+
+// 密钥状态摘要（不返回密钥明文，仅指纹用于核对）
+function getBackupKeyInfo() {
+  getBackupKey(); // 确保初始化
+  const kc = loadBackupKeychain() || { current: '', currentSince: '', history: [] };
+  return {
+    initialized: !!kc.current,
+    currentSince: kc.currentSince || null,
+    currentFingerprint: kc.current ? sha256hex(Buffer.from(kc.current, 'hex')).slice(0, 8) : null,
+    historyCount: (kc.history || []).length,
+    history: (kc.history || []).map(h => ({
+      since: h.since, until: h.until,
+      fingerprint: sha256hex(Buffer.from(h.key, 'hex')).slice(0, 8)
+    })),
+    rotateDays: BACKUP_KEY_ROTATE_DAYS,
+    autoRotateDue: isBackupKeyRotateDue(kc)
+  };
+}
+
+// 判断是否到自动轮换周期
+function isBackupKeyRotateDue(kc) {
+  if (!kc || !kc.currentSince) return false;
+  const sinceMs = new Date(kc.currentSince).getTime();
+  return (Date.now() - sinceMs) >= BACKUP_KEY_ROTATE_DAYS * 86400000;
+}
+
 function sha256hex(buf) { return crypto.createHash('sha256').update(buf).digest('hex'); }
 // AES-256-GCM 加密：返回 { iv, tag, ciphertext } (均 base64)
 function encryptAesGcm(plaintext, key) {
@@ -5026,16 +5242,25 @@ function unpackBackup(fpath) {
   if (isNewFormat(fname)) {
     const raw = fs.readFileSync(fpath);
     const json = JSON.parse(zlib.gunzipSync(raw).toString('utf8'));
-    // v2 加密格式
+    // v2 加密格式：遍历"当前密钥 + 历史密钥"尝试解密（兼容轮换前的旧备份）
     if (json.encrypted && json.version >= 2) {
-      const key = getBackupKey();
-      const plaintext = decryptAesGcm(json.ciphertext, json.iv, json.tag, key);
+      let plaintext = null;
+      let usedLabel = null;
+      const keys = getAllBackupKeys();
+      for (const k of keys) {
+        try {
+          plaintext = decryptAesGcm(json.ciphertext, json.iv, json.tag, k.key);
+          usedLabel = k.label;
+          break;
+        } catch (e) { /* 密钥不匹配，继续尝试下一个 */ }
+      }
+      if (!plaintext) throw new Error('解密失败：无匹配密钥（当前密钥及 ' + (keys.length - 1) + ' 个历史密钥均无法解密）');
       const inner = JSON.parse(plaintext.toString('utf8'));
       const files = {};
       for (const [name, b64] of Object.entries(inner.files || {})) {
         files[name] = Buffer.from(b64, 'base64');
       }
-      return { version: json.version, created: json.created, encrypted: true, files };
+      return { version: json.version, created: json.created, encrypted: true, files, keyUsed: usedLabel };
     }
     // v1 旧明文格式（兼容）
     const files = {};
@@ -5402,6 +5627,7 @@ app.post('/api/backup/restore/:file', async (req, res) => {
     const pack = restoreBackupToDisk(fpath, DATA_DIR);
     try { fs.unlinkSync(DB_PATH + '-wal'); } catch (e) {}
     try { fs.unlinkSync(DB_PATH + '-shm'); } catch (e) {}
+    auditLog('backup_restore', req.ip, { file: fname, hasDb: !!pack.files['qiezi.db'], hasAuth: !!pack.files['auth.json'] }, true);
     res.json({
       success: true,
       message: `恢复成功（含${pack.files['auth.json'] ? '密码配置' : 'DB数据'}），进程即将重启`,
@@ -5414,6 +5640,7 @@ app.post('/api/backup/restore/:file', async (req, res) => {
     setTimeout(() => process.exit(0), 1000);
   } catch (e) {
     console.error('[restore]', e.message);
+    auditLog('backup_restore', req.ip, { file: fname, error: e.message }, false);
     res.status(500).json({ success: false, message: '恢复失败: ' + e.message });
     setTimeout(() => process.exit(1), 1000);
   }
@@ -5469,6 +5696,33 @@ app.post('/api/backup/create', async (req, res) => {
     res.status(500).json({ success: false, message: '备份失败: ' + e.message });
   }
 });
+// P2-2: 备份密钥状态查询（仅返回指纹，不泄露密钥明文）
+app.get('/api/backup/key-info', (req, res) => {
+  try {
+    const info = getBackupKeyInfo();
+    res.json({ success: true, ...info });
+  } catch (e) {
+    console.error('[backup/key-info]', e.message);
+    res.status(500).json({ success: false, message: '查询密钥状态失败: ' + e.message });
+  }
+});
+// P2-2: 手动轮换备份密钥（旧密钥自动归档，历史备份仍可解密）
+app.post('/api/backup/rotate-key', (req, res) => {
+  try {
+    const r = rotateBackupKey();
+    auditLog('backup_key_rotate', req.ip, { fingerprint: r.fingerprint, since: r.since }, true);
+    console.log('[backup/rotate-key] 密钥已轮换，指纹', r.fingerprint);
+    res.json({
+      success: true,
+      message: '密钥已轮换，新备份将使用新密钥；旧备份仍可用历史密钥解密',
+      ...r
+    });
+  } catch (e) {
+    console.error('[backup/rotate-key]', e.message);
+    auditLog('backup_key_rotate', req.ip, { error: e.message }, false);
+    res.status(500).json({ success: false, message: '密钥轮换失败: ' + e.message });
+  }
+});
 // 定时兜底备份：每小时检查 + 启动立即检查
 const backupInterval = setInterval(async () => {
   if (!hasTodayBackup()) await doBackup();
@@ -5522,10 +5776,20 @@ function cleanupPm2Logs() {
 }
 // WAL checkpoint 每小时
 const walInterval = setInterval(walCheckpoint, 60 * 60 * 1000);
-// VACUUM + PM2日志清理 每天 03:00
+// VACUUM + PM2日志清理 + 审计日志清理 + 备份密钥自动轮换 每天 03:00
 function runDailyMaintenance() {
   vacuumDb();
   cleanupPm2Logs();
+  cleanupAuditLog();
+  // P2-2: 备份密钥自动轮换（到周期则生成新密钥并归档旧密钥）
+  try {
+    const info = getBackupKeyInfo();
+    if (info.autoRotateDue) {
+      const r = rotateBackupKey();
+      auditLog('backup_key_rotate', 'system', { reason: 'auto', fingerprint: r.fingerprint, since: r.since }, true);
+      console.log('[auto-rotate] 备份密钥已自动轮换，指纹', r.fingerprint);
+    }
+  } catch (e) { console.error('[auto-rotate]', e.message); }
 }
 const dailyInterval = setInterval(() => {
   const now = new Date();
@@ -5533,8 +5797,20 @@ const dailyInterval = setInterval(() => {
     runDailyMaintenance();
   }
 }, 5 * 60 * 1000);
-// 启动时先做一次 WAL checkpoint
-setTimeout(walCheckpoint, 5000);
+// 启动时先做一次 WAL checkpoint + 审计日志清理（防止长期未到 03:00 触发）
+setTimeout(() => {
+  walCheckpoint();
+  cleanupAuditLog();
+  // 启动时检查是否需要自动轮换（服务长期未运行可能错过 03:00 触发点）
+  try {
+    const info = getBackupKeyInfo();
+    if (info.autoRotateDue) {
+      const r = rotateBackupKey();
+      auditLog('backup_key_rotate', 'system', { reason: 'startup-auto', fingerprint: r.fingerprint, since: r.since }, true);
+      console.log('[startup-auto-rotate] 备份密钥已自动轮换，指纹', r.fingerprint);
+    }
+  } catch (e) { console.error('[startup-auto-rotate]', e.message); }
+}, 5000);
 // 提供 API 让用户手动触发运维
 app.post('/api/maintenance', (req, res) => {
   try {
@@ -5625,6 +5901,7 @@ app.delete('/api/trash/:id', (req, res) => {
   try {
     const trash = readData('deleted');
     writeData('deleted', trash.filter(t => String(t.id) !== String(req.params.id)));
+    auditLog('trash_delete', req.ip, { id: req.params.id }, true);
     res.json({ success: true });
   } catch (e) {
     console.error('[DELETE /api/trash/:id]', e.message);
@@ -5635,6 +5912,7 @@ app.delete('/api/trash/:id', (req, res) => {
 app.delete('/api/trash', (req, res) => {
   try {
     writeData('deleted', []);
+    auditLog('trash_clear', req.ip, {}, true);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ success: false, message: '清空失败' });
@@ -5659,6 +5937,7 @@ app.post('/api/clear-all', (req, res) => {
     // 同时清空回收站
     try { writeData('deleted', []); } catch (e) {}
     walCheckpoint();
+    auditLog('clear_all', req.ip, { cleared: cleared }, true);
     console.log('[clear-all] 已清空模块:', cleared.join(', ') || '无数据');
     res.json({ success: true, cleared: cleared, message: '已清空全部业务数据' });
   } catch (e) {
@@ -5851,6 +6130,116 @@ app.get('/api/bootstrap', (req, res) => {
   } catch (e) {
     console.error('[GET /api/bootstrap]', e.message);
     res.status(500).json({ success: false, message: '聚合加载失败' });
+  }
+});
+
+// ============ 认知计数聚合接口：25+个接口合并为1个，配合 renderInsight 并发加载 ============
+// 之前切瞭望tab串行调25个接口，每个8秒超时，弱网下最坏4分钟，容易触发401误登出
+app.get('/api/cognitive-counts', (req, res) => {
+  try {
+    const out = {};
+    // Phase1
+    out.principles = readData('principles').length;
+    out.decisions = readData('decisions').length;
+    // Phase2
+    out.rootCause = readData('root_cause').length;
+    out.interpersonal = readData('interpersonal').length;
+    out.mindfulness = readData('mindfulness').length;
+    try {
+      const eAudit = readData('energy').reduce((acc, x) => {
+        const v = parseFloat(x && x.value) || 0;
+        if (x && x.type === '充能') acc.charge += v; else acc.consume += v;
+        return acc;
+      }, { charge: 0, consume: 0 });
+      out.energyNet = eAudit.consume - eAudit.charge;
+    } catch(e) { out.energyNet = 0; }
+    out.reviews = readData('reviews').length;
+    // Phase3
+    out.beliefs = readData('beliefs').length;
+    out.character = readData('character').length;
+    out.selfPortrait = readData('self_portrait').length;
+    try { out.entropyScore = readData('entropy').slice(-1)[0]?.entropyScore || 0; } catch(e) { out.entropyScore = 0; }
+    try {
+      const af = readData('antifragile');
+      if (af.length) {
+        const s = af.reduce((a,x)=>a+(parseFloat(x&&x.score)||0),0)/af.length;
+        out.antifragileAvg = s;
+      } else { out.antifragileAvg = null; }
+    } catch(e) { out.antifragileAvg = null; }
+    // Phase4
+    out.northStar = readData('north_star').length && readData('north_star')[0].ultimate ? '已设' : '未设';
+    out.crisis = readData('crisis_plan').length;
+    out.deathTest = readData('death_test').length;
+    out.narrative = readData('narrative').length;
+    out.manifesto = readData('manifesto').length && readData('manifesto')[0].body ? '已立' : '未立';
+    // Phase5（eng 计算类）
+    try {
+      const hist = ENG.buildHistory();
+      out.metacog = ENG.metacognition(hist);
+      out.bias = ENG.cognitiveBias(hist);
+      out.trajectory = ENG.trajectory(hist);
+      out.values = ENG.valuesClarification(hist);
+      out.antiHuman = ENG.antiHumanNature(hist);
+    } catch(e) {
+      out.metacog = { score: null };
+      out.bias = { score: null };
+      out.trajectory = { trend: '-' };
+      out.values = { alignment: null };
+      out.antiHuman = { score: null };
+    }
+    // v5.6/v5.7
+    try {
+      const ht = readData('health_trends');
+      const w = ht.weight||[], bp = ht.bloodPressure||[];
+      out.healthTrendCnt = (w.length + bp.length) || null;
+    } catch(e) { out.healthTrendCnt = null; }
+    out.plan = readData('plan').length;
+    out.lifeMilestone = readData('life_milestone').length;
+    res.json(out);
+  } catch (e) {
+    console.error('[GET /api/cognitive-counts]', e.message);
+    res.json({});
+  }
+});
+
+// ============ 瞭望tab聚合接口：insights + eng/dashboard 合并为1次请求 ============
+app.get('/api/insights-plus', (req, res) => {
+  try {
+    const all = {};
+    const modules = ['finance','sleep','exercise','emotion','diet','diary','photo','think','work','body','relation','growth','spirit','home','travel','pet','health','todo','time','inventory','space','medical','learn'];
+    modules.forEach(m => { all[m] = readData(m); });
+    const insights = generateInsights(all);
+    try {
+      const hist = ENG.buildHistory();
+      const engCorr = ENG.correlate(hist);
+      const engRisks = ENG.risks(hist);
+      if (engCorr && engCorr.length) engCorr.forEach(c => {
+        if (!insights.correlations.some(x => x.type === c.t)) {
+          insights.correlations.push({ type: c.t, title: c.s === 'high' ? '⚠️ ' + (c.m || '').split('\n')[0] : (c.m || '').split('\n')[0], detail: c.m || '' });
+        }
+      });
+      if (engRisks && engRisks.length) insights.engRisks = engRisks;
+    } catch(e) {}
+    let dashboard = null;
+    try {
+      const hist = ENG.buildHistory();
+      dashboard = { sections: {
+        risks: ENG.risks(hist),
+        selfPortrait: ENG.selfPortrait(hist),
+        entropy: ENG.entropy(hist),
+        trajectory: ENG.trajectory(hist),
+        metacognition: ENG.metacognition(hist),
+        cognitiveBias: ENG.cognitiveBias(hist),
+        weeklyReview: ENG.weeklyReview(hist),
+        antiHumanNature: ENG.antiHumanNature(hist),
+        valuesClarification: ENG.valuesClarification(hist),
+        dataCompare: ENG.dataCompare(hist),
+      } };
+    } catch(e) {}
+    res.json({ insights, dashboard });
+  } catch (e) {
+    console.error('[GET /api/insights-plus]', e.message);
+    res.json({ insights: {}, dashboard: null });
   }
 });
 

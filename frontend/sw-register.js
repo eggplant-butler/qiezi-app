@@ -51,9 +51,18 @@ if ('serviceWorker' in navigator) {
       });
     // 监听控制器变更，自动刷新页面加载新版本（已登录才立即刷，未登录延后）
     // v6.5.6 修复：使用统一 RefreshGuard，绝对禁止登录过程中刷新
+    // v6.9.14 修复：用 sessionStorage 标记防止登录后循环刷新（SW 刚部署会频繁触发 controllerchange）
     var refreshing = false;
+    var SW_REFRESH_KEY = 'qz_sw_refreshed';
     navigator.serviceWorker.addEventListener('controllerchange', function() {
       if (refreshing) return;
+      // 防循环：本次会话（标签页生命周期）已因 controllerchange 刷新过就不再刷
+      try {
+        if (sessionStorage.getItem(SW_REFRESH_KEY) === '1') {
+          console.log('[SW] controllerchange → 本次会话已刷新过，跳过（防循环）');
+          return;
+        }
+      } catch(e) {}
       if (__shouldBlockRefresh('SW controllerchange')) {
         // 登录中/登录页：延后到登录成功后再刷新（监听正确的 TOKEN_KEY）
         console.log('[SW] controllerchange → 登录保护中，延后到登录成功后再检查');
@@ -62,6 +71,7 @@ if ('serviceWorker' in navigator) {
           clearInterval(checkAuth);
           if (!refreshing) {
             refreshing = true;
+            try { sessionStorage.setItem(SW_REFRESH_KEY, '1'); } catch(e) {}
             window.location.reload();
           }
         }, 3000);
@@ -69,6 +79,7 @@ if ('serviceWorker' in navigator) {
         return;
       }
       refreshing = true;
+      try { sessionStorage.setItem(SW_REFRESH_KEY, '1'); } catch(e) {}
       window.location.reload();
     });
     // 监听 SW 主动通知（sw.js install/activate 时 broadcastUpdate 发送）
@@ -88,6 +99,7 @@ if ('serviceWorker' in navigator) {
 // v6.5.2 增强：版本指纹自检（即使函数都在，版本号落后也刷新）
 // v6.5.6 完全重写：使用统一 RefreshGuard，关键函数检查延后到 window.onload 后
 (function versionSelfCheck() {
+  var VC_REFRESH_KEY = 'qz_vc_refreshed';
   function forceRefresh(reason) {
     // v6.5.6：统一使用 RefreshGuard，三层拦截（输密码/宽限期/登录页未登录）
     if (__shouldBlockRefresh(reason)) {
@@ -95,7 +107,15 @@ if ('serviceWorker' in navigator) {
       setTimeout(versionSelfCheck, 30 * 60 * 1000);
       return;
     }
+    // v6.9.14 防循环：本次会话已因版本检查刷新过就不再刷
+    try {
+      if (sessionStorage.getItem(VC_REFRESH_KEY) === '1') {
+        console.warn('[VersionCheck] ' + reason + ' → 本次会话已刷新过，跳过（防循环）');
+        return;
+      }
+    } catch(e) {}
     console.warn('[VersionCheck] ' + reason + '，清缓存并刷新');
+    try { sessionStorage.setItem(VC_REFRESH_KEY, '1'); } catch(e) {}
     if ('caches' in window) {
       caches.keys().then(function(names) {
         names.forEach(function(n) { caches.delete(n); });
