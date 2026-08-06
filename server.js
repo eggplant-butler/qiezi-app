@@ -3812,26 +3812,34 @@ app.get('/api/eng/dashboard', (req, res) => {
 // 保存记录（带认知反馈）API
 // ============================================================
 app.post('/api/record/add', (req, res) => {
-  const { mid, data, editId } = req.body;
-  if (!mid) return res.json({ success: false, message: '缺少模块ID' });
+  try {
+  const { mid, data, editId } = req.body || {};
+  // 1. 参数校验
+  if (!mid || typeof mid !== 'string') return res.json({ success: false, message: '缺少模块ID' });
+  if (!isModuleAllowed(mid)) return res.json({ success: false, message: '模块非法' });
   if (!data || typeof data !== 'object') return res.json({ success: false, message: '缺少数据' });
+  // 2. 输入字段白名单清洗（防系统字段污染+原型污染）
+  const cleanData = sanitizeInputData(mid, data);
+  if (cleanData === null) return res.json({ success: false, message: '数据格式错误' });
   const list = readData(mid);
   let item;
   if (editId) {
     const targetId = String(editId);
     item = list.find(x => String(x.id) === targetId);
-    if (item) Object.assign(item, data);
-    else { item = Object.assign({ id: targetId, created: new Date().toISOString() }, data); list.push(item); }
+    if (item) Object.assign(item, cleanData, { updated: new Date().toISOString() });
+    else { item = Object.assign({ id: targetId, created: new Date().toISOString() }, cleanData); list.push(item); }
   } else {
-    item = Object.assign({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), created: new Date().toISOString() }, data);
+    item = Object.assign({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), created: new Date().toISOString() }, cleanData);
     list.push(item);
   }
   writeData(mid, list);
 
   // === 跨模块联动引擎 ===
   const linkedModules = []; // 记录哪些模块被联动刷新了，返回给前端
-  const linkDate = data.date || new Date().toISOString().split('T')[0];
+  const linkDate = cleanData.date || new Date().toISOString().split('T')[0];
   const linkId = item.id;
+  // 安全引用：联动逻辑统一使用 cleanData，避免用户注入字段污染
+  const lData = cleanData;
 
   // 统一去重函数：检查目标模块是否已有来自同一源记录的联动数据
   function hasLinked(targetMid, sourceMid, sourceId) {
@@ -3842,14 +3850,14 @@ app.post('/api/record/add', (req, res) => {
   }
 
   // 1. 宠物花费 → 自动创建财务支出记录
-  if (mid === 'pet' && !editId && data.cost && parseFloat(data.cost) > 0) {
+  if (mid === 'pet' && !editId && lData.cost && parseFloat(lData.cost) > 0) {
     if (!hasLinked('finance', 'pet', linkId)) {
       try {
         const finList = readData('finance');
         finList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-          type: '支出', amount: parseFloat(data.cost), category: '宠物',
-          content: (data.petName || '宠物') + ' - ' + (data.action || '花费'),
+          type: '支出', amount: parseFloat(lData.cost), category: '宠物',
+          content: (lData.petName || '宠物') + ' - ' + (lData.action || '花费'),
           paymentMethod: '', date: linkDate,
           _linkedModule: 'pet', _linkedId: linkId, created: new Date().toISOString()
         });
@@ -3859,15 +3867,15 @@ app.post('/api/record/add', (req, res) => {
     }
   }
   // 2. 医疗/健康花费 → 自动创建财务支出记录
-  if (!editId && data.cost && parseFloat(data.cost) > 0 && (mid === 'medical' || mid === 'health')) {
+  if (!editId && lData.cost && parseFloat(lData.cost) > 0 && (mid === 'medical' || mid === 'health')) {
     if (!hasLinked('finance', mid, linkId)) {
       try {
         const finList = readData('finance');
         finList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-          type: '支出', amount: parseFloat(data.cost), category: '医疗',
-          content: (data.hospital || data.symptom || '就医') + ' - ' + (data.type || data.sceneType || ''),
-          paymentMethod: data.paymentMethod || '', date: linkDate,
+          type: '支出', amount: parseFloat(lData.cost), category: '医疗',
+          content: (lData.hospital || lData.symptom || '就医') + ' - ' + (lData.type || lData.sceneType || ''),
+          paymentMethod: lData.paymentMethod || '', date: linkDate,
           _linkedModule: mid, _linkedId: linkId, created: new Date().toISOString()
         });
         writeData('finance', finList);
@@ -3876,18 +3884,18 @@ app.post('/api/record/add', (req, res) => {
     }
   }
   // 3. 出行花费 → 自动创建财务支出记录
-  if (mid === 'travel' && !editId && data.cost && parseFloat(data.cost) > 0) {
+  if (mid === 'travel' && !editId && lData.cost && parseFloat(lData.cost) > 0) {
     if (!hasLinked('finance', 'travel', linkId)) {
       try {
         const finList = readData('finance');
         let cat = '交通';
-        if (data.purpose === '旅行') cat = '娱乐';
-        else if (data.purpose === '购物') cat = '购物';
-        else if (data.purpose === '约会') cat = '娱乐';
+        if (lData.purpose === '旅行') cat = '娱乐';
+        else if (lData.purpose === '购物') cat = '购物';
+        else if (lData.purpose === '约会') cat = '娱乐';
         finList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-          type: '支出', amount: parseFloat(data.cost), category: cat,
-          content: (data.transport || '出行') + ' - ' + (data.purpose || '') + (data.from && data.to ? ' ' + data.from + '→' + data.to : ''),
+          type: '支出', amount: parseFloat(lData.cost), category: cat,
+          content: (lData.transport || '出行') + ' - ' + (lData.purpose || '') + (lData.from && lData.to ? ' ' + lData.from + '→' + lData.to : ''),
           paymentMethod: '', date: linkDate,
           _linkedModule: 'travel', _linkedId: linkId, created: new Date().toISOString()
         });
@@ -3897,16 +3905,16 @@ app.post('/api/record/add', (req, res) => {
     }
   }
   // 4. 人情消费 → 自动创建财务支出记录
-  if (mid === 'relation' && !editId && data.cost && parseFloat(data.cost) > 0) {
+  if (mid === 'relation' && !editId && lData.cost && parseFloat(lData.cost) > 0) {
     if (!hasLinked('finance', 'relation', linkId)) {
       try {
         const finList = readData('finance');
         let cat = '其他';
-        if (data.favorType === '随份子' || data.favorType === '送礼' || data.favorType === '请客') cat = '娱乐';
+        if (lData.favorType === '随份子' || lData.favorType === '送礼' || lData.favorType === '请客') cat = '娱乐';
         finList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-          type: '支出', amount: parseFloat(data.cost), category: cat,
-          content: (data.person || data.role || '关系') + ' - ' + (data.favorType || data.interaction || '人情'),
+          type: '支出', amount: parseFloat(lData.cost), category: cat,
+          content: (lData.person || lData.role || '关系') + ' - ' + (lData.favorType || lData.interaction || '人情'),
           paymentMethod: '', date: linkDate,
           _linkedModule: 'relation', _linkedId: linkId, created: new Date().toISOString()
         });
@@ -3921,8 +3929,8 @@ app.post('/api/record/add', (req, res) => {
       try {
         const timeList = readData('time');
         let value = '一般';
-        const fl = parseInt(String(data.focusLevel || '3').charAt(0), 10);
-        const mn = parseInt(String(data.meaning || '3'), 10);
+        const fl = parseInt(String(lData.focusLevel || '3').charAt(0), 10);
+        const mn = parseInt(String(lData.meaning || '3'), 10);
         const avg = (fl + mn) / 2;
         if (avg >= 4.2) value = '非常有';
         else if (avg >= 3.2) value = '比较有';
@@ -3931,7 +3939,7 @@ app.post('/api/record/add', (req, res) => {
         timeList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
           category: '工作', duration: 480, value: value,
-          content: (data.role || '工作') + ' - ' + (data.task ? String(data.task).substring(0, 50) : ''),
+          content: (lData.role || '工作') + ' - ' + (lData.task ? String(lData.task).substring(0, 50) : ''),
           date: linkDate,
           _linkedModule: 'work', _linkedId: linkId, created: new Date().toISOString()
         });
@@ -3941,17 +3949,16 @@ app.post('/api/record/add', (req, res) => {
     }
   }
   // 6. 饮食外卖/堂食/零食 → 自动创建财务支出记录（v6.8.0 A1）
-  if (mid === 'diet' && !editId && data.cost && parseFloat(data.cost) > 0
-      && ['外卖','堂食','零食'].indexOf(data.source) !== -1) {
+  if (mid === 'diet' && !editId && lData.cost && parseFloat(lData.cost) > 0
+      && ['外卖','堂食','零食'].indexOf(lData.source) !== -1) {
     if (!hasLinked('finance', 'diet', linkId)) {
       try {
         const finList = readData('finance');
-        // source → category 映射：外卖/堂食→餐饮，零食→购物
-        const cat = data.source === '零食' ? '购物' : '餐饮';
+        const cat = lData.source === '零食' ? '购物' : '餐饮';
         finList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-          type: '支出', amount: parseFloat(data.cost), category: cat,
-          content: (data.source || '餐饮') + ' - ' + (data.meal || '') + ' ' + (data.content || ''),
+          type: '支出', amount: parseFloat(lData.cost), category: cat,
+          content: (lData.source || '餐饮') + ' - ' + (lData.meal || '') + ' ' + (lData.content || ''),
           paymentMethod: '', date: linkDate,
           _linkedModule: 'diet', _linkedId: linkId, created: new Date().toISOString()
         });
@@ -3961,19 +3968,18 @@ app.post('/api/record/add', (req, res) => {
     }
   }
   // 7. 日记心情 → 自动创建情绪记录（v6.8.0 A2）
-  if (mid === 'diary' && !editId && data.mood) {
+  if (mid === 'diary' && !editId && lData.mood) {
     if (!hasLinked('emotion', 'diary', linkId)) {
       try {
-        // mood emoji → rating 映射
         const moodMap = {'😊开心':9,'🥰感恩':9,'😌平静':7,'😐平淡':5,'🤔迷茫':5,'😴疲惫':4,'😔低落':3,'😤烦躁':2};
-        const rating = moodMap[data.mood];
+        const rating = moodMap[lData.mood];
         if (rating) {
           const emoList = readData('emotion');
           emoList.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
             rating: rating, trigger: '日记回填',
-            content: (data.mood + ' · ') + (data.highlight ? String(data.highlight).substring(0, 40) : (data.content ? String(data.content).substring(0, 40) : '今日日记')),
-            physical: data.energy && parseInt(data.energy) <= 3 ? '疲惫' : '',
+            content: (lData.mood + ' · ') + (lData.highlight ? String(lData.highlight).substring(0, 40) : (lData.content ? String(lData.content).substring(0, 40) : '今日日记')),
+            physical: lData.energy && parseInt(lData.energy) <= 3 ? '疲惫' : '',
             date: linkDate,
             _linkedModule: 'diary', _linkedId: linkId, created: new Date().toISOString()
           });
@@ -3984,18 +3990,17 @@ app.post('/api/record/add', (req, res) => {
     }
   }
   // 8. 库存补货 → 自动创建财务支出记录（v6.8.0 A3）
-  if (mid === 'inventory' && !editId && data.restockQty && parseFloat(data.restockQty) > 0
-      && data.restockPrice && parseFloat(data.restockPrice) > 0) {
+  if (mid === 'inventory' && !editId && lData.restockQty && parseFloat(lData.restockQty) > 0
+      && lData.restockPrice && parseFloat(lData.restockPrice) > 0) {
     if (!hasLinked('finance', 'inventory', linkId)) {
       try {
         const finList = readData('finance');
-        // category 映射：书籍→教育，电子产品/衣物/...→购物
-        const cat = data.category === '书籍' ? '教育' : '购物';
-        const totalAmount = parseFloat(data.restockQty) * parseFloat(data.restockPrice);
+        const cat = lData.category === '书籍' ? '教育' : '购物';
+        const totalAmount = parseFloat(lData.restockQty) * parseFloat(lData.restockPrice);
         finList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
           type: '支出', amount: totalAmount, category: cat,
-          content: '补货 - ' + (data.name || '物品') + ' ×' + data.restockQty,
+          content: '补货 - ' + (lData.name || '物品') + ' ×' + lData.restockQty,
           paymentMethod: '', date: linkDate,
           _linkedModule: 'inventory', _linkedId: linkId, created: new Date().toISOString()
         });
@@ -4005,23 +4010,22 @@ app.post('/api/record/add', (req, res) => {
     }
   }
   // 9. 学习/成长 → 自动生成思考草稿（v6.8.1 A4）
-  // 触发：understanding ≥ 4-会用 / 4-会用 或有 output，生成 think 草稿让用户深化
   if ((mid === 'learn' || mid === 'growth') && !editId) {
-    const u = parseInt(String(data.understanding || '0').replace(/[^0-9]/g, ''), 10);
+    const u = parseInt(String(lData.understanding || '0').replace(/[^0-9]/g, ''), 10);
     if (u >= 4 && !hasLinked('think', mid, linkId)) {
       try {
         const thinkList = readData('think');
-        const subj = data.subject || data.skill || data.type || '学习';
-        const out = data.output || data.progress || data.content || '';
+        const subj = lData.subject || lData.skill || lData.type || '学习';
+        const out = lData.output || lData.progress || lData.content || '';
         thinkList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
           category: '原则提炼',
           title: subj + ' - 学习沉淀',
           content: out || '（待补充：这次学习掌握了什么规律/方法？）',
-          context: '学习触发：' + subj + (data.method ? ' · ' + data.method : ''),
+          context: '学习触发：' + subj + (lData.method ? ' · ' + lData.method : ''),
           reasoning: '',
           counter: '',
-          action: data.plan || '',
+          action: lData.plan || '',
           principle: '',
           verify: '',
           cognitiveLevel: '2-规律',
@@ -4035,19 +4039,18 @@ app.post('/api/record/add', (req, res) => {
     }
   }
   // 9b. 日记 → 自动生成思考草稿（v6.9.1 B2-b）
-  // 触发：日记内容字数 ≥ 30，生成"事件复盘"草稿引导深化（避免日记停留在记录层）
   if (mid === 'diary' && !editId) {
-    const dc = (data.content || '').toString();
+    const dc = (lData.content || '').toString();
     if (dc.length >= 30 && !hasLinked('think', 'diary', linkId)) {
       try {
         const thinkList = readData('think');
-        const hl = (data.highlight || '').toString();
+        const hl = (lData.highlight || '').toString();
         thinkList.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
           category: '事件复盘',
           title: dc.slice(0, 24) + (dc.length > 24 ? '...' : ''),
           content: hl ? '今日亮点：' + hl + '\n\n日记原文：' + dc : '日记原文：' + dc,
-          context: '日记触发：' + (data.mood ? '情绪 ' + data.mood + ' · ' : '') + dc.slice(0, 40),
+          context: '日记触发：' + (lData.mood ? '情绪 ' + lData.mood + ' · ' : '') + dc.slice(0, 40),
           reasoning: '',
           counter: '',
           action: '',
@@ -4065,17 +4068,16 @@ app.post('/api/record/add', (req, res) => {
   }
   // 10. 居住记录：花费→财务；购买/丢弃→库存
   if (mid === 'home' && !editId) {
-    // 6a 花费自动记账
-    if (data.cost && parseFloat(data.cost) > 0) {
+    if (lData.cost && parseFloat(lData.cost) > 0) {
       if (!hasLinked('finance', 'home', linkId)) {
         try {
           const finList = readData('finance');
           let cat = '其他';
-          if (data.action === '购买') cat = '购物';
+          if (lData.action === '购买') cat = '购物';
           finList.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-            type: '支出', amount: parseFloat(data.cost), category: cat,
-            content: (data.space || '居住') + ' - ' + (data.action || '') + (data.items ? ' ' + data.items : ''),
+            type: '支出', amount: parseFloat(lData.cost), category: cat,
+            content: (lData.space || '居住') + ' - ' + (lData.action || '') + (lData.items ? ' ' + lData.items : ''),
             paymentMethod: '', date: linkDate,
             _linkedModule: 'home', _linkedId: linkId, created: new Date().toISOString()
           });
@@ -4084,18 +4086,17 @@ app.post('/api/record/add', (req, res) => {
         } catch (e) { console.error('[linkage] home→finance:', e.message); }
       }
     }
-    // 6b 购买 → 自动写入 inventory
-    if ((data.action === '购买') && data.items) {
+    if ((lData.action === '购买') && lData.items) {
       if (!hasLinked('inventory', 'home', linkId)) {
         try {
           const invList = readData('inventory');
-          const names = String(data.items).split(/[,，、/;\s]+/).filter(function(x) { return x.trim().length > 0; });
+          const names = String(lData.items).split(/[,，、/;\s]+/).filter(function(x) { return x.trim().length > 0; });
           for (const n of names) {
             invList.push({
               id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
               name: n, category: '其他', quantity: 1,
-              price: data.cost && names.length === 1 ? parseFloat(data.cost) : undefined,
-              purchaseDate: linkDate, location: data.space || '',
+              price: lData.cost && names.length === 1 ? parseFloat(lData.cost) : undefined,
+              purchaseDate: linkDate, location: lData.space || '',
               usageFreq: '偶尔', condition: '良好', necessity: '3-偶尔用', declutter: '保留',
               _linkedModule: 'home', _linkedId: linkId, created: new Date().toISOString()
             });
@@ -4105,14 +4106,13 @@ app.post('/api/record/add', (req, res) => {
         } catch (e) { console.error('[linkage] home→inventory:', e.message); }
       }
     }
-    // 6c 丢弃 → 标记 inventory 断舍离
-    if ((data.action === '丢弃') && data.items) {
+    if ((lData.action === '丢弃') && lData.items) {
       try {
         const invList = readData('inventory');
-        const names = String(data.items).split(/[,，、/;\s]+/).filter(function(x) { return x.trim().length > 0; });
+        const names = String(lData.items).split(/[,，、/;\s]+/).filter(function(x) { return x.trim().length > 0; });
         let changed = false;
         for (const inv of invList) {
-          if (inv._linkedModule === 'home' && inv._linkedId === linkId) continue; // 跳过自己联动的
+          if (inv._linkedModule === 'home' && inv._linkedId === linkId) continue;
           for (const n of names) {
             if (inv.name === n || (inv.name && inv.name.indexOf(n) !== -1)) {
               inv.declutter = '已捐赠/出售';
@@ -4126,52 +4126,63 @@ app.post('/api/record/add', (req, res) => {
     }
   }
 
-  // 生成认知反馈
-  const hist = ENG.buildHistory();
-  const reflection = ENG.reflect(mid, data, hist);
-  const correlations = ENG.correlate(hist);
-  const risks = ENG.risks(hist);
-  const dailySummary = ENG.daily(hist);
-  // 生理→情绪预测（仅新增记录时触发，避免编辑时重复打扰）
-  const emotionSuggestion = !editId ? ENG.predict(mid, data, hist) : null;
-  // 睡眠异常健康提醒（仅新增睡眠记录时触发）
-  const healthTip = !editId ? ENG.healthTip(mid, data, hist) : null;
+  // 生成认知反馈（单项失败不影响主流程，降级为null/[]）
+  let hist = [];
+  try { hist = ENG.buildHistory(); } catch (e) { console.error('[eng] buildHistory:', e.message); hist = []; }
+  let reflection = null;
+  try { reflection = ENG.reflect(mid, lData, hist); } catch (e) { console.error('[eng] reflect:', e.message); }
+  let correlations = [];
+  try { correlations = ENG.correlate(hist); } catch (e) { console.error('[eng] correlate:', e.message); }
+  let risks = [];
+  try { risks = ENG.risks(hist); } catch (e) { console.error('[eng] risks:', e.message); }
+  let dailySummary = '';
+  try { dailySummary = ENG.daily(hist); } catch (e) { console.error('[eng] daily:', e.message); }
+  let emotionSuggestion = null;
+  try { if (!editId) emotionSuggestion = ENG.predict(mid, lData, hist); } catch (e) { console.error('[eng] predict:', e.message); }
+  let healthTip = null;
+  try { if (!editId) healthTip = ENG.healthTip(mid, lData, hist); } catch (e) { console.error('[eng] healthTip:', e.message); }
 
   let budget = null;
-  if (mid === 'finance' && data.type === '支出') {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const month = `${yyyy}-${mm}`;
-    const budgetRow = db.prepare("SELECT value FROM kv WHERE key=?").get('budget:' + month);
-    const budgetAmount = budgetRow ? parseFloat(budgetRow.value) || 0 : 0;
-    const monthStart = `${month}-01`;
-    const nextMonthDate = new Date(yyyy, today.getMonth() + 1, 1);
-    const nextMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
-    const spentRows = db.prepare("SELECT data FROM records WHERE mid='finance' AND created>=? AND created<?").all(monthStart, nextMonth);
-    let spent = 0;
-    for (const r of spentRows) {
-      try {
-        const rd = JSON.parse(r.data);
-        if (rd.type === '支出' || rd.type === 'expense') spent += parseFloat(rd.amount) || 0;
-      } catch (e) {}
-    }
-    const remaining = budgetAmount - spent;
-    budget = { budget: budgetAmount, spent, remaining, over: remaining < 0 };
+  if (mid === 'finance' && lData.type === '支出') {
+    try {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const month = `${yyyy}-${mm}`;
+      const budgetRow = db.prepare("SELECT value FROM kv WHERE key=?").get('budget:' + month);
+      const budgetAmount = budgetRow ? parseFloat(budgetRow.value) || 0 : 0;
+      const monthStart = `${month}-01`;
+      const nextMonthDate = new Date(yyyy, today.getMonth() + 1, 1);
+      const nextMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
+      const spentRows = db.prepare("SELECT data FROM records WHERE mid='finance' AND created>=? AND created<?").all(monthStart, nextMonth);
+      let spent = 0;
+      for (const r of spentRows) {
+        try {
+          const rd = JSON.parse(r.data);
+          if (rd.type === '支出' || rd.type === 'expense') spent += parseFloat(rd.amount) || 0;
+        } catch (e) {}
+      }
+      const remaining = budgetAmount - spent;
+      budget = { budget: budgetAmount, spent, remaining, over: remaining < 0 };
+    } catch (e) { console.error('[budget] calc:', e.message); budget = null; }
   }
 
   res.json({
     success: true,
     item,
     reflection,
-    correlations,
-    risks,
-    dailySummary,
+    correlations: Array.isArray(correlations) ? correlations : [],
+    risks: Array.isArray(risks) ? risks : [],
+    dailySummary: typeof dailySummary === 'string' ? dailySummary : '',
     budget,
     emotionSuggestion,
     healthTip,
     linkedModules: linkedModules.length ? linkedModules : undefined
   });
+  } catch (e) {
+    console.error('[record/add] fatal:', e.message, e.stack);
+    res.status(500).json({ success: false, message: '保存失败，请重试' });
+  }
 });
 
 // ============================================================
