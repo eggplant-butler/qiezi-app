@@ -6027,6 +6027,14 @@ app.delete('/api/:module/:id', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('[UNCAUGHT]', err && err.message);
   if (res.headersSent) return next(err);
+  // 请求体过大返回 413
+  if (err && (err.type === 'entity.too.large' || err.code === 'LIMIT_FILE_SIZE' || (err.status === 413))) {
+    return res.status(413).json({ success: false, message: '请求数据过大' });
+  }
+  // JSON 解析错误返回 400
+  if (err && (err.type === 'entity.parse.failed' || err.type === 'entity.verify.failed')) {
+    return res.status(400).json({ success: false, message: '请求格式错误' });
+  }
   res.status(500).json({ success: false, message: '服务器内部错误' });
 });
 // 未捕获 Promise 拒绝：记录但不退出（Promise 拒绝非致命，避免误杀进程）
