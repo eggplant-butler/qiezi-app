@@ -129,28 +129,139 @@ window.fetch = function(url, opts) {
   });
 };
 
-// v6.5.8 离线提示条
-function showOfflineBanner() {
-  var existing = document.getElementById('offlineBanner');
-  if (existing) return;
-  var b = document.createElement('div');
-  b.id = 'offlineBanner';
-  b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9998;background:var(--c-warning,#E8A838);color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.15);transition:transform 0.3s;transform:translateY(0);';
-  b.textContent = '📡 当前离线，部分功能不可用';
-  document.body.appendChild(b);
-  // 调整 app 区域顶部间距
+// ============================================================
+// P0-3 离线写入重试队列（数据防丢失）+ 统一离线提示条
+// ============================================================
+var PENDING_KEY = 'qiezi_pending_v1';
+function getPendingQueue() {
+  try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); } catch(e) { return []; }
+}
+function savePendingQueue(q) {
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify(q)); } catch(e) {}
+  updateOfflineBanner();
+}
+function pendingQueueAdd(item) {
+  var q = getPendingQueue();
+  if (item.operation === 'save' || item.operation === 'delete') {
+    q = q.filter(function(x) { return !(x.module === item.module && x.operation === item.operation && (x.operation === 'delete' ? x.targetId === item.targetId : false)); });
+  }
+  q.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,4), ts: Date.now(), ...item });
+  savePendingQueue(q);
+}
+function pendingQueueRemove(pendingId) {
+  var q = getPendingQueue().filter(function(x) { return x.id !== pendingId; });
+  savePendingQueue(q);
+}
+async function flushPendingQueue(silent) {
+  var q = getPendingQueue();
+  if (!q.length) { if (!silent) updateOfflineBanner(); return 0; }
+  if (!navigator.onLine) { if (!silent) updateOfflineBanner(); return 0; }
+  var total = q.length, done = 0, failed = 0;
+  for (var i = 0; i < q.length; i++) {
+    var p = q[i];
+    try {
+      if (p.operation === 'add_record') {
+        var body = { mid: p.module, data: p.data };
+        if (p.editId) body.editId = p.editId;
+        var r = await fetch('/api/record/add', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+        var rd = await r.json();
+        if (rd && rd.success) {
+          pendingQueueRemove(p.id);
+          done++;
+          if (rd.linkedModules && rd.linkedModules.length) {
+            for (var j = 0; j < rd.linkedModules.length; j++) {
+              try { await apiFetch(rd.linkedModules[j]); } catch(e) {}
+            }
+          }
+        } else {
+          failed++;
+          if (rd && rd.message === '模块非法') { pendingQueueRemove(p.id); continue; }
+        }
+      } else if (p.operation === 'save') {
+        await fetch('/api/' + p.module, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p.data) });
+        pendingQueueRemove(p.id); done++;
+      } else if (p.operation === 'delete') {
+        await fetch('/api/' + p.module + '/' + p.targetId, { method:'DELETE' });
+        pendingQueueRemove(p.id); done++;
+      } else {
+        pendingQueueRemove(p.id);
+      }
+    } catch(e) { failed++; }
+  }
+  var remain = getPendingQueue();
+  if (remain.length === 0) {
+    if (curScene) try { await apiFetch(curScene); renderDetail(curScene); renderHome(); } catch(e) {}
+  }
+  updateOfflineBanner();
+  if (!silent && (done > 0 || failed === 0)) {
+    var msg = '离线同步：成功 ' + done + ' 条' + (failed > 0 ? '，失败 ' + failed + ' 条（下次在线时重试）' : '');
+    showToast(msg, done === total ? 'success' : 'warn');
+  }
+  return done;
+}
+function clearPendingQueue() {
+  if (!confirm('确定丢弃 ' + getPendingQueue().length + ' 条离线改动？（本地暂存的记录会丢失）')) return;
+  savePendingQueue([]);
+  updateOfflineBanner();
+  showToast('已丢弃离线暂存', 'warn');
+}
+// 统一离线/待同步 banner（替换原离线提示条+新增待同步按钮）
+function updateOfflineBanner() {
+  var q = getPendingQueue();
+  var isOffline = !navigator.onLine || __isOffline;
+  var needShow = isOffline || q.length > 0;
+  var b = document.getElementById('offlineBanner');
   var app = document.getElementById('app');
+  if (!needShow) {
+    if (b) b.remove();
+    if (app) app.style.paddingTop = '';
+    return;
+  }
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'offlineBanner';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9998;background:#F59E0B;color:#fff;padding:8px 16px;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.15);display:flex;align-items:center;gap:4px;';
+    document.body.appendChild(b);
+  }
+  var icon = isOffline ? '📡 离线模式' : '📡 待同步';
+  var text = isOffline
+    ? (q.length > 0 ? '当前离线 · <b>' + q.length + '</b> 条改动本地暂存，上线自动同步' : '当前离线 · 数据暂存本地，上线后自动同步')
+    : '有 <b>' + q.length + '</b> 条改动正在等待同步';
+  var actions = '';
+  if (q.length > 0) {
+    actions = '<button onclick="flushPendingQueue(false)" style="margin-left:8px;padding:4px 10px;border:none;border-radius:6px;background:#10B981;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">立即同步</button>' +
+              '<button onclick="clearPendingQueue()" style="margin-left:4px;padding:4px 10px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:transparent;color:#fff;font-size:12px;cursor:pointer;">丢弃</button>';
+  }
+  b.innerHTML = '<div style="flex:1;">' + icon + ' · ' + text + '</div>' + actions;
   if (app) app.style.paddingTop = '40px';
 }
-function hideOfflineBanner() {
-  var b = document.getElementById('offlineBanner');
-  if (b) b.remove();
-  var app = document.getElementById('app');
-  if (app) app.style.paddingTop = '';
+// 兼容旧函数名
+function showOfflineBanner() { updateOfflineBanner(); }
+function hideOfflineBanner() { updateOfflineBanner(); }
+// 浏览器原生 online/offline 事件
+window.addEventListener('offline', function() { __isOffline = true; updateOfflineBanner(); });
+window.addEventListener('online', function() {
+  __isOffline = false;
+  updateOfflineBanner();
+  setTimeout(function() { flushPendingQueue(true); }, 800);
+});
+// 轻量 Toast
+var __toastTimer = null;
+function showToast(msg, kind) {
+  var t = document.getElementById('app-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'app-toast';
+    t.style.cssText = 'position:fixed;left:50%;top:70px;transform:translateX(-50%);padding:10px 18px;border-radius:10px;z-index:99999;font-size:13px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.18);transition:opacity .3s;opacity:0;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.style.background = kind === 'success' ? '#10B981' : kind === 'warn' ? '#F59E0B' : '#6B7280';
+  t.style.color = '#fff';
+  t.textContent = msg;
+  t.style.opacity = '1';
+  if (__toastTimer) clearTimeout(__toastTimer);
+  __toastTimer = setTimeout(function() { t.style.opacity = '0'; }, 2800);
 }
-// 浏览器原生 online/offline 事件也监听
-window.addEventListener('offline', function() { __isOffline = true; showOfflineBanner(); });
-window.addEventListener('online', function() { __isOffline = false; hideOfflineBanner(); });
 
 var SCENES = [
 {id:'work',name:'我的工作',icon:'💼',brief:'职业·收入·意义'},
@@ -190,13 +301,31 @@ async function apiFetch(m) {
   } catch(e) { return dataCache[m] || []; }
 }
 async function apiSave(m, d) {
-  try { await fetch('/api/' + m, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d) }); dataCache[m] = d; } catch(e) {}
+  try {
+    await fetch('/api/' + m, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d) });
+    dataCache[m] = d;
+  } catch(e) {
+    pendingQueueAdd({ operation: 'save', module: m, data: d });
+  }
 }
 async function apiAdd(m, r) {
-  try { await fetch('/api/' + m + '/add', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(r) }); if (!dataCache[m]) dataCache[m] = []; dataCache[m].push(r); } catch(e) { if (!dataCache[m]) dataCache[m] = []; dataCache[m].push(r); }
+  if (!dataCache[m]) dataCache[m] = [];
+  try {
+    await fetch('/api/' + m + '/add', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(r) });
+    dataCache[m].push(r);
+  } catch(e) {
+    pendingQueueAdd({ operation: 'add_record', module: m, data: r });
+    dataCache[m].push(r);
+  }
 }
 async function apiDelete(m, id) {
-  try { await fetch('/api/' + m + '/' + id, { method:'DELETE' }); if (dataCache[m]) dataCache[m] = dataCache[m].filter(i => i.id !== id); } catch(e) { if (dataCache[m]) dataCache[m] = dataCache[m].filter(i => i.id !== id); }
+  try {
+    await fetch('/api/' + m + '/' + id, { method:'DELETE' });
+    if (dataCache[m]) dataCache[m] = dataCache[m].filter(i => i.id !== id);
+  } catch(e) {
+    pendingQueueAdd({ operation: 'delete', module: m, targetId: id });
+    if (dataCache[m]) dataCache[m] = dataCache[m].filter(i => i.id !== id);
+  }
 }
 async function fetchInsights() {
   try { const r = await fetch('/api/insights'); insightsCache = await r.json(); } catch(e) { insightsCache = null; }
@@ -290,6 +419,9 @@ async function initApp() {
   loadDailyQuestion();
   // v6.5.9 启动提醒到期检查
   startReminderCheck();
+  // P0-3：加载后检查离线待同步队列，立即尝试 flush（静默）
+  updateOfflineBanner();
+  setTimeout(function() { flushPendingQueue(true); }, 500);
 }
 
 async function loadDailyQuestion() {
@@ -1585,21 +1717,26 @@ async function saveRecord(){
       alert(res.message || '保存失败');
     }
   } catch(e) {
-    // 网络错误回退到原 apiSave
+    // 网络错误：入离线队列，本地立即生效（UI与旧逻辑一致）
     var data = Array.isArray(dataCache[curScene]) ? dataCache[curScene] : (dataCache[curScene] = []);
+    var lItemId = null;
     if (editId) {
       var it = data.find(function(x){ return String(x.id)===String(editId); });
       if (it) Object.assign(it, formData);
-      await apiSave(curScene, data);
+      lItemId = editId;
+      // 编辑场景：也入 add_record 队列（editId 不为空后端按编辑处理）
+      pendingQueueAdd({ operation: 'add_record', module: curScene, data: formData, editId: editId });
     } else {
       var newItem = Object.assign({id:genId(), created:new Date().toISOString()}, formData);
       data.push(newItem);
-      await apiSave(curScene, data);
+      lItemId = newItem.id;
+      // 新增入 add_record 队列
+      pendingQueueAdd({ operation: 'add_record', module: curScene, data: newItem });
     }
     closeModal();
     renderDetail(curScene);
     renderHome();
-    alert('已保存（离线模式）');
+    showToast('已暂存本地，上线自动同步', 'warn');
   }
 }
 
@@ -1609,18 +1746,18 @@ async function delRec(sceneId,id){
     var r = await fetch('/api/'+sceneId+'/'+id, { method: 'DELETE' });
     var d = await r.json();
     if(!d.success){ alert('删除失败：'+(d.message||'')); return; }
-    // 同步本地缓存
     var data=Array.isArray(dataCache[sceneId])?dataCache[sceneId]:[];
     dataCache[sceneId]=data.filter(function(x){ return String(x.id)!==String(id); });
     renderDetail(sceneId);
     renderHome();
   } catch(e) {
-    // 网络失败时回退本地
+    // 离线删除：入队列 + 本地立即移除
+    pendingQueueAdd({ operation: 'delete', module: sceneId, targetId: id });
     var data2=Array.isArray(dataCache[sceneId])?dataCache[sceneId]:[];
     dataCache[sceneId]=data2.filter(function(x){ return String(x.id)!==String(id); });
     renderDetail(sceneId);
     renderHome();
-    alert('网络异常，已离线删除');
+    showToast('已离线删除，上线同步服务端', 'warn');
   }
 }
 
