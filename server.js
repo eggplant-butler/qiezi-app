@@ -346,7 +346,29 @@ function requireAuth(req, res, next) {
 }
 initAuth();
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'self'"],
+      upgradeInsecureRequests: []
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  permissionsPolicy: {
+    camera: [], microphone: [], geolocation: [], payment: [], usb: []
+  }
+}));
 app.use(compression());
 
 const apiLimiter = rateLimit({
@@ -375,7 +397,7 @@ app.use(cors({
   credentials: true,
   maxAge: 86400
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '2mb' }));
 
 // ============ API 请求日志中间件 ============
 // 仅记录 /api/ 请求，输出结构化字段：method/path/status/durationMs/ip
@@ -500,12 +522,20 @@ app.post('/api/client-error', (req, res) => {
 });
 
 // 登录：验证密码，签发 JWT
-const loginLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: '尝试过多，请1分钟后再试' }
+});
 app.post('/api/login', loginLimiter, (req, res) => {
   const { password } = req.body || {};
   if (!password) return res.status(400).json({ success: false, message: '请输入密码' });
   if (!verifyPassword(password)) {
-    return res.status(401).json({ success: false, message: '密码错误' });
+    // 500ms 延迟减缓暴力破解
+    setTimeout(() => res.status(401).json({ success: false, message: '密码错误' }), 500);
+    return;
   }
   const token = signToken({ user: 'captain' });
   res.json({ success: true, token, expiresIn: 7 * 24 * 60 * 60 * 1000 });
@@ -521,16 +551,21 @@ app.get('/api/me', (req, res) => {
 
 // 修改密码
 app.post('/api/change-password', (req, res) => {
-  const { currentPassword, newPassword } = req.body || {};
-  if (!verifyPassword(currentPassword || '')) {
-    return res.status(401).json({ success: false, message: '当前密码错误' });
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!verifyPassword(currentPassword || '')) {
+      return res.status(401).json({ success: false, message: '当前密码错误' });
+    }
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 4 || newPassword.length > 100) {
+      return res.status(400).json({ success: false, message: '新密码需4-100位' });
+    }
+    createAuthConfig(newPassword);
+    const token = signToken({ user: 'captain' });
+    res.json({ success: true, message: '密码已修改', token });
+  } catch (e) {
+    console.error('[change-password]', e.message);
+    res.status(500).json({ success: false, message: '密码修改失败，请重试' });
   }
-  if (!newPassword || newPassword.length < 4) {
-    return res.status(400).json({ success: false, message: '新密码至少4位' });
-  }
-  createAuthConfig(newPassword);
-  const token = signToken({ user: 'captain' });
-  res.json({ success: true, message: '密码已修改', token });
 });
 
 // ============ 今日之问 API ============
@@ -572,19 +607,25 @@ app.get('/api/daily-question', (req, res) => {
 });
 
 app.post('/api/daily-question/answer', (req, res) => {
-  const { answer, date } = req.body;
-  if (!answer) return res.json({ success:false, message:'回答不能为空' });
-  const qs = readData('daily_questions');
-  const target = qs.find(q => q.date === date);
-  if (!target) return res.json({ success:false, message:'未找到今日问题' });
-  target.answer = answer;
-  target.depthScore = Math.min(5, Math.max(1, Math.ceil(answer.length / 20)));
-  target.answeredAt = new Date().toISOString();
-  writeData('daily_questions', qs);
-  const diary = readData('diary');
-  diary.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), content:'📝 今日之问回答：'+answer, date, rating:target.depthScore, source:'daily_question' });
-  writeData('diary', diary);
-  res.json({ success:true, message:'回答已保存', depthScore:target.depthScore });
+  try {
+    const { answer, date } = req.body || {};
+    if (!answer || typeof answer !== 'string') return res.json({ success:false, message:'回答不能为空' });
+    if (answer.length > 5000) return res.json({ success:false, message:'回答过长' });
+    const qs = readData('daily_questions');
+    const target = qs.find(q => q.date === date);
+    if (!target) return res.json({ success:false, message:'未找到今日问题' });
+    target.answer = answer;
+    target.depthScore = Math.min(5, Math.max(1, Math.ceil(answer.length / 20)));
+    target.answeredAt = new Date().toISOString();
+    writeData('daily_questions', qs);
+    const diary = readData('diary');
+    diary.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), content:'📝 今日之问回答：'+answer, date, rating:target.depthScore, source:'daily_question' });
+    writeData('diary', diary);
+    res.json({ success:true, message:'回答已保存', depthScore:target.depthScore });
+  } catch (e) {
+    console.error('[daily-question/answer]', e.message);
+    res.status(500).json({ success: false, message: '保存失败' });
+  }
 });
 
 app.get('/api/daily-question/history', (req, res) => {
@@ -859,9 +900,11 @@ const MODULE_KEYWORDS = {
 };
 
 app.post('/api/quick-note', (req, res) => {
-  const { content } = req.body;
-  if (!content) return res.json({ success: false, message: '内容不能为空' });
-  let suggested = 'diary';
+  try {
+    const { content } = req.body || {};
+    if (!content || typeof content !== 'string') return res.json({ success: false, message: '内容不能为空' });
+    if (content.length > 10000) return res.json({ success: false, message: '内容过长（上限10000字）' });
+    let suggested = 'diary';
   let maxScore = 0;
   for (const [module, keywords] of Object.entries(MODULE_KEYWORDS)) {
     let score = 0;
@@ -882,6 +925,10 @@ app.post('/api/quick-note', (req, res) => {
     message: `✅ 已保存，建议归入「${moduleNames[suggested] || '日记'}」`,
     suggested, suggestedName: moduleNames[suggested] || '日记'
   });
+  } catch (e) {
+    console.error('[quick-note]', e.message);
+    res.status(500).json({ success: false, message: '保存失败' });
+  }
 });
 
 app.get('/api/quick-notes', (req, res) => {
@@ -889,37 +936,51 @@ app.get('/api/quick-notes', (req, res) => {
 });
 
 app.post('/api/quick-note/classify', (req, res) => {
-  const { noteId, targetModule } = req.body;
-  const notes = readData('quick_notes');
-  const note = notes.find(n => n.id === noteId);
-  if (!note) return res.json({ success: false, message: '未找到笔记' });
-  note.classified = true; note.targetModule = targetModule; note.accepted = true;
-  note.classifiedAt = new Date().toISOString();
-  writeData('quick_notes', notes);
-  const targetData = readData(targetModule);
-  targetData.push({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    content: note.content, date: note.date, source: 'quick_note', createdAt: note.createdAt
-  });
-  writeData(targetModule, targetData);
-  res.json({ success: true, message: `✅ 已归类到 ${targetModule}` });
+  try {
+    const { noteId, targetModule } = req.body;
+    if (!noteId || !targetModule) return res.json({ success: false, message: '参数缺失' });
+    if (!isModuleAllowed(targetModule)) return res.json({ success: false, message: '目标模块不合法' });
+    const notes = readData('quick_notes');
+    const note = notes.find(n => n.id === noteId);
+    if (!note) return res.json({ success: false, message: '未找到笔记' });
+    note.classified = true; note.targetModule = targetModule; note.accepted = true;
+    note.classifiedAt = new Date().toISOString();
+    writeData('quick_notes', notes);
+    const targetData = readData(targetModule);
+    targetData.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      content: note.content, date: note.date, source: 'quick_note', createdAt: note.createdAt
+    });
+    writeData(targetModule, targetData);
+    res.json({ success: true, message: `✅ 已归类到 ${targetModule}` });
+  } catch (e) {
+    console.error('[quick-note/classify]', e.message);
+    res.status(500).json({ success: false, message: '归类失败' });
+  }
 });
 
 // ============================================================
 // 缴费管理 API
 // ============================================================
 app.post('/api/bill', (req, res) => {
-  const { name, amount, dueDate, period, category, note } = req.body;
-  if (!name || !amount || !dueDate) return res.json({ success: false, message: '请填写完整信息' });
-  const bills = readData('bills');
-  const bill = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    name, amount: parseFloat(amount), dueDate, period: period || '每月',
-    category: category || '生活', note: note || '', paid: false,
-    createdAt: new Date().toISOString()
-  };
-  bills.push(bill); writeData('bills', bills);
-  res.json({ success: true, bill });
+  try {
+    const { name, amount, dueDate, period, category, note } = req.body || {};
+    if (!name || !amount || !dueDate) return res.json({ success: false, message: '请填写完整信息' });
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount < 0) return res.json({ success: false, message: '金额无效' });
+    const bills = readData('bills');
+    const bill = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      name: String(name).slice(0,100), amount: parsedAmount, dueDate: String(dueDate).slice(0,20),
+      period: period || '每月', category: category || '生活', note: note || '', paid: false,
+      createdAt: new Date().toISOString()
+    };
+    bills.push(bill); writeData('bills', bills);
+    res.json({ success: true, bill });
+  } catch (e) {
+    console.error('[bill]', e.message);
+    res.status(500).json({ success: false, message: '保存失败' });
+  }
 });
 
 app.get('/api/bills', (req, res) => {
@@ -933,64 +994,79 @@ app.get('/api/bills', (req, res) => {
 });
 
 app.post('/api/bill/pay', (req, res) => {
-  const { billId } = req.body;
-  const bills = readData('bills');
-  const bill = bills.find(b => b.id === billId);
-  if (!bill) return res.json({ success: false, message: '未找到账单' });
-  bill.paid = true; bill.paidAt = new Date().toISOString();
-  writeData('bills', bills);
-  const finance = readData('finance');
-  finance.push({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    type: '支出', category: bill.category || '生活缴费', amount: bill.amount,
-    date: new Date().toISOString().split('T')[0], merchant: bill.name,
-    note: `💳 缴费：${bill.name}`, source: 'bill'
-  });
-  writeData('finance', finance);
-  res.json({ success: true, message: `✅ ${bill.name} 已标记为已缴` });
+  try {
+    const { billId } = req.body;
+    const bills = readData('bills');
+    const bill = bills.find(b => b.id === billId);
+    if (!bill) return res.json({ success: false, message: '未找到账单' });
+    bill.paid = true; bill.paidAt = new Date().toISOString();
+    writeData('bills', bills);
+    const finance = readData('finance');
+    finance.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      type: '支出', category: bill.category || '生活缴费', amount: bill.amount,
+      date: new Date().toISOString().split('T')[0], merchant: bill.name,
+      note: `💳 缴费：${bill.name}`, source: 'bill'
+    });
+    writeData('finance', finance);
+    res.json({ success: true, message: `✅ ${bill.name} 已标记为已缴` });
+  } catch (e) {
+    console.error('[bill/pay]', e.message);
+    res.status(500).json({ success: false, message: '缴费标记失败' });
+  }
 });
 
 app.delete('/api/bill/:id', (req, res) => {
-  const bills = readData('bills');
-  writeData('bills', bills.filter(b => b.id !== req.params.id));
-  res.json({ success: true });
+  try {
+    const bills = readData('bills');
+    writeData('bills', bills.filter(b => b.id !== req.params.id));
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[bill/delete]', e.message);
+    res.status(500).json({ success: false, message: '删除失败' });
+  }
 });
 
 // ============================================================
 // 阅读打卡 API
 // ============================================================
 app.post('/api/reading', (req, res) => {
-  const { bookName, author, progress, date, duration, totalPages, currentPage } = req.body;
-  if (!bookName) return res.json({ success: false, message: '请输入书名' });
-  const readings = readData('reading');
-  const newId = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-  readings.push({
-    id: newId, bookName, author: author || '', progress: progress || 0,
-    date: date || new Date().toISOString().split('T')[0],
-    duration: parseInt(duration) || 0, totalPages: parseInt(totalPages) || 0, currentPage: parseInt(currentPage) || 0,
-    createdAt: new Date().toISOString()
-  });
-  writeData('reading', readings);
-  // v6.8.2 A6：阅读 → 自动同步成长草稿
-  const linkedModules = [];
-  if (!readData('growth').some(g => g._linkedModule === 'reading' && g._linkedId === newId)) {
-    try {
-      const growthList = readData('growth');
-      growthList.push({
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-        type: '学习', skill: '阅读 - ' + bookName,
-        method: '看书', duration: parseInt(duration) || 0,
-        understanding: '', progress: progress || ('读 ' + (currentPage || 0) + '/' + (totalPages || 0) + ' 页'),
-        obstacle: '', plan: '', output: '',
-        content: '《' + bookName + '》' + (author ? ' - ' + author : '') + ' 阅读 ' + (duration || 0) + ' 分钟',
-        date: date || new Date().toISOString().split('T')[0],
-        _linkedModule: 'reading', _linkedId: newId, created: new Date().toISOString()
-      });
-      writeData('growth', growthList);
-      linkedModules.push('growth');
-    } catch (e) { console.error('[linkage] reading→growth:', e.message); }
+  try {
+    const { bookName, author, progress, date, duration, totalPages, currentPage } = req.body;
+    if (!bookName || typeof bookName !== 'string') return res.json({ success: false, message: '请输入书名' });
+    const readings = readData('reading');
+    const newId = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    readings.push({
+      id: newId, bookName, author: author || '', progress: progress || 0,
+      date: date || new Date().toISOString().split('T')[0],
+      duration: parseInt(duration) || 0, totalPages: parseInt(totalPages) || 0, currentPage: parseInt(currentPage) || 0,
+      createdAt: new Date().toISOString()
+    });
+    writeData('reading', readings);
+    // v6.8.2 A6：阅读 → 自动同步成长草稿
+    const linkedModules = [];
+    if (!readData('growth').some(g => g._linkedModule === 'reading' && g._linkedId === newId)) {
+      try {
+        const growthList = readData('growth');
+        growthList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          type: '学习', skill: '阅读 - ' + bookName,
+          method: '看书', duration: parseInt(duration) || 0,
+          understanding: '', progress: progress || ('读 ' + (currentPage || 0) + '/' + (totalPages || 0) + ' 页'),
+          obstacle: '', plan: '', output: '',
+          content: '《' + bookName + '》' + (author ? ' - ' + author : '') + ' 阅读 ' + (duration || 0) + ' 分钟',
+          date: date || new Date().toISOString().split('T')[0],
+          _linkedModule: 'reading', _linkedId: newId, created: new Date().toISOString()
+        });
+        writeData('growth', growthList);
+        linkedModules.push('growth');
+      } catch (e) { console.error('[linkage] reading→growth:', e.message); }
+    }
+    res.json({ success: true, linkedModules });
+  } catch (e) {
+    console.error('[reading]', e.message);
+    res.status(500).json({ success: false, message: '阅读记录保存失败' });
   }
-  res.json({ success: true, linkedModules });
 });
 
 app.get('/api/readings', (req, res) => {
@@ -1055,34 +1131,38 @@ app.get('/api/housework', (req, res) => {
 });
 
 app.post('/api/housework/complete', (req, res) => {
-  const { taskId } = req.body;
-  const chores = readData('housework');
-  const task = chores.find(c => c.id === taskId);
-  if (!task) return res.json({ success: false, message: '未找到任务' });
-  task.lastDone = new Date().toISOString().split('T')[0];
-  task.completedAt = new Date().toISOString();
-  writeData('housework', chores);
-  // v6.8.2 A5：完成家务 → 自动追加居住记录
-  const linkedModules = [];
-  const linkId = task.id + '-' + task.lastDone; // 按天去重：同一任务同一天只联动一次
-  if (!readData('home').some(h => h._linkedModule === 'housework' && h._linkedId === linkId)) {
-    try {
-      // task → home.action 映射
-      const actionMap = {'扫地':'打扫','拖地':'打扫','洗碗':'打扫','整理厨房台面':'整理','铺床':'整理','擦桌子':'打扫','换床单':'整理','清理卫生间':'打扫','倒垃圾':'打扫','拖阳台':'打扫','整理衣柜':'整理','擦窗':'打扫'};
-      const action = actionMap[task.task] || '打扫';
-      const homeList = readData('home');
-      homeList.push({
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-        space: task.area || '客厅', action: action,
-        items: task.task, security: 3, note: '家务自动记录',
-        date: task.lastDone,
-        _linkedModule: 'housework', _linkedId: linkId, created: new Date().toISOString()
-      });
-      writeData('home', homeList);
-      linkedModules.push('home');
-    } catch (e) { console.error('[linkage] housework→home:', e.message); }
+  try {
+    const { taskId } = req.body || {};
+    const chores = readData('housework');
+    const task = chores.find(c => c.id === taskId);
+    if (!task) return res.json({ success: false, message: '未找到任务' });
+    task.lastDone = new Date().toISOString().split('T')[0];
+    task.completedAt = new Date().toISOString();
+    writeData('housework', chores);
+    // v6.8.2 A5：完成家务 → 自动追加居住记录
+    const linkedModules = [];
+    const linkId = task.id + '-' + task.lastDone;
+    if (!readData('home').some(h => h._linkedModule === 'housework' && h._linkedId === linkId)) {
+      try {
+        const actionMap = {'扫地':'打扫','拖地':'打扫','洗碗':'打扫','整理厨房台面':'整理','铺床':'整理','擦桌子':'打扫','换床单':'整理','清理卫生间':'打扫','倒垃圾':'打扫','拖阳台':'打扫','整理衣柜':'整理','擦窗':'打扫'};
+        const action = actionMap[task.task] || '打扫';
+        const homeList = readData('home');
+        homeList.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+          space: task.area || '客厅', action: action,
+          items: task.task, security: 3, note: '家务自动记录',
+          date: task.lastDone,
+          _linkedModule: 'housework', _linkedId: linkId, created: new Date().toISOString()
+        });
+        writeData('home', homeList);
+        linkedModules.push('home');
+      } catch (e) { console.error('[linkage] housework→home:', e.message); }
+    }
+    res.json({ success: true, message: `✅ ${task.task} 已完成！`, linkedModules });
+  } catch (e) {
+    console.error('[housework/complete]', e.message);
+    res.status(500).json({ success: false, message: '操作失败' });
   }
-  res.json({ success: true, message: `✅ ${task.task} 已完成！`, linkedModules });
 });
 
 app.post('/api/housework/mode', (req, res) => {

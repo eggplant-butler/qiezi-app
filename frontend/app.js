@@ -533,8 +533,8 @@ async function renderHabits(){
       var deg = (streak / 21) * 360;
       if(deg > 360) deg = 360;
       var todayDone = !!habit.todayDone;
-      var nameText = habit.name + (todayDone ? ' ✅' : '');
-      return '<div onclick="checkinHabit(\''+habit.id+'\')" style="background:var(--c-surface);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.05);transition:transform .2s;" onmousedown="this.style.transform=\'scale(0.96)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'"><div style="width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--c-primary) '+deg+'deg,#e5e7eb 0);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;"><div style="width:40px;height:40px;border-radius:50%;background:var(--c-surface);display:flex;align-items:center;justify-content:center;font-size:20px;">'+(habit.icon||'📌')+'</div></div><div style="font-size:12px;font-weight:600;color:var(--c-fg);">'+nameText+'</div><div style="font-size:11px;color:var(--c-fg-2)">连续'+streak+'天</div></div>';
+      var nameText = escapeHtml(habit.name) + (todayDone ? ' ✅' : '');
+      return '<div onclick="checkinHabit(\''+escapeHtml(habit.id)+'\')" style="background:var(--c-surface);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.05);transition:transform .2s;" onmousedown="this.style.transform=\'scale(0.96)\'" onmouseup="this.style.transform=\'scale(1)\'" onmouseleave="this.style.transform=\'scale(1)\'"><div style="width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--c-primary) '+deg+'deg,#e5e7eb 0);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;"><div style="width:40px;height:40px;border-radius:50%;background:var(--c-surface);display:flex;align-items:center;justify-content:center;font-size:20px;">'+escapeHtml(habit.icon||'📌')+'</div></div><div style="font-size:12px;font-weight:600;color:var(--c-fg);">'+nameText+'</div><div style="font-size:11px;color:var(--c-fg-2)">连续'+streak+'天</div></div>';
     }).join('');
   } catch(e) {
     grid.innerHTML = '';
@@ -565,7 +565,7 @@ function renderHomeInsights(){
     if(insightsCache.correlations && insightsCache.correlations.length > 0){
       corrDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:var(--c-fg-2);margin:8px 0 4px">🔗 发现关联</div>' +
         insightsCache.correlations.slice(0,2).map(function(c){
-          return '<div class="corr-item"><div class="title">'+c.title+'</div><div class="detail">'+c.detail+'</div></div>';
+          return '<div class="corr-item"><div class="title">'+escapeHtml(c.title)+'</div><div class="detail">'+escapeHtml(c.detail)+'</div></div>';
         }).join('');
     } else {
       corrDiv.innerHTML = '';
@@ -575,7 +575,7 @@ function renderHomeInsights(){
   if(sugDiv){
     if(insightsCache.suggestions && insightsCache.suggestions.length > 0){
       sugDiv.innerHTML = insightsCache.suggestions.slice(0,2).map(function(s){
-        return '<div class="suggestion-item">'+s.text+'</div>';
+        return '<div class="suggestion-item">'+escapeHtml(s.text)+'</div>';
       }).join('');
     } else {
       sugDiv.innerHTML = '';
@@ -857,7 +857,7 @@ function renderDetail(id){
       extraHtml += '<div style="font-size:11px;color:var(--c-fg-2);margin-top:8px;margin-bottom:4px;">🏥 最近就医</div>';
       pd.recentVetVisits.forEach(function(v){
         extraHtml += '<div style="font-size:12px;padding:3px 8px;background:#F9FAFB;border-radius:6px;margin-bottom:3px;">';
-        extraHtml += '<span style="color:var(--c-fg);">'+(v.date||'')+'</span> · ';
+        extraHtml += '<span style="color:var(--c-fg);">'+escapeHtml(v.date||'')+'</span> · ';
         extraHtml += '<span style="color:var(--c-fg-2);">'+escapeHtml(v.petName||'')+' '+escapeHtml(v.action||'')+'</span>';
         if(v.vetNote) extraHtml += '<span style="color:var(--c-fg-3);"> · '+escapeHtml(v.vetNote)+'</span>';
         extraHtml += '</div>';
@@ -3846,10 +3846,10 @@ function renderInsight(){
   var summary='';
   if(insightsCache && insightsCache.growth){
     var g=insightsCache.growth;
-    summary='<div style="background:var(--c-accent);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--c-border);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:14px;font-weight:700;color:var(--c-primary)">'+g.phase+'</span><span style="font-size:11px;color:var(--c-fg-3)">'+g.progress+'%</span></div><div style="font-size:12px;color:#4B5563;">'+g.phaseDesc+' · 下一里程碑：'+g.nextMilestone+'</div><div style="margin-top:8px;height:4px;background:#E5E7EB;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));border-radius:4px"></div></div></div>';
+    summary='<div style="background:var(--c-accent);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--c-border);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:14px;font-weight:700;color:var(--c-primary)">'+escapeHtml(g.phase)+'</span><span style="font-size:11px;color:var(--c-fg-3)">'+g.progress+'%</span></div><div style="font-size:12px;color:#4B5563;">'+escapeHtml(g.phaseDesc)+' · 下一里程碑：'+escapeHtml(g.nextMilestone)+'</div><div style="margin-top:8px;height:4px;background:#E5E7EB;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+g.progress+'%;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-2));border-radius:4px"></div></div></div>';
     if(insightsCache.correlations && insightsCache.correlations.length>0){
       summary+='<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:16px;"><div style="font-size:12px;font-weight:600;color:var(--c-fg-2);margin-bottom:6px">🔗 发现关联</div>';
-      insightsCache.correlations.slice(0,2).forEach(function(corr){ summary+='<div class="corr-item"><div class="title">'+corr.title+'</div><div class="detail">'+corr.detail+'</div></div>'; });
+      insightsCache.correlations.slice(0,2).forEach(function(corr){ summary+='<div class="corr-item"><div class="title">'+escapeHtml(corr.title)+'</div><div class="detail">'+escapeHtml(corr.detail)+'</div></div>'; });
       summary+='</div>';
     }
     if(insightsCache.suggestions && insightsCache.suggestions.length>0){
@@ -4455,12 +4455,12 @@ function renderReminderList() {
     var opacity = r.enabled === false ? 'opacity:0.45' : '';
     return '<div style="' + bg + ';' + opacity + ';border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between">' +
       '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:14px;font-weight:600;color:var(--c-fg);margin-bottom:2px">' + (r.title || '未命名') + '</div>' +
+        '<div style="font-size:14px;font-weight:600;color:var(--c-fg);margin-bottom:2px">' + escapeHtml(r.title || '未命名') + '</div>' +
         '<div style="font-size:12px;color:var(--c-fg-2)">' + dateStr + ' · ' + repeatLabel + (isDue ? ' · 🔴 已到期' : '') + '</div>' +
       '</div>' +
       '<div style="display:flex;gap:6px;flex-shrink:0">' +
-        '<button onclick="toggleReminder(\'' + r.id + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:4px">' + (r.enabled === false ? '🔇' : '🔊') + '</button>' +
-        '<button onclick="deleteReminder(\'' + r.id + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:4px">🗑️</button>' +
+        '<button onclick="toggleReminder(\'' + escapeHtml(r.id) + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:4px">' + (r.enabled === false ? '🔇' : '🔊') + '</button>' +
+        '<button onclick="deleteReminder(\'' + escapeHtml(r.id) + '\')" style="background:none;border:none;font-size:16px;cursor:pointer;padding:4px">🗑️</button>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -4817,7 +4817,7 @@ async function loadBills() {
     container.innerHTML = unpaid.slice(0, 5).map(function(b) {
       var statusText = b.status === 'overdue' ? '🔴 已过期' : (b.status === 'upcoming' ? '🟡 即将到期' : '⚪');
       var daysText = b.daysRemaining < 0 ? '已过期' + Math.abs(b.daysRemaining) + '天' : '剩余' + b.daysRemaining + '天';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #FFFFFF;"><span style="color:' + (b.status === 'overdue' ? '#EF4444' : b.status === 'upcoming' ? '#FBBF24' : '#CBD5E1') + '">' + b.name + ' ¥' + b.amount + '</span><span style="font-size:11px;color:var(--c-fg-3);">' + daysText + '</span></div>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #FFFFFF;"><span style="color:' + (b.status === 'overdue' ? '#EF4444' : b.status === 'upcoming' ? '#FBBF24' : '#CBD5E1') + '">' + escapeHtml(b.name) + ' ¥' + escapeHtml(String(b.amount)) + '</span><span style="font-size:11px;color:var(--c-fg-3);">' + daysText + '</span></div>';
     }).join('');
   } catch(e) { document.getElementById('billsList').textContent = '加载失败'; }
 }
@@ -4891,7 +4891,7 @@ async function loadHousework() {
     if (urgent.length > 0) {
       html += '<div style="color:#EF4444;font-size:11px;margin-bottom:4px;">⚠️ 逾期任务</div>';
       urgent.slice(0, 3).forEach(function(t) {
-        html += '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #FFFFFF;"><span style="color:#EF4444;">' + t.task + '</span><button onclick="completeHousework(\'' + t.id + '\')" style="background:transparent;border-radius:4px;padding:0 8px;color:var(--c-fg-2);font-size:10px;cursor:pointer;">完成</button></div>';
+        html += '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #FFFFFF;"><span style="color:#EF4444;">' + escapeHtml(t.task) + '</span><button onclick="completeHousework(\'' + escapeHtml(t.id) + '\')" style="background:transparent;border-radius:4px;padding:0 8px;color:var(--c-fg-2);font-size:10px;cursor:pointer;">完成</button></div>';
       });
     } else if (data.mode !== 'busy') {
       html += '<div style="color:#22C55E;font-size:12px;">✅ 今日所有任务已完成</div>';
@@ -4948,7 +4948,7 @@ async function loadSocial() {
       var badge = '';
       if (c.daysUntilBirthday !== null && c.daysUntilBirthday <= 7) badge = '🎂 ';
       if (c.daysSinceContact !== null && c.daysSinceContact > 30) badge = '📅 ';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #FFFFFF;"><span style="color:#4B5563;">' + badge + c.name + '</span><span style="font-size:11px;color:var(--c-fg-3);">' + c.relation + '</span></div>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #FFFFFF;"><span style="color:#4B5563;">' + badge + escapeHtml(c.name) + '</span><span style="font-size:11px;color:var(--c-fg-3);">' + escapeHtml(c.relation) + '</span></div>';
     }).join('');
   } catch(e) { document.getElementById('socialList').textContent = '加载失败'; }
 }
@@ -4981,7 +4981,7 @@ async function loadAchievements() {
       return;
     }
     container.innerHTML = data.unlocked.slice(0, 4).map(function(a) {
-      return '<span style="background:var(--c-border);border-radius:12px;padding:2px 10px;font-size:11px;color:var(--c-primary);">' + a.name + '</span>';
+      return '<span style="background:var(--c-border);border-radius:12px;padding:2px 10px;font-size:11px;color:var(--c-primary);">' + escapeHtml(a.name) + '</span>';
     }).join('');
   } catch(e) { document.getElementById('achievementList').textContent = '加载失败'; }
   try { await fetch('/api/achievements/check', { method: 'POST' }); } catch(e) {}
@@ -5029,8 +5029,8 @@ async function loadWork() {
       if (recent.length > 0) {
         html += recent.map(function(i) {
           return '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #FFFFFF;font-size:12px;">' +
-            '<span style="color:#4B5563;">' + i.company + ' · ' + i.position + '</span>' +
-            '<span style="color:var(--c-fg-3);">' + i.status + '</span>' +
+            '<span style="color:#4B5563;">' + escapeHtml(i.company) + ' · ' + escapeHtml(i.position) + '</span>' +
+            '<span style="color:var(--c-fg-3);">' + escapeHtml(i.status) + '</span>' +
           '</div>';
         }).join('');
       } else {
@@ -5042,7 +5042,7 @@ async function loadWork() {
       var topSkills = skills.skills ? skills.skills.slice(0, 3) : [];
       if (topSkills.length > 0) {
         html += topSkills.map(function(s) {
-          return '<span style="display:inline-block;background:var(--c-accent);border-radius:8px;padding:2px 10px;font-size:11px;color:var(--c-primary);margin:2px;">' + s.name + ' ' + s.score + '/10</span>';
+          return '<span style="display:inline-block;background:var(--c-accent);border-radius:8px;padding:2px 10px;font-size:11px;color:var(--c-primary);margin:2px;">' + escapeHtml(s.name) + ' ' + s.score + '/10</span>';
         }).join('');
       } else {
         html += '<span style="color:var(--c-fg-3);font-size:12px;">还没有技能评分，点击下方添加</span>';
