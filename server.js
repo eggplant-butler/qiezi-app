@@ -4904,29 +4904,71 @@ if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 const OLD_BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const PACK_GZ_EXT = '.pack.gz';
 const OLD_DB_EXT = '.db';
-const BACKUP_PACK_VERSION = 1;
+const BACKUP_PACK_VERSION = 2;
+// P0-4: 备份加密密钥（独立文件，不包含在备份中，防止拿到备份即可解密）
+const BACKUP_KEY_FILE = path.join(DATA_DIR, 'backup.key');
+function getBackupKey() {
+  try {
+    if (fs.existsSync(BACKUP_KEY_FILE)) {
+      const k = fs.readFileSync(BACKUP_KEY_FILE, 'utf8').trim();
+      if (k.length === 64) return Buffer.from(k, 'hex'); // 32 bytes
+    }
+  } catch (e) {}
+  // 首次：自动生成 256-bit 密钥并持久化
+  const newKey = crypto.randomBytes(32);
+  try { fs.writeFileSync(BACKUP_KEY_FILE, newKey.toString('hex'), { mode: 0o600 }); } catch (e) {}
+  return newKey;
+}
+function sha256hex(buf) { return crypto.createHash('sha256').update(buf).digest('hex'); }
+// AES-256-GCM 加密：返回 { iv, tag, ciphertext } (均 base64)
+function encryptAesGcm(plaintext, key) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const ct = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return { iv: iv.toString('base64'), tag: tag.toString('base64'), ciphertext: ct.toString('base64') };
+}
+// AES-256-GCM 解密：验证 tag，失败抛错（篡改/错误密钥）
+function decryptAesGcm(ctB64, ivB64, tagB64, key) {
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivB64, 'base64'));
+  decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
+  return Buffer.concat([decipher.update(Buffer.from(ctB64, 'base64')), decipher.final()]);
+}
 
 function isBackupFile(f) {
   return f.startsWith('qiezi-') && (f.endsWith(PACK_GZ_EXT) || f.endsWith(OLD_DB_EXT));
 }
 function isNewFormat(f) { return f.endsWith(PACK_GZ_EXT); }
 
-// 读取备份包文件并解析，返回 { version, created, files: { qiezi.db: Buffer, auth.json: Buffer, '.env': Buffer } }
+// 读取备份包文件并解析，返回 { version, created, encrypted, files: {...} }
 function unpackBackup(fpath) {
   const fname = path.basename(fpath);
   if (isNewFormat(fname)) {
     const raw = fs.readFileSync(fpath);
     const json = JSON.parse(zlib.gunzipSync(raw).toString('utf8'));
+    // v2 加密格式
+    if (json.encrypted && json.version >= 2) {
+      const key = getBackupKey();
+      const plaintext = decryptAesGcm(json.ciphertext, json.iv, json.tag, key);
+      const inner = JSON.parse(plaintext.toString('utf8'));
+      const files = {};
+      for (const [name, b64] of Object.entries(inner.files || {})) {
+        files[name] = Buffer.from(b64, 'base64');
+      }
+      return { version: json.version, created: json.created, encrypted: true, files };
+    }
+    // v1 旧明文格式（兼容）
     const files = {};
     for (const [name, b64] of Object.entries(json.files || {})) {
       files[name] = Buffer.from(b64, 'base64');
     }
-    return { version: json.version, created: json.created, files };
+    return { version: json.version, created: json.created, encrypted: false, files };
   } else {
-    // v1 旧格式：只包含 DB
+    // v0 最旧格式：裸 .db 文件
     return {
       version: 0,
       created: fs.statSync(fpath).mtimeMs,
+      encrypted: false,
       files: { 'qiezi.db': fs.readFileSync(fpath) }
     };
   }
@@ -4948,23 +4990,59 @@ function restoreBackupToDisk(fpath, targetDir) {
   return pack;
 }
 
-// 备份完整性校验：尝试打开 DB + 解析 pack 结构
+// 备份完整性校验：SHA256 哈希 + 解密验证 + DB 可打开
 function verifyBackup(fpath) {
   const fname = path.basename(fpath);
   try {
+    if (!isNewFormat(fname)) {
+      // v0 裸 DB：只检查能打开
+      const dbBuf = fs.readFileSync(fpath);
+      if (dbBuf.length < 100) return { ok: false, reason: 'DB size too small', encrypted: false };
+      const tmpDb = path.join(BACKUP_DIR, `_verify_${Date.now()}_${Math.random().toString(36).slice(2,6)}.db`);
+      try {
+        fs.writeFileSync(tmpDb, dbBuf);
+        const vdb = new (require('better-sqlite3'))(tmpDb, { readonly: true });
+        vdb.prepare('SELECT COUNT(*) as c FROM records').get();
+        vdb.close();
+        return { ok: true, encrypted: false, dbSize: dbBuf.length };
+      } finally { try { fs.unlinkSync(tmpDb); } catch (e) {} }
+    }
+    // pack.gz 格式
+    const raw = fs.readFileSync(fpath);
+    const json = JSON.parse(zlib.gunzipSync(raw).toString('utf8'));
+    // v2 加密：先验证 SHA256 哈希
+    if (json.encrypted && json.version >= 2) {
+      if (json.hash) {
+        const actualHash = sha256hex(Buffer.from(json.ciphertext, 'base64'));
+        if (actualHash !== json.hash) return { ok: false, reason: '哈希校验失败：备份可能被篡改', encrypted: true };
+      }
+      // 再尝试解密（验证密钥匹配 + GCM tag 完整性）
+      let pack;
+      try { pack = unpackBackup(fpath); }
+      catch (e) { return { ok: false, reason: '解密失败：' + e.message, encrypted: true }; }
+      const dbBuf = pack.files['qiezi.db'];
+      if (!dbBuf || dbBuf.length < 100) return { ok: false, reason: 'DB size too small', encrypted: true };
+      const tmpDb = path.join(BACKUP_DIR, `_verify_${Date.now()}_${Math.random().toString(36).slice(2,6)}.db`);
+      try {
+        fs.writeFileSync(tmpDb, dbBuf);
+        const vdb = new (require('better-sqlite3'))(tmpDb, { readonly: true });
+        vdb.prepare('SELECT COUNT(*) as c FROM records').get();
+        vdb.close();
+        return { ok: true, encrypted: true, dbSize: dbBuf.length, hasAuth: !!pack.files['auth.json'], hasEnv: !!pack.files['.env'] };
+      } finally { try { fs.unlinkSync(tmpDb); } catch (e) {} }
+    }
+    // v1 明文（兼容旧备份）
     const pack = unpackBackup(fpath);
     const dbBuf = pack.files['qiezi.db'];
-    if (!dbBuf || dbBuf.length < 100) return { ok: false, reason: 'DB size too small' };
+    if (!dbBuf || dbBuf.length < 100) return { ok: false, reason: 'DB size too small', encrypted: false };
     const tmpDb = path.join(BACKUP_DIR, `_verify_${Date.now()}_${Math.random().toString(36).slice(2,6)}.db`);
     try {
       fs.writeFileSync(tmpDb, dbBuf);
       const vdb = new (require('better-sqlite3'))(tmpDb, { readonly: true });
       vdb.prepare('SELECT COUNT(*) as c FROM records').get();
       vdb.close();
-      return { ok: true, dbSize: dbBuf.length, hasAuth: !!pack.files['auth.json'], hasEnv: !!pack.files['.env'] };
-    } finally {
-      try { fs.unlinkSync(tmpDb); } catch (e) {}
-    }
+      return { ok: true, encrypted: false, dbSize: dbBuf.length, hasAuth: !!pack.files['auth.json'], hasEnv: !!pack.files['.env'] };
+    } finally { try { fs.unlinkSync(tmpDb); } catch (e) {} }
   } catch (e) {
     return { ok: false, reason: e.message };
   }
@@ -4996,16 +5074,28 @@ async function doBackup() {
       try { fileBuffers['.env'] = fs.readFileSync(ENV_FILE); } catch (e) {}
     }
 
-    // 3. 打包成 JSON → gzip → 写入 .pack.gz
+    // 3. 打包 → 加密 → gzip → 写入 .pack.gz
     const b64Files = {};
     for (const [name, buf] of Object.entries(fileBuffers)) {
       b64Files[name] = buf.toString('base64');
     }
+    const innerObj = {
+      files: b64Files
+    };
+    // AES-256-GCM 加密
+    const key = getBackupKey();
+    const plaintext = Buffer.from(JSON.stringify(innerObj), 'utf8');
+    const enc = encryptAesGcm(plaintext, key);
+    const hash = sha256hex(Buffer.from(enc.ciphertext, 'base64'));
     const packObj = {
       version: BACKUP_PACK_VERSION,
+      encrypted: true,
       created: now.toISOString(),
       createdMs: now.getTime(),
-      files: b64Files
+      iv: enc.iv,
+      tag: enc.tag,
+      ciphertext: enc.ciphertext,
+      hash: hash
     };
     const gz = zlib.gzipSync(JSON.stringify(packObj), { level: 6 });
     fs.writeFileSync(dst, gz);
@@ -5183,14 +5273,26 @@ function hasTodayBackup() {
 // 备份列表 API：扫描两个目录
 app.get('/api/backup/list', (req, res) => {
   try {
-    const list = listAllBackups().map(b => ({
-      file: b.name,
-      size: b.size,
-      mtime: b.mtime,
-      mtimeStr: new Date(b.mtime).toISOString(),
-      source: b.label,
-      format: b.format
-    }));
+    const list = listAllBackups().map(b => {
+      let encrypted = null;
+      // 快速检测加密状态（不解密，只读 JSON 头）
+      if (b.isNew) {
+        try {
+          const raw = fs.readFileSync(path.join(b.dir, b.name));
+          const json = JSON.parse(zlib.gunzipSync(raw).toString('utf8'));
+          encrypted = !!(json.encrypted && json.version >= 2);
+        } catch (e) { encrypted = false; }
+      }
+      return {
+        file: b.name,
+        size: b.size,
+        mtime: b.mtime,
+        mtimeStr: new Date(b.mtime).toISOString(),
+        source: b.label,
+        format: b.format,
+        encrypted: encrypted
+      };
+    });
     res.json({ success: true, count: list.length, backups: list });
   } catch (e) {
     res.status(500).json({ success: false, message: '读取备份列表失败' });

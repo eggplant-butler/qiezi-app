@@ -4534,7 +4534,7 @@ async function restoreLatest(){
   }catch(e){ alert('请求失败：'+e.message); }
 }
 async function openBackupMgr(){
-  var html='<p style="color:var(--c-fg-2);font-size:12px;margin-bottom:10px;">写入数据后5分钟自动备份（防抖），每日至少1份。<br>保留策略：24h内全留 → 1-7天/7-30天每天1份 → 30天外删除。</p><div id="bkList" style="max-height:50vh;overflow:auto;"></div>';
+  var html='<p style="color:var(--c-fg-2);font-size:12px;margin-bottom:10px;">写入数据后5分钟自动备份（防抖），每日至少1份。<br>保留策略：24h内全留 → 1-7天/7-30天每天1份 → 30天外删除。<br><b style="color:#059669;">🔒 v6.9.7+ 备份已加密（AES-256-GCM + SHA256校验）</b></p><div id="bkList" style="max-height:50vh;overflow:auto;"></div>';
   openModal2('📂 备份管理',html);
   try{
     var r=await fetch('/api/backup/list');
@@ -4543,21 +4543,23 @@ async function openBackupMgr(){
       document.getElementById('bkList').innerHTML='<div style="color:var(--c-fg-2);padding:20px;text-align:center;">暂无备份</div>'; return;
     }
     var s='<table style="width:100%;font-size:12px;border-collapse:collapse;">';
-    s+='<tr style="background:#F3F4F6;"><th style="padding:6px;text-align:left;">时间</th><th style="padding:6px;text-align:right;">大小</th><th style="padding:6px;">操作</th></tr>';
+    s+='<tr style="background:#F3F4F6;"><th style="padding:6px;text-align:left;">时间</th><th style="padding:6px;text-align:right;">大小</th><th style="padding:6px;">加密</th><th style="padding:6px;">操作</th></tr>';
     j.backups.forEach(function(b){
       var d=new Date(b.mtime);
       var ts=d.getFullYear()+'-'+pad0(d.getMonth()+1)+'-'+pad0(d.getDate())+' '+pad0(d.getHours())+':'+pad0(d.getMinutes())+':'+pad0(d.getSeconds());
       var kb=Math.round(b.size/1024);
+      var encBadge = b.encrypted === true ? '<span style="color:#059669;font-weight:600;">🔒 加密</span>' : b.encrypted === false ? '<span style="color:#F59E0B;">⚠️ 明文</span>' : '<span style="color:var(--c-fg-3);">—</span>';
       s+='<tr style="border-bottom:1px solid #F3F4F6;">';
       s+='<td style="padding:8px;">'+ts+'<div style="font-size:10px;color:var(--c-fg-3);">'+(b.source||'')+'</div></td>';
       s+='<td style="padding:8px;text-align:right;">'+kb+'KB</td>';
+      s+='<td style="padding:8px;text-align:center;">'+encBadge+'</td>';
       s+='<td style="padding:8px;text-align:center;">';
       s+='<button onclick="restoreBackup(\''+b.file+'\')" style="margin-right:6px;background:#DBEAFE;color:#1E40AF;border:0;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;">恢复</button>';
       s+='<a href="/api/backup/download/'+b.file+'" style="background:#E0F2FE;color:#075985;padding:4px 8px;border-radius:4px;font-size:11px;text-decoration:none;">下载</a>';
       s+='</td></tr>';
     });
     s+='</table>';
-    s+='<div style="margin-top:14px;padding:10px;background:#FFFBE7;border-left:3px solid #F59E0B;font-size:11px;color:#92400E;">💡 恢复前系统会自动给当前状态再拍一份快照，可放心操作。</div>';
+    s+='<div style="margin-top:14px;padding:10px;background:#FFFBE7;border-left:3px solid #F59E0B;font-size:11px;color:#92400E;">💡 恢复前系统会自动给当前状态再拍一份快照，可放心操作。明文备份为旧版本生成，可正常恢复但建议尽快生成新的加密备份。</div>';
     document.getElementById('bkList').innerHTML=s;
   }catch(e){ document.getElementById('bkList').innerHTML='<div style="color:#EF4444;">加载失败：'+e.message+'</div>'; }
 }
