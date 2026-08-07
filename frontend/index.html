@@ -369,8 +369,61 @@
 </div>
 
 
-<script src="/app.js?v=6.9.19" defer></script>
-<!-- Service Worker 注册：离线缓存 + 后台静默更新 + 旧版本自动注销 -->
-<script src="/sw-register.js?v=6.9.19" defer></script>
+<!-- v6.9.20: 内联 login() 函数——不依赖 app.js 加载，不依赖 SW，不依赖外部缓存
+     解决：手机浏览器旧缓存/HSTS/SW 导致 app.js 加载失败，"出海"按钮点击无反应 -->
+<script>
+(function(){
+  function _inlineLogin(){
+    var p=document.getElementById('pwdI'); if(!p || !p.value) return;
+    var btn=document.querySelector('#lock button');
+    var err=document.getElementById('pwdErr');
+    btn.disabled=true; btn.style.opacity='.6'; if(err) err.style.display='none';
+    var ts='_='+Date.now();
+    fetch('/api/login?'+ts,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({password:p.value})})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if(j.success && j.token){
+          try{localStorage.setItem('qzos_token',j.token);}catch(e){}
+          try{document.cookie='qzos_token='+j.token+'; path=/; max-age='+(7*86400);}catch(e){}
+          var lock=document.getElementById('lock'); var app=document.getElementById('app');
+          if(lock) lock.style.cssText='display:none!important;';
+          if(app) app.style.cssText='display:block!important;';
+          location.reload(); // 刷新后 app.js 初始化，内联 token 已存在
+        } else {
+          if(err){err.textContent=j.message||'密码错误';err.style.display='block';}
+          btn.disabled=false; btn.style.opacity='1';
+        }
+      })
+      .catch(function(e){
+        if(err){err.textContent='网络错误，请检查连接后重试';err.style.display='block';}
+        btn.disabled=false; btn.style.opacity='1';
+      });
+  }
+  // 绑定按钮 onclick（覆盖 HTML 上的 onclick="login()"，防止 login 未定义）
+  var _b=document.querySelector('#lock button');
+  if(_b){_b.onclick=_inlineLogin;}
+  var _pi=document.getElementById('pwdI');
+  if(_pi){_pi.addEventListener('keydown',function(e){if(e.key==='Enter')_inlineLogin();});}
+  // 已登录自动进入（token 在 cookie 或 localStorage 中）
+  try{
+    var tk=localStorage.getItem('qzos_token');
+    var ck=(document.cookie.match(/qzos_token=([^;]+)/)||[])[1];
+    if(tk||ck){
+      fetch('/api/me?'+Date.now(),{credentials:'include',headers:tk?{'Authorization':'Bearer '+tk}:{}})
+        .then(function(r){if(r.ok||r.status==401)return r.text();throw 0;})
+        .then(function(){
+          var lock=document.getElementById('lock'); var app=document.getElementById('app');
+          if(lock) lock.style.cssText='display:none!important;';
+          if(app) app.style.cssText='display:block!important;';
+        })
+        .catch(function(){});
+    }
+  }catch(e){}
+})();
+</script>
+<script src="/app.js?v=6.9.20" defer></script>
+<!-- v6.9.20: 禁用 SW 注册（旧 SW 拦截请求导致登录/数据加载失败）
+     如需恢复离线能力，修复缓存策略后再启用 -->
+<!-- <script src="/sw-register.js?v=6.9.20" defer></script> -->
 </body>
 </html>

@@ -507,18 +507,25 @@ app.use((req, res, next) => {
 });
 
 // 前端静态文件：HTML/sw.js 走 no-cache（保证更新即时生效），其他资源长缓存
+// v6.9.20: 强制所有响应移除 HSTS + 禁止长缓存
+// - HSTS max-age=0 让之前缓存的浏览器下次访问立刻失效（解决 iOS Safari "无法建立安全连接"）
+// - 静态文件 no-store 绕过任何旧缓存（解决 app.js 被 SW/HTTP 缓存拦截）
+app.use((req, res, next) => {
+  res.setHeader('Strict-Transport-Security', 'max-age=0; includeSubDomains; preload');
+  next();
+});
 if (fs.existsSync(path.join(__dirname, 'frontend'))) {
   app.use(express.static('frontend', {
-    etag: true,
-    lastModified: true,
+    etag: false,
+    lastModified: false,
     maxAge: 0,
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
-        // HTML 和 Service Worker 必须每次都验证，否则版本更新检测不到
-        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
-      } else {
-        res.setHeader('Cache-Control', 'public, max-age=86400');
-      }
+      // v6.9.20: 全部 no-store，强制浏览器每次都重新请求，消除任何缓存残留
+      // 包括 .html/.js/.css/.svg，手机端任何缓存都会导致致命问题
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Strict-Transport-Security', 'max-age=0; includeSubDomains; preload');
     }
   }));
 }
