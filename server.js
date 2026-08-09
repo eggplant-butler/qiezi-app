@@ -507,15 +507,17 @@ app.use((req, res, next) => {
 });
 
 // 前端静态文件：HTML/sw.js 走 no-cache（保证更新即时生效），其他资源长缓存
-// v6.9.20: 强制所有响应移除 HSTS + 禁止长缓存
-// - HSTS max-age=0 让之前缓存的浏览器下次访问立刻失效（解决 iOS Safari "无法建立安全连接"）
-// - 静态文件 no-store 绕过任何旧缓存（解决 app.js 被 SW/HTTP 缓存拦截）
+// v6.9.20-fix: 统一 HSTS 策略（HTTP 环境必须禁用，且不能带 preload）
+// - preload 只能用于 max-age>=1 年的 HTTPS 环境，带 preload 的 max-age=0 会被 Chrome 拒绝，导致浏览器行为异常
+// - 仅用 max-age=0; includeSubDomains 足以清除之前误下发的 HSTS 缓存（解决 iOS Safari "无法建立安全连接"）
+// - 静态文件相对路径改绝对路径：PM2/systemd 从其他 cwd 启动时也能找到 frontend/
 app.use((req, res, next) => {
-  res.setHeader('Strict-Transport-Security', 'max-age=0; includeSubDomains; preload');
+  res.setHeader('Strict-Transport-Security', 'max-age=0; includeSubDomains');
   next();
 });
-if (fs.existsSync(path.join(__dirname, 'frontend'))) {
-  app.use(express.static('frontend', {
+const FRONTEND_DIR = path.join(__dirname, 'frontend');
+if (fs.existsSync(FRONTEND_DIR)) {
+  app.use(express.static(FRONTEND_DIR, {
     etag: false,
     lastModified: false,
     maxAge: 0,
@@ -525,7 +527,7 @@ if (fs.existsSync(path.join(__dirname, 'frontend'))) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
-      res.setHeader('Strict-Transport-Security', 'max-age=0; includeSubDomains; preload');
+      res.setHeader('Strict-Transport-Security', 'max-age=0; includeSubDomains');
     }
   }));
 }

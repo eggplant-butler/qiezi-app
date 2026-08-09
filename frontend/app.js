@@ -374,32 +374,40 @@ async function fetchInsights() {
 }
 function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
+// v6.9.20-fix: login() 与内联 _inlineLogin 完全对齐：加 credentials:include + 双写cookie + 切UI
+// 解决：app.js 的 login 与内联脚本的 _inlineLogin 行为不一致导致的登录后 cookie 缺失、刷新掉登录
 async function login(){
   var p = document.getElementById('pwdI').value;
   if(!p) return;
+  var btn = document.querySelector('#lock button');
+  var err = document.getElementById('pwdErr');
+  if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
+  if(err) err.style.display = 'none';
   try {
-    var r = await fetch('/api/login', {
+    var r = await fetch('/api/login?_='+Date.now(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ password: p })
     });
     var j = await r.json();
     if (j.success && j.token) {
       TOKEN = j.token;
-      localStorage.setItem(TOKEN_KEY, j.token);
-      document.getElementById('lock').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      applyTheme('home');
-      initApp();
+      try { localStorage.setItem(TOKEN_KEY, j.token); } catch(e){}
+      try { document.cookie = TOKEN_KEY + '=' + encodeURIComponent(j.token) + '; path=/; max-age=' + (7*86400); } catch(e){}
+      var lock = document.getElementById('lock');
+      var app = document.getElementById('app');
+      if(lock) lock.style.cssText = 'display:none!important;';
+      if(app) app.style.cssText = 'display:block!important;';
+      // 与内联版本一致：刷新一次（确保全局 TOKEN/fetch 覆盖/旧 SW 注销逻辑都生效）
+      location.reload();
     } else {
-      var err = document.getElementById('pwdErr');
-      err.textContent = j.message || '密码错误';
-      err.style.display = 'block';
+      if(err){ err.textContent = j.message || '密码错误'; err.style.display = 'block'; }
+      if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
     }
   } catch(e) {
-    var err = document.getElementById('pwdErr');
-    err.textContent = '网络错误，请重试';
-    err.style.display = 'block';
+    if(err){ err.textContent = '网络错误，请检查连接后重试'; err.style.display = 'block'; }
+    if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
   }
 }
 document.getElementById('pwdI').addEventListener('keydown', function(e){ if(e.key === 'Enter') login(); });
@@ -410,7 +418,7 @@ async function checkSession() {
   if (!TOKEN) return false;
   for (var i = 0; i < 3; i++) {
     try {
-      var r = await fetch('/api/me');
+      var r = await fetch('/api/me?_=' + Date.now(), { credentials: 'include' });
       if (r.ok) return true;
       if (r.status === 401) return false;  // 明确未登录，不重试
       // 其他状态码（5xx等）继续重试
@@ -426,8 +434,10 @@ async function checkSession() {
 (async function() {
   var ok = await checkSession();
   if (ok) {
-    document.getElementById('lock').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+    var lock = document.getElementById('lock');
+    var app = document.getElementById('app');
+    if(lock) lock.style.cssText = 'display:none!important;';
+    if(app) app.style.cssText = 'display:block!important;';
     applyTheme('home');
     initApp();
   } else if (TOKEN) {
@@ -442,13 +452,63 @@ async function checkSession() {
   }
 })();
 
+// v6.9.20-fix: logout 也要清 cookie（与登录双写对应），否则 cookie 里的旧 token 会污染下次登录
 function logout() {
   TOKEN = '';
-  localStorage.removeItem(TOKEN_KEY);
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('lock').style.display = 'flex';
-  document.getElementById('pwdI').value = '';
+  try { localStorage.removeItem(TOKEN_KEY); } catch(e){}
+  // 清 cookie：匹配登录时写入的属性
+  try { document.cookie = TOKEN_KEY + '=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0'; } catch(e){}
+  try {
+    // 同步调用服务器登出（让服务端也能做审计记录）
+    fetch('/api/logout', { method:'POST', credentials:'include' }).catch(function(){});
+  } catch(e){}
+  var app = document.getElementById('app');
+  var lock = document.getElementById('lock');
+  if(app) app.style.cssText = 'display:none!important;';
+  if(lock) lock.style.cssText = 'display:flex!important;';
+  var pwdI = document.getElementById('pwdI');
+  if(pwdI) pwdI.value = '';
+  // 登出后刷新，确保所有缓存状态清空
+  setTimeout(function(){ location.reload(); }, 100);
 }
+
+// v6.9.20-fix: 主动注销所有旧 Service Worker（即使 sw-register.js 被注释，
+// 用户浏览器里历史注册的旧 SW 仍会拦截请求/缓存旧 HTML，导致登录按钮无响应、界面不更新）
+(function __cleanupOldSW(){
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    var doCleanup = function() {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        var removed = 0;
+        for (var i = 0; i < registrations.length; i++) {
+          try { registrations[i].unregister(); removed++; } catch(e){}
+        }
+        if (removed > 0) {
+          console.warn('[SW-Cleanup] 已注销 ' + removed + ' 个旧 Service Worker，解决缓存问题');
+        }
+      }).catch(function(){});
+      // 额外清理：删除旧的 SW 运行时缓存
+      try {
+        if ('caches' in window) {
+          caches.keys().then(function(keys) {
+            keys.forEach(function(k) {
+              // 删除所有不含 v6.9 的缓存（即旧版本缓存）
+              if (!/6\.9\.20/.test(k)) {
+                caches.delete(k).catch(function(){});
+              }
+            });
+          }).catch(function(){});
+        }
+      } catch(e){}
+    };
+    // 两种时机都执行：注册 SW API 就绪后 + load 事件后（兜底）
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(doCleanup, 0);
+    } else {
+      window.addEventListener('load', function(){ setTimeout(doCleanup, 100); });
+    }
+  } catch(e) { /* SW 清理失败不影响正常功能，静默忽略 */ }
+})();
 
 async function initApp() {
   // v6.5.8 首屏优化：先显示骨架屏，数据到达后切换为真实内容
