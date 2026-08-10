@@ -508,21 +508,41 @@ async function submitDailyAnswer() {
   var inp = document.getElementById('dailyQuestionInput');
   if (!inp) return;
   var ans = inp.value.trim();
-  if (!ans) { alert('请先写下你的回答'); return; }
+  if (!ans) { alert('请先写下你的想法'); return; }
+  var today = new Date().toISOString().split('T')[0];
+  var qEl = document.getElementById('dailyQuestionText');
+  var hasQuestion = qEl && qEl.textContent && qEl.textContent.trim().length > 0;
+  var isQuickNote = !hasQuestion || ans.length < 5 || !hasQuestion;
   try {
-    var today = new Date().toISOString().split('T')[0];
-    var r = await fetch('/api/daily-question/answer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answer: ans, date: today })
-    });
-    var d = await r.json();
-    if (d.success) {
-      alert('✅ 回答已保存！深度评分：' + d.depthScore + '/5');
-      loadDailyQuestion();
-      if (typeof renderOverview === 'function') renderOverview();
+    if (isQuickNote) {
+      var r2 = await fetch('/api/quick-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: ans })
+      });
+      var d2 = await r2.json();
+      if (d2.success) {
+        var fb = document.getElementById('quickNoteFeedback');
+        if (fb) fb.innerHTML = '✅ 已自动归类到 <b>'+ (d2.module || '闪念') + '</b>';
+        inp.value = '';
+        setTimeout(function(){ if(fb) fb.innerHTML = ''; }, 3000);
+      } else {
+        alert('保存失败：' + d2.message);
+      }
     } else {
-      alert('保存失败：' + d.message);
+      var r = await fetch('/api/daily-question/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer: ans, date: today })
+      });
+      var d = await r.json();
+      if (d.success) {
+        alert('✅ 回答已保存！深度评分：' + d.depthScore + '/5');
+        loadDailyQuestion();
+        if (typeof renderOverview === 'function') renderOverview();
+      } else {
+        alert('保存失败：' + d.message);
+      }
     }
   } catch(e) { alert('网络错误，请重试'); }
 }
@@ -572,11 +592,66 @@ function renderHome(){
 function renderOverview(){
   var sleep = dataCache.sleep || [], emotion = dataCache.emotion || [];
   var sl=0, em=0;
-  sleep.slice(-7).forEach(function(s){ sl += parseFloat(s.hours) || 0; });
-  emotion.slice(-7).forEach(function(e){ em += parseFloat(e.rating) || 0; });
-  document.getElementById('ovSleep').textContent = (sleep.length ? (sl/Math.min(7,sleep.length)).toFixed(1) : '-') + 'h';
-  document.getElementById('ovMood').textContent = (emotion.length ? (em/Math.min(7,emotion.length)).toFixed(1) : '-') + '/10';
-  document.getElementById('ovDays').textContent = Math.max(sleep.length, emotion.length, 1);
+  var sleepRecent = sleep.slice(-7);
+  var emotionRecent = emotion.slice(-7);
+  sleepRecent.forEach(function(s){ sl += parseFloat(s.hours) || 0; });
+  emotionRecent.forEach(function(e){ em += parseFloat(e.rating) || 0; });
+
+  var ovSleep = document.getElementById('ovSleep');
+  var ovMood = document.getElementById('ovMood');
+  var ovDays = document.getElementById('ovDays');
+
+  if (ovSleep) {
+    var sleepAvg = sleep.length ? (sl/Math.min(7,sleep.length)).toFixed(1) : '-';
+    ovSleep.innerHTML = sleepAvg + 'h' + buildSparkline(sleepRecent, 'hours');
+  }
+  if (ovMood) {
+    var moodAvg = emotion.length ? (em/Math.min(7,emotion.length)).toFixed(1) : '-';
+    ovMood.innerHTML = moodAvg + '/10' + buildSparkline(emotionRecent, 'rating');
+  }
+  if (ovDays) {
+    ovDays.textContent = Math.max(sleep.length, emotion.length, 1);
+  }
+
+  if (typeof collapseZeroData === 'function') collapseZeroData();
+}
+
+function collapseZeroData(){
+  if (!dataCache) return;
+  var allEmpty = true;
+  Object.keys(dataCache).forEach(function(k){
+    if (Array.isArray(dataCache[k]) && dataCache[k].length > 0) allEmpty = false;
+  });
+  if (!allEmpty) return;
+  document.querySelectorAll('.tool-section').forEach(function(sec){
+    var items = sec.querySelectorAll('.tool-item');
+    var visibleCount = 0;
+    items.forEach(function(item){
+      var cntEl = item.querySelector('.t-cnt');
+      var cnt = cntEl ? cntEl.textContent : '';
+      if (cnt && cnt !== '0' && cnt !== '-' && cnt !== '未设' && cnt !== '未立' && cnt !== '新') visibleCount++;
+    });
+    if (visibleCount === 0 && items.length > 3) {
+      sec.style.opacity = '0.4';
+    }
+  });
+}
+
+function buildSparkline(data, field){
+  if (!data || data.length < 2) return '';
+  var values = data.map(function(d){ return parseFloat(d[field]) || 0; });
+  if (values.every(function(v){ return v === 0; })) return '';
+  var w = 40, h = 14, pad = 2;
+  var min = Math.min.apply(null, values);
+  var max = Math.max.apply(null, values);
+  var range = max - min || 1;
+  var points = values.map(function(v, i){
+    var x = pad + (i / (values.length - 1)) * (w - 2*pad);
+    var y = pad + (1 - (v - min) / range) * (h - 2*pad);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  var color = values[values.length-1] >= values[0] ? '#10B981' : '#EF4444';
+  return '<svg width="'+w+'" height="'+h+'" style="vertical-align:middle;margin-left:4px;"><polyline points="'+points+'" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 }
 
 async function renderHabits(){
@@ -744,6 +819,7 @@ var petDashCache = null;
 function openScene(id){
   curScene=id;
   editId = null;
+  incModuleUsage(id);
   var s=SCENES.find(function(x){ return x.id===id });
   if(!s) s=CORE_MODULES.find(function(x){ return x.id===id });
   if(!s) s={name:id, icon:'📄'};
@@ -2885,24 +2961,24 @@ async function delNarrative(id){
   catch(e) { alert('网络错误'); }
 }
 
-// ---- 5. 船长宣言 ----
+// ---- 5. 人生宪法（原船长宣言） ----
 async function openManifesto(){
-  openModal2('📜 船长宣言', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
+  openModal2('📜 人生宪法', '<div style="text-align:center;color:var(--c-fg-3);padding:20px">加载中...</div>');
   try {
     var r = await fetch('/api/manifesto'); var data = (await r.json())[0];
     var html = '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.06));border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(245,158,11,0.2)">';
-    html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:8px">📜 你给自己的契约</div>';
-    html += '<input id="mfTitle" placeholder="标题（如：我的船长宣言）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin-bottom:6px" value="'+escapeHtml(data ? data.title || '' : '')+'">';
-    html += '<textarea id="mfBody" placeholder="写下你对自己的承诺——必须包含你愿意付出的代价。\n如：我承诺做一个诚实的人，即使诚实会让我失去机会。\n我承诺照顾身体，即使这意味着放弃一些享乐。\n..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:120px;resize:vertical;margin-bottom:8px">'+escapeHtml(data ? data.body || '' : '')+'</textarea>';
-    html += '<button onclick="saveManifesto()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-weight:600;cursor:pointer">'+(data ? '更新宣言' : '签订宣言')+'</button>';
+    html += '<div style="font-size:12px;color:#F59E0B;margin-bottom:8px">📜 你给自己的宪法</div>';
+    html += '<input id="mfTitle" placeholder="宪法标题（如：我的人生宪法）" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;margin-bottom:6px" value="'+escapeHtml(data ? data.title || '' : '')+'">';
+    html += '<textarea id="mfBody" placeholder="写下你愿意为什么付出代价——那才是真宪法。\n如：我承诺做一个诚实的人，即使诚实会让我失去机会。\n我承诺照顾身体，即使这意味着放弃一些享乐。\n我承诺对重要的事说「不」，即使这会让某些人失望。\n..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #F5F7FA;background:var(--c-surface);color:var(--c-fg);font-size:13px;font-family:inherit;min-height:140px;resize:vertical;margin-bottom:8px">'+escapeHtml(data ? data.body || '' : '')+'</textarea>';
+    html += '<button onclick="saveManifesto()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-weight:600;cursor:pointer">'+(data ? '更新宪法' : '签订宪法')+'</button>';
     html += '</div>';
     if (!data) {
-      html += '<div style="text-align:center;color:var(--c-fg-3);padding:20px;font-size:13px;line-height:1.6">还没有宣言。<br>宣言不是口号，是契约——\n写下你愿意为什么付出代价，那才是真宣言。</div>';
+      html += '<div style="text-align:center;color:var(--c-fg-3);padding:20px;font-size:13px;line-height:1.6">还没有宪法。<br>宪法不是口号，是契约——<br>写下你愿意为什么付出代价，那才是真宪法。</div>';
     } else {
       html += '<div style="text-align:center;color:var(--c-fg-3);padding:10px;font-size:11px">签订于 '+new Date(data.signedAt).toLocaleString('zh-CN')+'</div>';
     }
-    openModal2('📜 船长宣言', html);
-  } catch(e) { openModal2('📜 船长宣言', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
+    openModal2('📜 人生宪法', html);
+  } catch(e) { openModal2('📜 人生宪法', '<div style="color:#EF4444;padding:20px">加载失败：'+e.message+'</div>'); }
 }
 
 async function saveManifesto(){
@@ -2910,7 +2986,7 @@ async function saveManifesto(){
     title: document.getElementById('mfTitle').value.trim(),
     body: document.getElementById('mfBody').value.trim()
   };
-  if (!data.body) { alert('请写下你的宣言'); return; }
+  if (!data.body) { alert('请写下你的宪法内容'); return; }
   try {
     var r = await fetch('/api/manifesto', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
     var d = await r.json();
@@ -3714,10 +3790,46 @@ var MODULE_META = {
   health:{name:'健康',icon:'❤️'}
 };
 
+var MODULE_USAGE_KEY = 'qiezi_module_usage_v1';
+function getModuleUsage(){
+  try { return JSON.parse(localStorage.getItem(MODULE_USAGE_KEY) || '{}'); } catch(e) { return {}; }
+}
+function incModuleUsage(mid){
+  var u = getModuleUsage();
+  u[mid] = (u[mid] || 0) + 1;
+  u[mid + '_last'] = Date.now();
+  try { localStorage.setItem(MODULE_USAGE_KEY, JSON.stringify(u)); } catch(e) {}
+}
+function getTopModules(n){
+  var u = getModuleUsage();
+  var scores = {};
+  Object.keys(u).forEach(function(k){
+    if(k.endsWith('_last')) return;
+    scores[k] = u[k];
+  });
+  return Object.entries(scores).sort(function(a,b){ return b[1] - a[1]; }).slice(0, n).map(function(x){ return x[0]; });
+}
+
 function renderRecord(){
-  // 今日统计
   renderRecToday();
-  // 分组渲染
+  var topMods = getTopModules(6);
+  if (topMods.length > 0) {
+    var favEl = document.getElementById('recFavorites');
+    if (!favEl) {
+      favEl = document.createElement('div');
+      favEl.className = 'rec-group';
+      favEl.innerHTML = '<div class="rg-title">⭐ 常用场景 <span class="rg-sub">按使用频率自动排序</span></div><div class="scene-grid rec-grid" id="recFavGrid"></div>';
+      var recToday = document.getElementById('recToday');
+      if (recToday && recToday.parentNode) {
+        recToday.parentNode.insertBefore(favEl, recToday.nextSibling);
+      }
+    }
+    favEl.style.display = '';
+    var grid = document.getElementById('recFavGrid');
+    if (grid) {
+      grid.innerHTML = topMods.map(function(mid){ return renderSceneCard(mid, true); }).join('');
+    }
+  }
   Object.keys(RECORD_GROUPS).forEach(function(cat){
     var g = RECORD_GROUPS[cat];
     var container = document.getElementById('rec' + cat.charAt(0).toUpperCase() + cat.slice(1));
@@ -3727,12 +3839,13 @@ function renderRecord(){
     }).join('');
   });
 }
-function renderSceneCard(mid){
+function renderSceneCard(mid, featured){
   var meta = MODULE_META[mid] || {name:mid, icon:'📄'};
   var cnt = (dataCache[mid]||[]).length;
   var todayCnt = countTodayRecords(mid);
   var todayBadge = todayCnt > 0 ? '<div class="s-today">'+todayCnt+'</div>' : '';
-  return '<div class="scene-card" data-name="'+meta.name+'" onclick="openScene(\''+mid+'\')"><div class="s-ic">'+meta.icon+'</div><div class="s-nm">'+meta.name+'</div><div class="s-cnt">'+cnt+'条</div>'+todayBadge+'</div>';
+  var featBadge = featured ? '<div style="position:absolute;top:4px;right:4px;font-size:10px;color:var(--c-primary);">⭐</div>' : '';
+  return '<div class="scene-card'+(featured?' scene-featured':'')+'" data-name="'+meta.name+'" onclick="openScene(\''+mid+'\')" style="position:relative;">'+featBadge+'<div class="s-ic">'+meta.icon+'</div><div class="s-nm">'+meta.name+'</div><div class="s-cnt">'+cnt+'条</div>'+todayBadge+'</div>';
 }
 function countTodayRecords(mid){
   var data = dataCache[mid] || [];
@@ -4012,6 +4125,47 @@ function renderEngDashboard(){
   }
 
   // v6.5.9 周对周/月对月数据对比图
+  // v6.9.21: 新增 weeklyReview + dataCompare 渲染
+  if(s.weeklyReview){
+    var wr = s.weeklyReview;
+    html += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:12px;font-weight:600;color:var(--c-fg-2);">📅 周回顾</span><span style="font-size:11px;color:var(--c-fg-3);">'+wr.period+'</span></div>';
+    if(wr.summary) html += '<div style="font-size:12px;color:var(--c-fg);line-height:1.5;margin-bottom:6px;">'+escapeHtml(wr.summary)+'</div>';
+    if(wr.changes && wr.changes.length){
+      wr.changes.forEach(function(c){
+        var arrow = c.direction === 'up' ? '↑' : '↓';
+        var color = c.direction === 'up' ? 'var(--c-success)' : 'var(--c-danger)';
+        html += '<div style="font-size:11px;color:var(--c-fg-2);padding:2px 0;"><span style="color:'+color+';">'+arrow+'</span> '+escapeHtml(c.dim)+' '+escapeHtml(c.delta)+' <span style="color:var(--c-fg-3);">'+escapeHtml(c.note||'')+'</span></div>';
+      });
+    }
+    if(wr.highlights) html += '<div style="font-size:11px;color:var(--c-fg-3);margin-top:4px;font-style:italic;">'+escapeHtml(wr.highlights)+'</div>';
+    html += '</div>';
+  }
+
+  if(s.dataCompare){
+    var dc = s.dataCompare;
+    if(dc.week && dc.week.diffs && dc.week.diffs.length){
+      html += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
+      html += '<div style="font-size:12px;font-weight:600;color:var(--c-fg-2);margin-bottom:6px;">📊 周对比</div>';
+      dc.week.diffs.forEach(function(d){
+        var arrow = d.direction === 'up' ? '↑' : '↓';
+        var color = d.direction === 'up' ? 'var(--c-success)' : 'var(--c-danger)';
+        html += '<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;"><span style="color:var(--c-fg-2);">'+escapeHtml(d.label)+'</span><span><span style="color:'+color+';">'+arrow+'</span> '+escapeHtml(d.current)+' <span style="color:var(--c-fg-3);">('+(d.pct?d.pct+'%':'')+')</span></span></div>';
+      });
+      html += '</div>';
+    }
+    if(dc.month && dc.month.diffs && dc.month.diffs.length){
+      html += '<div style="background:var(--c-surface);border-radius:14px;padding:12px 16px;margin-bottom:12px;">';
+      html += '<div style="font-size:12px;font-weight:600;color:var(--c-fg-2);margin-bottom:6px;">📊 月对比</div>';
+      dc.month.diffs.forEach(function(d){
+        var arrow = d.direction === 'up' ? '↑' : '↓';
+        var color = d.direction === 'up' ? 'var(--c-success)' : 'var(--c-danger)';
+        html += '<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;"><span style="color:var(--c-fg-2);">'+escapeHtml(d.label)+'</span><span><span style="color:'+color+';">'+arrow+'</span> '+escapeHtml(d.current)+' <span style="color:var(--c-fg-3);">('+(d.pct?d.pct+'%':'')+')</span></span></div>';
+      });
+      html += '</div>';
+    }
+  }
+
   html += renderTrendComparison();
 
   // 即使没有数据，也至少显示一张说明性卡片，让用户知道功能在正常工作

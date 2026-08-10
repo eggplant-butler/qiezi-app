@@ -2719,19 +2719,19 @@ const ENG = {
     return { year, totalRecords: hist.length, story, conclusion, stats: { moodAvg: emo.length ? (emo.reduce((a,b)=>a+b,0)/emo.length).toFixed(2) : null, sleepAvg: slp.length ? (slp.reduce((a,b)=>a+b,0)/slp.length).toFixed(2) : null, income: inc, expense: exp, energyDrain: eDrain, energyGain: eGain, principles: principles.length, beliefs: beliefs.length } };
   },
 
-  // 船长宣言
+  // 人生宪法（原船长宣言）
   manifesto(item) {
     const lines = [];
     if (!item.body || item.body.trim().length < 20) {
-      lines.push('宣言太短。\n宣言不是口号，是你对自己的契约——短到一句话的宣言，往往撑不过第一次危机。\n写下你愿意为什么付出代价，那才是真宣言。');
+      lines.push('宪法太短。\n宪法不是口号，是你对自己的契约——短到一句话的宪法，往往撑不过第一次危机。\n写下你愿意为什么付出代价，那才是真宪法。');
     } else {
       // 检查是否过于正面
       const positives = ['相信','坚持','永远','美好','光明','成功'];
       const hasPos = positives.some(k => item.body.includes(k));
       if (hasPos && !item.body.includes('代价') && !item.body.includes('放弃') && !item.body.includes('不')) {
-        lines.push('宣言只有"正面"。\n真实的宣言必须包含"代价"——你愿意为什么放弃其他？\n不付代价的宣言，是许愿，不是契约。');
+        lines.push('宪法只有"正面"。\n真实的宪法必须包含"代价"——你愿意为什么放弃其他？\n不付代价的宪法，是许愿，不是契约。');
       }
-      lines.push('\n宣言已签订。\n但记住：宣言的价值不在"签"，在"履行"——\n每月回看一次：我这个月做的事，对得起这份宣言吗？\n答不上来，要么改行为，要么改宣言——别让宣言变成墙上的装饰。');
+      lines.push('\n宪法已签订。\n但记住：宪法的价值不在"签"，在"履行"——\n每月回看一次：我这个月做的事，对得起这份宪法吗？\n答不上来，要么改行为，要么改宪法——别让宪法变成墙上的装饰。');
     }
     return lines.join('\n');
   },
@@ -3281,6 +3281,201 @@ const ENG = {
 
     const score = 10 - detectedCount * 2;
     return { text: lines.join('\n'), score: Math.max(0, score), details };
+  },
+
+  // v6.9.21: 周回顾（weeklyReview）—— 接受 hist 参数，与 autoReview 互补
+  weeklyReview(hist) {
+    const now = new Date();
+    const start = new Date(now); start.setDate(now.getDate() - 7);
+    const prevStart = new Date(start); prevStart.setDate(start.getDate() - 7);
+    const startStr = start.toISOString().split('T')[0];
+    const prevStartStr = prevStart.toISOString().split('T')[0];
+    const todayStr = now.toISOString().split('T')[0];
+
+    const thisWeek = hist.filter(x => {
+      const d = (x.ts || '').split('T')[0];
+      return d >= startStr && d <= todayStr;
+    });
+    const lastWeek = hist.filter(x => {
+      const d = (x.ts || '').split('T')[0];
+      return d >= prevStartStr && d < startStr;
+    });
+
+    const mods = {};
+    thisWeek.forEach(r => { mods[r.mid] = (mods[r.mid] || 0) + 1; });
+    const prevMods = {};
+    lastWeek.forEach(r => { prevMods[r.mid] = (prevMods[r.mid] || 0) + 1; });
+
+    const emoCur = thisWeek.filter(x => x.mid === 'emotion').map(x => parseFloat(x.data?.rating || x.data?.level || 0)).filter(v => v > 0);
+    const emoPrev = lastWeek.filter(x => x.mid === 'emotion').map(x => parseFloat(x.data?.rating || x.data?.level || 0)).filter(v => v > 0);
+    const sleepCur = thisWeek.filter(x => x.mid === 'sleep').map(x => parseFloat(x.data?.hours || x.data?.duration || 0)).filter(v => v > 0);
+    const sleepPrev = lastWeek.filter(x => x.mid === 'sleep').map(x => parseFloat(x.data?.hours || x.data?.duration || 0)).filter(v => v > 0);
+
+    const finCur = thisWeek.filter(x => x.mid === 'finance');
+    const expCur = finCur.filter(x => x.data?.type === 'expense' || x.data?.type === '支出').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+    const incCur = finCur.filter(x => x.data?.type === 'income' || x.data?.type === '收入').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+    const finPrev = lastWeek.filter(x => x.mid === 'finance');
+    const expPrev = finPrev.filter(x => x.data?.type === 'expense' || x.data?.type === '支出').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+    const incPrev = finPrev.filter(x => x.data?.type === 'income' || x.data?.type === '收入').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+
+    const moodAvg = emoCur.length ? emoCur.reduce((a,b)=>a+b,0)/emoCur.length : null;
+    const moodPrevAvg = emoPrev.length ? emoPrev.reduce((a,b)=>a+b,0)/emoPrev.length : null;
+    const sleepAvg = sleepCur.length ? sleepCur.reduce((a,b)=>a+b,0)/sleepCur.length : null;
+    const sleepPrevAvg = sleepPrev.length ? sleepPrev.reduce((a,b)=>a+b,0)/sleepPrev.length : null;
+
+    const changes = [];
+    if (moodAvg !== null && moodPrevAvg !== null) {
+      const delta = moodAvg - moodPrevAvg;
+      if (Math.abs(delta) > 0.3) changes.push({ dim:'情绪', delta: delta.toFixed(2), direction: delta > 0 ? 'up' : 'down', note: delta > 0 ? '情绪改善' : '情绪下滑' });
+    }
+    if (sleepAvg !== null && sleepPrevAvg !== null) {
+      const delta = sleepAvg - sleepPrevAvg;
+      if (Math.abs(delta) > 0.3) changes.push({ dim:'睡眠', delta: delta.toFixed(1) + 'h', direction: delta > 0 ? 'up' : 'down', note: delta > 0 ? '睡眠增加' : '睡眠减少' });
+    }
+    if (expCur > 0 || expPrev > 0) {
+      const delta = expCur - expPrev;
+      if (Math.abs(delta) > 10) changes.push({ dim:'支出', delta: delta.toFixed(0) + '元', direction: delta < 0 ? 'up' : 'down', note: delta < 0 ? '支出减少' : '支出增加' });
+    }
+
+    const summaryParts = [];
+    summaryParts.push(`本周 ${thisWeek.length} 条记录 · 覆盖 ${Object.keys(mods).length} 维度`);
+    if (moodAvg !== null) summaryParts.push(`情绪 ${moodAvg.toFixed(1)}/5`);
+    if (sleepAvg !== null) summaryParts.push(`睡眠 ${sleepAvg.toFixed(1)}h`);
+    if (incCur > 0 || expCur > 0) summaryParts.push(`收 ${incCur.toFixed(0)} / 支 ${expCur.toFixed(0)}`);
+
+    return {
+      period: `${startStr} ~ ${todayStr}`,
+      totalRecords: thisWeek.length,
+      prevRecords: lastWeek.length,
+      moduleBreakdown: Object.entries(mods).sort((a,b) => b[1] - a[1]).map(([k,v]) => ({ module: k, count: v })),
+      prevModuleBreakdown: Object.entries(prevMods).sort((a,b) => b[1] - a[1]).map(([k,v]) => ({ module: k, count: v })),
+      stats: {
+        moodAvg, moodPrevAvg, moodDelta: moodAvg !== null && moodPrevAvg !== null ? (moodAvg - moodPrevAvg).toFixed(2) : null,
+        sleepAvg, sleepPrevAvg, sleepDelta: sleepAvg !== null && sleepPrevAvg !== null ? (sleepAvg - sleepPrevAvg).toFixed(2) : null,
+        income: incCur, expense: expCur, net: incCur - expCur,
+        prevIncome: incPrev, prevExpense: expPrev, prevNet: incPrev - expPrev
+      },
+      changes,
+      summary: summaryParts.join(' · '),
+      highlights: thisWeek.length > lastWeek.length ? '记录增多——说明你在更有意识地观察自己。' : thisWeek.length < lastWeek.length ? '记录减少——是太忙了，还是动力下降？' : '记录持平——稳定是好事，但要警惕"稳定"变成"例行公事"。',
+      generatedAt: new Date().toISOString()
+    };
+  },
+
+  // v6.9.21: 数据对比（dataCompare）—— 本周vs上周 + 本月vs上月
+  dataCompare(hist) {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+
+    const weekStart = new Date(now); weekStart.setDate(now.getDate() - 6);
+    const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(weekStart.getDate() - 7);
+    const weekStr = weekStart.toISOString().split('T')[0];
+    const prevWeekStr = prevWeekStart.toISOString().split('T')[0];
+
+    const monthStart = new Date(now); monthStart.setDate(1);
+    const prevMonthStart = new Date(monthStart); prevMonthStart.setMonth(monthStart.getMonth() - 1);
+    const monthStr = monthStart.toISOString().split('T')[0];
+    const prevMonthStr = prevMonthStart.toISOString().split('T')[0];
+
+    function aggRange(from, to) {
+      const range = hist.filter(x => {
+        const d = (x.ts || '').split('T')[0];
+        return d >= from && d <= to;
+      });
+      const mods = {};
+      range.forEach(r => { mods[r.mid] = (mods[r.mid] || 0) + 1; });
+      const emo = range.filter(x => x.mid === 'emotion').map(x => parseFloat(x.data?.rating || x.data?.level || 0)).filter(v => v > 0);
+      const slp = range.filter(x => x.mid === 'sleep').map(x => parseFloat(x.data?.hours || x.data?.duration || 0)).filter(v => v > 0);
+      const fin = range.filter(x => x.mid === 'finance');
+      const exp = fin.filter(x => x.data?.type === 'expense' || x.data?.type === '支出').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+      const inc = fin.filter(x => x.data?.type === 'income' || x.data?.type === '收入').reduce((s,x) => s + parseFloat(x.data?.amount || 0), 0);
+      return {
+        count: range.length,
+        modules: Object.keys(mods).length,
+        moodAvg: emo.length ? emo.reduce((a,b)=>a+b,0)/emo.length : null,
+        moodCount: emo.length,
+        sleepAvg: slp.length ? slp.reduce((a,b)=>a+b,0)/slp.length : null,
+        sleepCount: slp.length,
+        income: inc, expense: exp, net: inc - exp,
+        moduleBreakdown: Object.entries(mods).sort((a,b) => b[1] - a[1]).map(([k,v]) => ({ module: k, count: v }))
+      };
+    }
+
+    const thisWeek = aggRange(weekStr, today);
+    const lastWeek = aggRange(prevWeekStr, weekStart.toISOString().split('T')[0]);
+    const thisMonth = aggRange(monthStr, today);
+    const lastMonth = aggRange(prevMonthStr, monthStr);
+
+    function diffLine(cur, prev, label, unit) {
+      if (cur === null || prev === null || prev === 0) return null;
+      const delta = cur - prev;
+      const pct = prev !== 0 ? (delta / prev * 100).toFixed(1) : null;
+      if (Math.abs(delta) < 0.01 && unit !== '元') return null;
+      return { label, current: cur, previous: prev, delta, pct, direction: delta > 0 ? 'up' : 'down' };
+    }
+
+    const weekDiffs = [
+      diffLine(thisWeek.moodAvg, lastWeek.moodAvg, '情绪均分', ''),
+      diffLine(thisWeek.sleepAvg, lastWeek.sleepAvg, '睡眠时长', 'h'),
+      diffLine(thisWeek.expense, lastWeek.expense, '支出', '元'),
+      diffLine(thisWeek.income, lastWeek.income, '收入', '元'),
+      diffLine(thisWeek.count, lastWeek.count, '记录数', '条'),
+    ].filter(Boolean);
+
+    const monthDiffs = [
+      diffLine(thisMonth.moodAvg, lastMonth.moodAvg, '情绪均分', ''),
+      diffLine(thisMonth.sleepAvg, lastMonth.sleepAvg, '睡眠时长', 'h'),
+      diffLine(thisMonth.expense, lastMonth.expense, '支出', '元'),
+      diffLine(thisMonth.income, lastMonth.income, '收入', '元'),
+      diffLine(thisMonth.count, lastMonth.count, '记录数', '条'),
+    ].filter(Boolean);
+
+    return {
+      week: { range: `${weekStr} ~ ${today}`, prevRange: `${prevWeekStr} ~ ${weekStart.toISOString().split('T')[0]}`, current: thisWeek, previous: lastWeek, diffs: weekDiffs },
+      month: { range: `${monthStr} ~ ${today}`, prevRange: `${prevMonthStr} ~ ${monthStr}`, current: thisMonth, previous: lastMonth, diffs: monthDiffs },
+      generatedAt: new Date().toISOString()
+    };
+  },
+
+  // v6.9.21: 熵分析（接受 hist 参数，委托给 entropyMonitor 并补充趋势）
+  entropy(hist) {
+    const base = this.entropyMonitor();
+    if (!hist || hist.length < 7) return base;
+
+    const now = new Date();
+    const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+    const twoWeeksAgo = new Date(now); twoWeeksAgo.setDate(now.getDate() - 14);
+    const ws = weekAgo.toISOString().split('T')[0];
+    const tws = twoWeeksAgo.toISOString().split('T')[0];
+
+    const thisWeek = hist.filter(x => (x.ts || '').split('T')[0] >= ws);
+    const lastWeek = hist.filter(x => {
+      const d = (x.ts || '').split('T')[0];
+      return d >= tws && d < ws;
+    });
+
+    const modCountCur = {};
+    const modCountPrev = {};
+    thisWeek.forEach(r => { modCountCur[r.mid] = (modCountCur[r.mid] || 0) + 1; });
+    lastWeek.forEach(r => { modCountPrev[r.mid] = (modCountPrev[r.mid] || 0) + 1; });
+
+    const shrinking = [];
+    Object.keys(modCountPrev).forEach(m => {
+      const cur = modCountCur[m] || 0;
+      const prev = modCountPrev[m];
+      if (prev >= 2 && cur < prev * 0.5) shrinking.push({ module: m, current: cur, previous: prev });
+    });
+
+    return {
+      ...base,
+      trends: {
+        shrinking,
+        totalRecordsThisWeek: thisWeek.length,
+        totalRecordsLastWeek: lastWeek.length,
+        activeModulesThisWeek: Object.keys(modCountCur).length,
+        activeModulesLastWeek: Object.keys(modCountPrev).length
+      }
+    };
   }
 };
 
@@ -3760,7 +3955,7 @@ app.delete('/api/antifragile/:id', (req, res) => {
 // 2) 危机预案
 // 3) 临终测试
 // 4) 年度叙事
-// 5) 船长宣言
+// 5) 人生宪法（原船长宣言）
 // ============================================================
 
 // ---------- 1. 坐标系 + 北极星 ----------
@@ -3895,7 +4090,7 @@ app.delete('/api/narrative/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// ---------- 5. 船长宣言 ----------
+// ---------- 5. 人生宪法（原船长宣言） ----------
 app.get('/api/manifesto', (req, res) => {
   res.json(readData('manifesto'));
 });
@@ -3905,7 +4100,7 @@ app.post('/api/manifesto', (req, res) => {
   const data = readData('manifesto');
   const item = {
     id: data.length ? data[0].id : Date.now().toString(36),
-    title: (title || '我的船长宣言').trim(),
+    title: (title || '我的人生宪法').trim(),
     body: (body || '').trim(),
     signedAt: signedAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()

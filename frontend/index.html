@@ -65,15 +65,16 @@
 
 <div id="dailyQuestionArea" style="background:var(--c-surface);border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:4px solid var(--c-primary);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:11px;color:var(--c-fg-2);">💭 今日之问</span>
+    <span style="font-size:11px;color:var(--c-fg-2);">💭 今日之问 · 闪念</span>
     <span style="font-size:10px;color:var(--c-fg-3);cursor:pointer;" onclick="viewQuestionHistory()">历史</span>
   </div>
-  <div id="dailyQuestionText" style="font-size:15px;color:var(--c-fg);font-weight:500;margin-bottom:8px;">加载中...</div>
+  <div id="dailyQuestionText" style="font-size:15px;color:var(--c-fg);font-weight:500;margin-bottom:8px;"></div>
   <div style="display:flex;gap:8px;">
-    <input type="text" id="dailyQuestionInput" placeholder="写下你的回答..." style="flex:1;padding:8px 12px;border-radius:8px;background:var(--c-input-bg);color:var(--c-fg);font-size:14px;outline:none;border:1px solid var(--c-input-border);">
-    <button onclick="submitDailyAnswer()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">回答</button>
+    <input type="text" id="dailyQuestionInput" placeholder="写下你的想法——回答今日之问，或随便记一笔..." style="flex:1;padding:8px 12px;border-radius:8px;background:var(--c-input-bg);color:var(--c-fg);font-size:14px;outline:none;border:1px solid var(--c-input-border);">
+    <button onclick="submitDailyAnswer()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记录</button>
   </div>
   <div id="dailyAnswerDisplay" style="margin-top:8px;font-size:13px;color:var(--c-fg-2);display:none;"></div>
+  <div id="quickNoteFeedback" style="margin-top:6px;font-size:12px;color:var(--c-fg-2);"></div>
 </div>
 
 <!-- Section: 概览 -->
@@ -96,21 +97,6 @@
 <div class="section-label">🧠 洞察</div>
 <div id="homeCorrelations"></div>
 <div id="homeSuggestions"></div>
-
-<!-- Section: 闪念 -->
-<div class="section-label">💭 闪念</div>
-<!-- ====== 闪念笔记 ====== -->
-<div style="background:var(--c-surface);border-radius:12px;padding:12px 14px;margin-bottom:16px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <span style="font-size:13px;font-weight:600;color:var(--c-fg);">💭 闪念笔记</span>
-    <span style="font-size:10px;color:var(--c-fg-3);cursor:pointer;" onclick="showQuickNotes()">查看全部</span>
-  </div>
-  <div style="display:flex;gap:8px;">
-    <input type="text" id="quickNoteInput" placeholder="随便记一下... 系统会自动归类" style="flex:1;padding:8px 12px;border-radius:8px;background:var(--c-input-bg);color:var(--c-fg);font-size:14px;outline:none;border:1px solid var(--c-input-border);">
-    <button onclick="submitQuickNote()" style="background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">记</button>
-  </div>
-  <div id="quickNoteFeedback" style="margin-top:6px;font-size:12px;color:var(--c-fg-2);"></div>
-</div>
 </div><!-- end homeContent -->
 </div>
 
@@ -154,50 +140,15 @@
 <!-- v6.4.2 认知仪表盘：一次聚合所有深度分析 -->
 <div id="engDashboard" style="margin-bottom:16px;"></div>
 
+<!-- v6.9.21: 瞭望按认知路径重组 -->
 <div class="tool-section">
-<div class="ts-title">🧠 认知引擎 <span class="ts-sub">鬼谷子视角</span></div>
+<div class="ts-title">👁️ 看见 <span class="ts-sub">数据 → 真相</span></div>
 <div class="tool-grid">
-<div class="tool-item primary" onclick="openPrinciples()">
-<div class="t-ic">📐</div><div class="t-nm">原则库</div><div class="t-cnt" id="principleCount">0</div>
+<div class="tool-item primary" onclick="openTrajectory()">
+<div class="t-ic">📈</div><div class="t-nm">轨迹分析</div><div class="t-cnt" id="trajStatus">-</div>
 </div>
-<div class="tool-item primary" onclick="openDecisions()">
-<div class="t-ic">🎯</div><div class="t-nm">决策推演</div><div class="t-cnt" id="decisionCount">0</div>
-</div>
-</div>
-</div>
-
-<div class="tool-section">
-<div class="ts-title">🌀 深度闭环 <span class="ts-sub">追根因·看博弈·练定力·算能量</span></div>
-<div class="tool-grid">
-<div class="tool-item" onclick="openRootCause()">
-<div class="t-ic">🔬</div><div class="t-nm">5Why根因</div><div class="t-cnt" id="rootCauseCount">0</div>
-</div>
-<div class="tool-item" onclick="openInterpersonal()">
-<div class="t-ic">♟️</div><div class="t-nm">人际博弈</div><div class="t-cnt" id="interpersonalCount">0</div>
-</div>
-<div class="tool-item" onclick="openMindfulness()">
-<div class="t-ic">🧘</div><div class="t-nm">定力训练</div><div class="t-cnt" id="mindfulnessCount">0</div>
-</div>
-<div class="tool-item" onclick="openEnergy()">
-<div class="t-ic">⚡</div><div class="t-nm">能量审计</div><div class="t-cnt" id="energyNet">0</div>
-</div>
-<div class="tool-item" onclick="openReview()">
-<div class="t-ic">📅</div><div class="t-nm">周月复盘</div><div class="t-cnt" id="reviewCount">0</div>
-</div>
-</div>
-</div>
-
-<div class="tool-section">
-<div class="ts-title">🌳 成长轴 <span class="ts-sub">信念·品格·画像·反熵增·反脆弱</span></div>
-<div class="tool-grid">
-<div class="tool-item" onclick="openBeliefs()">
-<div class="t-ic">💎</div><div class="t-nm">信念追踪</div><div class="t-cnt" id="beliefCount">0</div>
-</div>
-<div class="tool-item" onclick="openCharacter()">
-<div class="t-ic">🎯</div><div class="t-nm">品格雷达</div><div class="t-cnt" id="characterCount">0</div>
-</div>
-<div class="tool-item" onclick="openSelfPortrait()">
-<div class="t-ic">🪞</div><div class="t-nm">自我画像</div><div class="t-cnt" id="portraitCount">0</div>
+<div class="tool-item primary" onclick="openHealthTrends()">
+<div class="t-ic">💉</div><div class="t-nm">健康趋势</div><div class="t-cnt" id="healthTrendCnt">-</div>
 </div>
 <div class="tool-item" onclick="openEntropy()">
 <div class="t-ic">📉</div><div class="t-nm">反熵增</div><div class="t-cnt" id="entropyScore">0</div>
@@ -209,55 +160,85 @@
 </div>
 
 <div class="tool-section">
-<div class="ts-title">🧠 深度认知 <span class="ts-sub">元认知·偏差检测·价值观</span></div>
+<div class="ts-title">🧐 觉察 <span class="ts-sub">识别偏差 · 看见模式</span></div>
 <div class="tool-grid">
-<div class="tool-item" onclick="openMetacognition()">
+<div class="tool-item primary" onclick="openMetacognition()">
 <div class="t-ic">🔄</div><div class="t-nm">元认知</div><div class="t-cnt" id="metacogScore">-</div>
 </div>
-<div class="tool-item" onclick="openCognitiveBias()">
+<div class="tool-item primary" onclick="openCognitiveBias()">
 <div class="t-ic">🎭</div><div class="t-nm">偏差检测</div><div class="t-cnt" id="biasScore">-</div>
-</div>
-<div class="tool-item" onclick="openTrajectory()">
-<div class="t-ic">📈</div><div class="t-nm">轨迹分析</div><div class="t-cnt" id="trajStatus">-</div>
 </div>
 <div class="tool-item" onclick="openSecondOrder()">
 <div class="t-ic">⚡</div><div class="t-nm">二阶效应</div><div class="t-cnt">新</div>
 </div>
-<div class="tool-item" onclick="openValues()">
-<div class="t-ic">🎯</div><div class="t-nm">价值观</div><div class="t-cnt" id="alignScore">-</div>
-</div>
 <div class="tool-item" onclick="openAntiHuman()">
 <div class="t-ic">🚫</div><div class="t-nm">反人性</div><div class="t-cnt" id="antiScore">-</div>
-</div>
-</div>
-</div>
-
-<div class="tool-section">
-<div class="ts-title">📊 v5.6 数据分析 <span class="ts-sub">健康趋势·周月计划</span></div>
-<div class="tool-grid">
-<div class="tool-item" onclick="openHealthTrends()">
-<div class="t-ic">💉</div><div class="t-nm">健康趋势</div><div class="t-cnt" id="healthTrendCnt">-</div>
-</div>
-<div class="tool-item" onclick="openPlan()">
-<div class="t-ic">📋</div><div class="t-nm">周月计划</div><div class="t-cnt" id="planCnt">0</div>
-</div>
-</div>
-</div>
-
-<div class="tool-section">
-<div class="ts-title">🧬 v6.4 高级引擎 <span class="ts-sub">因果·基线·节点·季节</span></div>
-<div class="tool-grid">
-<div class="tool-item" onclick="openCausal()">
-<div class="t-ic">🔗</div><div class="t-nm">因果推断</div><div class="t-cnt">新</div>
 </div>
 <div class="tool-item" onclick="openBaseline()">
 <div class="t-ic">📐</div><div class="t-nm">个人基线</div><div class="t-cnt">新</div>
 </div>
+<div class="tool-item" onclick="openSeasonal()">
+<div class="t-ic">🌦️</div><div class="t-nm">季节分析</div><div class="t-cnt">新</div>
+</div>
+</div>
+</div>
+
+<div class="tool-section">
+<div class="ts-title">🔍 分析 <span class="ts-sub">追根因 · 看博弈 · 算能量</span></div>
+<div class="tool-grid">
+<div class="tool-item primary" onclick="openRootCause()">
+<div class="t-ic">🔬</div><div class="t-nm">5Why根因</div><div class="t-cnt" id="rootCauseCount">0</div>
+</div>
+<div class="tool-item" onclick="openInterpersonal()">
+<div class="t-ic">♟️</div><div class="t-nm">人际博弈</div><div class="t-cnt" id="interpersonalCount">0</div>
+</div>
+<div class="tool-item" onclick="openMindfulness()">
+<div class="t-ic">🧘</div><div class="t-nm">定力训练</div><div class="t-cnt" id="mindfulnessCount">0</div>
+</div>
+<div class="tool-item" onclick="openEnergy()">
+<div class="t-ic">⚡</div><div class="t-nm">能量审计</div><div class="t-cnt" id="energyNet">0</div>
+</div>
+<div class="tool-item" onclick="openCausal()">
+<div class="t-ic">🔗</div><div class="t-nm">因果推断</div><div class="t-cnt">新</div>
+</div>
+<div class="tool-item" onclick="openReview()">
+<div class="t-ic">📅</div><div class="t-nm">周月复盘</div><div class="t-cnt" id="reviewCount">0</div>
+</div>
+</div>
+</div>
+
+<div class="tool-section">
+<div class="ts-title">⚖️ 选择 <span class="ts-sub">原则 · 决策 · 价值观</span></div>
+<div class="tool-grid">
+<div class="tool-item primary" onclick="openPrinciples()">
+<div class="t-ic">📐</div><div class="t-nm">原则库</div><div class="t-cnt" id="principleCount">0</div>
+</div>
+<div class="tool-item primary" onclick="openDecisions()">
+<div class="t-ic">🎯</div><div class="t-nm">决策推演</div><div class="t-cnt" id="decisionCount">0</div>
+</div>
+<div class="tool-item" onclick="openValues()">
+<div class="t-ic">🎯</div><div class="t-nm">价值观</div><div class="t-cnt" id="alignScore">-</div>
+</div>
+</div>
+</div>
+
+<div class="tool-section">
+<div class="ts-title">🌱 进化 <span class="ts-sub">信念 · 品格 · 画像 · 节点</span></div>
+<div class="tool-grid">
+<div class="tool-item" onclick="openBeliefs()">
+<div class="t-ic">💎</div><div class="t-nm">信念追踪</div><div class="t-cnt" id="beliefCount">0</div>
+</div>
+<div class="tool-item" onclick="openCharacter()">
+<div class="t-ic">🎯</div><div class="t-nm">品格雷达</div><div class="t-cnt" id="characterCount">0</div>
+</div>
+<div class="tool-item" onclick="openSelfPortrait()">
+<div class="t-ic">🪞</div><div class="t-nm">自我画像</div><div class="t-cnt" id="portraitCount">0</div>
+</div>
 <div class="tool-item" onclick="openLifeMilestone()">
 <div class="t-ic">⚓</div><div class="t-nm">人生节点</div><div class="t-cnt" id="milestoneCnt">0</div>
 </div>
-<div class="tool-item" onclick="openSeasonal()">
-<div class="t-ic">🌦️</div><div class="t-nm">季节分析</div><div class="t-cnt">新</div>
+<div class="tool-item" onclick="openPlan()">
+<div class="t-ic">📋</div><div class="t-nm">周月计划</div><div class="t-cnt" id="planCnt">0</div>
 </div>
 </div>
 </div>
@@ -285,7 +266,7 @@
 <div class="t-ic">📖</div><div class="t-nm">年度叙事</div><div class="t-cnt" id="narrativeCount">0</div>
 </div>
 <div class="tool-item primary" onclick="openManifesto()">
-<div class="t-ic">📜</div><div class="t-nm">船长宣言</div><div class="t-cnt" id="manifestoStatus">未立</div>
+<div class="t-ic">📜</div><div class="t-nm">人生宪法</div><div class="t-cnt" id="manifestoStatus">未立</div>
 </div>
 </div>
 </div>
