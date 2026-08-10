@@ -3917,7 +3917,10 @@ app.delete('/api/entropy/log/:id', (req, res) => {
 
 // ---------- 5. 反脆弱缓冲评估 ----------
 app.get('/api/antifragile', (req, res) => {
-  res.json(ENG.antifragile());
+  // v6.9.25 修复：取最新评估记录传入，无记录返回 null
+  const logs = readData('antifragile_logs');
+  const latest = logs.length ? logs.sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1))[0] : null;
+  res.json(latest ? ENG.antifragile(latest) : null);
 });
 
 app.post('/api/antifragile', (req, res) => {
@@ -4197,6 +4200,9 @@ app.get('/api/eng/dashboard', (req, res) => {
     try { result.sections.antiHumanNature = ENG.antiHumanNature(hist); } catch (e) { result.sections.antiHumanNature = null; }
     // 价值观澄清
     try { result.sections.valuesClarification = ENG.valuesClarification(hist); } catch (e) { result.sections.valuesClarification = null; }
+    // v6.9.25 补：与 insights-plus 对齐，避免刷新后卡片消失
+    try { result.sections.weeklyReview = ENG.weeklyReview(hist); } catch (e) { result.sections.weeklyReview = null; }
+    try { result.sections.dataCompare = ENG.dataCompare(hist); } catch (e) { result.sections.dataCompare = null; }
   } catch (e) {
     console.error('[eng/dashboard]', e.message);
     result.error = e.message;
@@ -6364,11 +6370,11 @@ app.get('/api/cognitive-counts', (req, res) => {
     out.beliefs = readData('beliefs').length;
     out.character = readData('character').length;
     out.selfPortrait = readData('self_portrait').length;
-    try { out.entropyScore = readData('entropy').slice(-1)[0]?.entropyScore || 0; } catch(e) { out.entropyScore = 0; }
+    try { out.entropyScore = readData('entropy_logs').slice(-1)[0]?.entropyScore || 0; } catch(e) { out.entropyScore = 0; }
     try {
-      const af = readData('antifragile');
+      const af = readData('antifragile_logs');
       if (af.length) {
-        const s = af.reduce((a,x)=>a+(parseFloat(x&&x.score)||0),0)/af.length;
+        const s = af.reduce((a,x)=>{ const dims=['financial','skill','social','health','mental']; const sum=dims.reduce((s,k)=>s+(parseFloat(x&&x[k])||0),0); return a+(sum/dims.length); },0)/af.length;
         out.antifragileAvg = s;
       } else { out.antifragileAvg = null; }
     } catch(e) { out.antifragileAvg = null; }

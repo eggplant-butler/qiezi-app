@@ -384,7 +384,8 @@
   var _b=document.querySelector('#lock button');
   if(_b){_b.onclick=_inlineLogin;}
   var _pi=document.getElementById('pwdI');
-  if(_pi){_pi.addEventListener('keydown',function(e){if(e.key==='Enter')_inlineLogin();});}
+  // v6.9.25 移除：避免与 app.js 的 keydown 监听器重复触发 login（Enter 会请求两次）
+  // _inlineLogin 已通过 _b.onclick 绑定按钮，Enter 交给 app.js:405 的 login() 处理
   // 已登录自动进入（token 在 cookie 或 localStorage 中）
   try{
     var tk=localStorage.getItem('qzos_token');

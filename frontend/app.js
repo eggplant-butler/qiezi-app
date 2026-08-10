@@ -5364,3 +5364,10 @@ async function submitSecondOrder(){
   } catch(e) { if(el) el.innerHTML = '<div style="color:#EF4444;padding:14px;">网络错误：'+e.message+'</div>'; }
 }
 // ===== 死按钮修复结束 =====
+
+// v6.9.25 修复：authHeaders 定义（运维面板用）
+function authHeaders(){
+  var h = { 'Content-Type': 'application/json' };
+  try { var t = localStorage.getItem('qzos_token'); if (t) h['Authorization'] = 'Bearer ' + t; } catch(e) {}
+  return h;
+}
