@@ -4174,7 +4174,11 @@ app.get('/api/eng/dashboard', (req, res) => {
     // 反熵增
     try { result.sections.entropy = ENG.entropyMonitor(); } catch (e) { result.sections.entropy = null; }
     // 反脆弱
-    try { result.sections.antifragile = ENG.antifragile(); } catch (e) { result.sections.antifragile = null; }
+    try {
+      const _afLogs = readData('antifragile_logs');
+      const _latestAf = _afLogs.length ? _afLogs.sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1))[0] : null;
+      result.sections.antifragile = _latestAf ? ENG.antifragile(_latestAf) : null;
+    } catch (e) { result.sections.antifragile = null; }
     // 轨迹 30 天
     try { result.sections.trajectory = ENG.trajectory(hist, 30); } catch (e) { result.sections.trajectory = null; }
     // 元认知

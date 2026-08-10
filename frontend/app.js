@@ -512,7 +512,7 @@ async function submitDailyAnswer() {
   var today = new Date().toISOString().split('T')[0];
   var qEl = document.getElementById('dailyQuestionText');
   var hasQuestion = qEl && qEl.textContent && qEl.textContent.trim().length > 0;
-  var isQuickNote = !hasQuestion || ans.length < 5 || !hasQuestion;
+  var isQuickNote = !hasQuestion || ans.length < 5;
   try {
     if (isQuickNote) {
       var r2 = await fetch('/api/quick-note', {
@@ -523,7 +523,7 @@ async function submitDailyAnswer() {
       var d2 = await r2.json();
       if (d2.success) {
         var fb = document.getElementById('quickNoteFeedback');
-        if (fb) fb.innerHTML = '✅ 已自动归类到 <b>'+ (d2.module || '闪念') + '</b>';
+        if (fb) fb.innerHTML = '✅ 已自动归类到 <b>'+ (d2.suggested || '闪念') + '</b>';
         inp.value = '';
         setTimeout(function(){ if(fb) fb.innerHTML = ''; }, 3000);
       } else {
@@ -3906,7 +3906,7 @@ function filterScenes(q){
   // 展示搜索结果面板
   var sr = document.getElementById('searchResults');
   if(!sr) return;
-  sr.style.display = hits.length > 0 ? 'block' : 'block';
+  sr.style.display = 'block';
   if(hits.length === 0){
     sr.innerHTML = '<div style="padding:12px;text-align:center;color:#888;font-size:13px;">未找到包含"' + escapeHtml(q) + '"的记录</div>';
   } else {
