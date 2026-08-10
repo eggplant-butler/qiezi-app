@@ -523,7 +523,7 @@ async function submitDailyAnswer() {
       var d2 = await r2.json();
       if (d2.success) {
         var fb = document.getElementById('quickNoteFeedback');
-        if (fb) fb.innerHTML = '✅ 已自动归类到 <b>'+ (d2.suggested || '闪念') + '</b>';
+        if (fb) fb.innerHTML = '✅ 已自动归类到 <b>'+ (d2.suggestedName || d2.suggested || '闪念') + '</b>';
         inp.value = '';
         setTimeout(function(){ if(fb) fb.innerHTML = ''; }, 3000);
       } else {
@@ -3817,6 +3817,7 @@ function renderRecord(){
     var favEl = document.getElementById('recFavorites');
     if (!favEl) {
       favEl = document.createElement('div');
+      favEl.id = 'recFavorites';
       favEl.className = 'rec-group';
       favEl.innerHTML = '<div class="rg-title">⭐ 常用场景 <span class="rg-sub">按使用频率自动排序</span></div><div class="scene-grid rec-grid" id="recFavGrid"></div>';
       var recToday = document.getElementById('recToday');

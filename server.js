@@ -455,8 +455,8 @@ app.use(cors({
       /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/
     ];
     if (!origin || allowed.some(r => r.test(origin))) return cb(null, true);
-    // 不在白名单但非浏览器请求（origin 缺失或自定义UA）→ 放行，nginx/防火墙兜底
-    cb(null, true);
+    // v6.9.25 修复 CORS 全开：有 origin 但不在白名单 → 拒绝（防止恶意站点跨域带凭据请求）
+    return cb(new Error('Origin ' + origin + ' not allowed by CORS'));
   },
   credentials: true,
   maxAge: 86400
