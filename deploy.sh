@@ -198,6 +198,23 @@ try_download_verified frontend/sw-register.js "serviceWorker" \
   "$CDN_COMMIT_URL/frontend/sw-register.js" \
   "$CDN_URL/frontend/sw-register.js" \
   "$GH_URL/frontend/sw-register.js" || { echo "❌ frontend/sw-register.js 下载失败"; exit 1; }
+# v6.9.20 新增：智慧透镜 + 体验增强 + 模式发现 + 人生地图（非关键文件，下载失败不阻塞部署）
+try_download_verified frontend/wisdom-lens.js "WISDOM_LENS_LIST" \
+  "$CDN_COMMIT_URL/frontend/wisdom-lens.js" \
+  "$CDN_URL/frontend/wisdom-lens.js" \
+  "$GH_URL/frontend/wisdom-lens.js" || echo "      ⚠️ wisdom-lens.js 下载失败（非关键）"
+try_download_verified frontend/enhancements.js "QUICK_TEMPLATES" \
+  "$CDN_COMMIT_URL/frontend/enhancements.js" \
+  "$CDN_URL/frontend/enhancements.js" \
+  "$GH_URL/frontend/enhancements.js" || echo "      ⚠️ enhancements.js 下载失败（非关键）"
+try_download_verified frontend/pattern-engine.js "PATTERN_ENGINE" \
+  "$CDN_COMMIT_URL/frontend/pattern-engine.js" \
+  "$CDN_URL/frontend/pattern-engine.js" \
+  "$GH_URL/frontend/pattern-engine.js" || echo "      ⚠️ pattern-engine.js 下载失败（非关键）"
+try_download_verified frontend/life-map.js "LIFE_MAP" \
+  "$CDN_COMMIT_URL/frontend/life-map.js" \
+  "$CDN_URL/frontend/life-map.js" \
+  "$GH_URL/frontend/life-map.js" || echo "      ⚠️ life-map.js 下载失败（非关键）"
 # sw.js 必须成功（SW 旧版本会缓存旧 HTML，导致前端永远看不到新功能）
 try_download_verified frontend/sw.js "$VERSION_TAG" \
   "$CDN_COMMIT_URL/frontend/sw.js" \
@@ -280,7 +297,7 @@ else
   echo "  ⚠️  首页 HTTP $HTML_STATUS（非200，前端可能无法访问）"
 fi
 # v6.7.0 新增：拆分后的 CSS/JS 外链文件检查
-for asset in styles.css app.js sw-register.js sw.js; do
+for asset in styles.css app.js sw-register.js sw.js wisdom-lens.js enhancements.js pattern-engine.js life-map.js; do
   CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://localhost:3000/$asset" 2>/dev/null)
   if [ "$CODE" = "200" ]; then
     echo "  /$asset: 200 OK ✅"

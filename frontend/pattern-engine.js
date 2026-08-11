@@ -93,18 +93,7 @@ var PATTERN_ENGINE = {
     var diet = dataCache.diet || [];
     var exercise = dataCache.exercise || [];
 
-    // 锻炼后情绪变化
-    var postExerciseEmotions = [];
-    emotion.forEach(function(e){
-      var eDate = e.date || (e.created||'').split('T')[0];
-      var hasExerciseNextDay = exercise.some(function(x){
-        var xDate = x.date || (x.created||'').split('T')[0];
-        return xDate === eDate || xDate === this.addDays(eDate, -1);
-      }.bind(this));
-      if(hasExerciseEmotions) {}
-    }.bind(this));
-
-    // 简化版：找锻炼日 vs 非锻炼日的情绪差异
+    // 锻炼日 vs 非锻炼日的情绪差异
     var exerciseDays = {};
     (exercise || []).forEach(function(x){
       var d = x.date || (x.created||'').split('T')[0];
