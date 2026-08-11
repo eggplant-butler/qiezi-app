@@ -7106,6 +7106,40 @@ app.delete('/api/:module/:id', (req, res) => {
   }
 });
 
+// 批量删除：移到回收站，30天后自动清理（与单条删除逻辑一致）
+app.post('/api/:module/batch-delete', (req, res) => {
+  try {
+    const m = req.params.module;
+    if (SYSTEM_MODULES.has(m)) {
+      return res.status(400).json({ success: false, message: '不能删除系统模块' });
+    }
+    const ids = (req.body || {}).ids;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'ids 必须是非空数组' });
+    }
+    const d = readData(m);
+    const idSet = new Set(ids.map(String));
+    const toDelete = d.filter(i => idSet.has(String(i.id)));
+    const remaining = d.filter(i => !idSet.has(String(i.id)));
+    if (toDelete.length > 0) {
+      const trash = readData('deleted');
+      const now = new Date().toISOString();
+      toDelete.forEach(item => {
+        trash.push(Object.assign({}, item, { _module: m, _deletedAt: now }));
+      });
+      writeData('deleted', trash);
+    }
+    writeData(m, remaining);
+    scheduleAutoBackup();
+    auditLog('batch_delete', req.ip, { module: m, count: toDelete.length }, true);
+    res.json({ success: true, deleted: toDelete.length });
+  } catch (e) {
+    console.error('[batch-delete]', e.message);
+    auditLog('batch_delete', req.ip, { error: e.message }, false);
+    res.status(500).json({ success: false, message: '批量删除失败: ' + e.message });
+  }
+});
+
 // 全局错误中间件：兜底所有未捕获异常，统一返回 JSON，不泄露堆栈
 app.use((err, req, res, next) => {
   console.error('[UNCAUGHT]', err && err.message);

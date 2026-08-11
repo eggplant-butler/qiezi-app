@@ -288,9 +288,20 @@ body.privacy-mode #detailContent .rec:hover {
 .scene-card .s-nm{font-size:12px;color:var(--c-fg);font-weight:600;margin-top:2px}
 .scene-card .s-cnt{font-size:10px;color:var(--c-fg-3);margin-top:2px}
 .scene-card .s-today{position:absolute;top:8px;right:8px;font-size:9px;color:#fff;background:var(--c-primary);border-radius:8px;padding:1px 6px;min-width:14px;text-align:center}
-.rec-toolbar{margin-bottom:12px}
-.rec-search{width:100%;padding:10px 14px;border:1px solid var(--c-input-border);border-radius:20px;font-size:13px;background:var(--c-input-bg);color:var(--c-fg);box-sizing:border-box}
+.rec-toolbar{margin-bottom:12px;display:flex;gap:8px;align-items:center}
+.rec-search{flex:1;padding:10px 14px;border:1px solid var(--c-input-border);border-radius:20px;font-size:13px;background:var(--c-input-bg);color:var(--c-fg);box-sizing:border-box;min-width:0}
 .rec-search:focus{outline:none;border-color:var(--c-primary);background:var(--c-elevated)}
+.rec-filter-btn{flex-shrink:0;padding:10px 14px;border:1px solid var(--c-input-border);border-radius:20px;font-size:12px;background:var(--c-surface);color:var(--c-fg-2);cursor:pointer;white-space:nowrap}
+.rec-filter-btn:active{transform:scale(.97)}
+.rec-filters{margin-bottom:12px;padding:10px 12px;background:var(--c-surface);border-radius:12px;border:1px solid var(--c-input-border)}
+.rf-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.rf-row:last-child{margin-bottom:0}
+.rf-label{font-size:11px;color:var(--c-fg-3);white-space:nowrap}
+.rf-date{padding:6px 10px;border:1px solid var(--c-input-border);border-radius:8px;font-size:12px;background:var(--c-input-bg);color:var(--c-fg);box-sizing:border-box}
+.rf-select{padding:6px 10px;border:1px solid var(--c-input-border);border-radius:8px;font-size:12px;background:var(--c-input-bg);color:var(--c-fg);box-sizing:border-box}
+.rf-sep{font-size:11px;color:var(--c-fg-3)}
+.rf-clear{margin-left:auto;padding:6px 12px;border:none;border-radius:8px;font-size:11px;background:var(--c-danger,#E85858);color:#fff;cursor:pointer;white-space:nowrap}
+.rf-clear:active{transform:scale(.97)}
 /* v6.5.7 日志Tab：增大间距 */
 .rec-today{background:linear-gradient(135deg,var(--c-accent),var(--c-accent-2));border-radius:14px;padding:12px 16px;margin-bottom:20px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--c-fg-2)}
 .rec-today .rt-item{display:flex;align-items:center;gap:3px}

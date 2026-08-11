@@ -1,31 +1,8 @@
-/* eslint-disable */
+// wisdom-lens.js — 智慧透镜 + 复利审计 + 危机框架（独立文件，不碰 app.js）
+// 依赖 app.js 全局函数: openModal2, authHeaders, escapeHtml
+// 加载顺序: 必须在 app.js 之后加载（index.html 中 <script src="wisdom-lens.js" defer>）
+
 // ============================================================
-// 内容扩展1·前端：智慧透镜 UI（五重透镜 + 复利审计 + 危机框架）
-// 用法：cd /home/ubuntu/qiezi-app && node patch-frontend-wisdom.js
-//       pm2 restart eggplant
-// 作用：在瞭望Tab新增"🧭 智慧透镜"入口，调用后端 /api/eng/wisdom-lens 和 /api/eng/compounding
-// ============================================================
-'use strict';
-const fs = require('fs');
-const path = require('path');
-
-const APP = path.join(__dirname, 'frontend', 'app.js');
-const HTML = path.join(__dirname, 'frontend', 'index.html');
-
-if (!fs.existsSync(APP)) { console.error('❌ 找不到 frontend/app.js'); process.exit(1); }
-if (!fs.existsSync(HTML)) { console.error('❌ 找不到 frontend/index.html'); process.exit(1); }
-
-let changes = 0;
-
-// ---------- 1. app.js 末尾追加 3 个函数 ----------
-let appSrc = fs.readFileSync(APP, 'utf8');
-
-const APP_MARKER = "// v6.9.25 修复：authHeaders 定义（运维面板用）\nfunction authHeaders(){";
-if (appSrc.indexOf('function openWisdomLens(') !== -1) {
-  console.log('ℹ️  app.js 已包含 openWisdomLens，跳过');
-} else {
-  // 在 authHeaders 函数前插入新代码块
-  const APP_BLOCK = `// ============================================================
 // 内容扩展：五重透镜 + 复利审计 + 危机框架
 // 让用户面对任何事件，都能从哲学/鬼谷子/心理学/经济学/复利多维度审视
 // ============================================================
@@ -43,7 +20,7 @@ function openWisdomLens(){
   html += '<div style="font-size:11px;color:var(--c-fg-3);margin:10px 0 6px">选择一个透镜开始审视：</div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
   WISDOM_LENS_LIST.forEach(function(l){
-    html += '<button onclick="runWisdomLens(\\''+l.key+'\\',\\''+l.name+'\\')" style="background:var(--c-surface);border:1px solid var(--c-input-border,#F5F7FA);border-radius:10px;padding:12px 10px;cursor:pointer;text-align:left">';
+    html += '<button onclick="runWisdomLens(\''+l.key+'\',\''+l.name+'\')" style="background:var(--c-surface);border:1px solid var(--c-input-border,#F5F7FA);border-radius:10px;padding:12px 10px;cursor:pointer;text-align:left">';
     html += '<div style="font-size:18px">'+l.icon+'</div>';
     html += '<div style="font-size:13px;font-weight:600;color:var(--c-fg);margin-top:4px">'+l.name+'</div>';
     html += '<div style="font-size:10px;color:var(--c-fg-3);margin-top:2px;line-height:1.4">'+l.desc+'</div>';
@@ -118,56 +95,4 @@ async function runCrisisFramework(){
   } catch(e) {
     el.innerHTML = '<div style="color:#EF4444;padding:14px;text-align:center;font-size:13px">网络错误：'+e.message+'</div>';
   }
-}
-
-`;
-  appSrc = appSrc.replace(APP_MARKER, APP_BLOCK + APP_MARKER);
-  fs.writeFileSync(APP, appSrc);
-  changes++;
-  console.log('✅ app.js 已追加智慧透镜函数');
-}
-
-// ---------- 2. index.html 瞭望Tab 新增入口 ----------
-let htmlSrc = fs.readFileSync(HTML, 'utf8');
-
-const HTML_ANCHOR = `<div class="tool-item" onclick="openPlan()">
-<div class="t-ic">📋</div><div class="t-nm">周月计划</div><div class="t-cnt" id="planCnt">0</div>
-</div>
-</div>
-</div>
-
-</div>`;
-
-const HTML_NEW = `<div class="tool-item" onclick="openPlan()">
-<div class="t-ic">📋</div><div class="t-nm">周月计划</div><div class="t-cnt" id="planCnt">0</div>
-</div>
-</div>
-</div>
-
-<div class="tool-section">
-<div class="ts-title">🧭 智慧透镜 <span class="ts-sub">哲学·鬼谷子·心理·经济·复利·危机</span></div>
-<div class="tool-grid">
-<div class="tool-item primary" onclick="openWisdomLens()"><div class="t-ic">🔮</div><div class="t-nm">五重透镜</div><div class="t-cnt">新</div></div>
-<div class="tool-item primary" onclick="openCompoundingAudit()"><div class="t-ic">📈</div><div class="t-nm">复利审计</div><div class="t-cnt">新</div></div>
-<div class="tool-item" onclick="openCrisisFramework()"><div class="t-ic">🛟</div><div class="t-nm">危机框架</div><div class="t-cnt">新</div></div>
-</div>
-</div>
-
-</div>`;
-
-if (htmlSrc.indexOf('openWisdomLens()') !== -1) {
-  console.log('ℹ️  index.html 已包含智慧透镜入口，跳过');
-} else if (htmlSrc.indexOf(HTML_ANCHOR) === -1) {
-  console.warn('⚠️  index.html 未匹配到锚点（openPlan 区块），请手动添加智慧透镜入口');
-} else {
-  htmlSrc = htmlSrc.replace(HTML_ANCHOR, HTML_NEW);
-  fs.writeFileSync(HTML, htmlSrc);
-  changes++;
-  console.log('✅ index.html 已新增智慧透镜入口');
-}
-
-if (changes === 0) {
-  console.log('ℹ️  无变更');
-} else {
-  console.log('\n📋 后续：pm2 restart eggplant，然后在瞭望Tab底部可见"🧭 智慧透镜"');
 }

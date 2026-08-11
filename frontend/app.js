@@ -1006,7 +1006,13 @@ function renderDetail(id){
     extraHtml += '</div>';
   }
   if(!data.length){ c.innerHTML=extraHtml+'<div class="empty"><span class="ic">📭</span>还没有记录，点 + 添加</div>'; return; }
-  c.innerHTML=extraHtml+'<div>'+data.slice().reverse().map(function(item){
+  var batchToolbar = data.length > 0 ?
+    '<div class="batch-toolbar" style="display:flex;align-items:center;gap:10px;padding:8px 0;margin-bottom:6px;border-bottom:1px solid var(--c-input-border)">' +
+    '<label style="font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px"><input type="checkbox" id="batchSelectAll" onchange="toggleBatchSelectAll(this.checked)"> 全选</label>' +
+    '<span id="batchCount" style="font-size:11px;color:var(--c-fg-3);flex:1">已选 0 条</span>' +
+    '<button id="batchDeleteBtn" onclick="batchDelete()" style="display:none;padding:6px 12px;border:none;border-radius:8px;background:var(--c-danger,#E85858);color:#fff;font-size:12px;cursor:pointer">🗑️ 批量删除</button>' +
+    '</div>' : '';
+  c.innerHTML=extraHtml+batchToolbar+'<div id="recordList">'+data.slice().reverse().map(function(item){
     var l='';
     if(id==='finance'){
       l=(item.type||'')+' · '+(item.category||'')+' · '+(item.content||item.note||'');
@@ -1187,7 +1193,7 @@ function renderDetail(id){
       if(item.rating) l+=' · 评分'+item.rating;
     }
     var dateStr=item.date?'<div class="sb">'+escapeHtml(item.date)+'</div>':'';
-    return '<div class="rec"><div><div class="tt">'+escapeHtml(l)+'</div>'+dateStr+'</div><div class="ac"><button onclick="editRec(\''+escapeHtml(id)+'\',\''+escapeHtml(item.id)+'\')">✏️</button><button class="dl" onclick="delRec(\''+escapeHtml(id)+'\',\''+escapeHtml(item.id)+'\')">🗑️</button></div></div>';
+    return '<div class="rec"><div style="display:flex;align-items:center;gap:8px"><input type="checkbox" class="batch-check" data-id="'+escapeHtml(item.id)+'" onchange="updateBatchCount()" style="flex-shrink:0"><div><div class="tt">'+escapeHtml(l)+'</div>'+dateStr+'</div></div><div class="ac"><button onclick="editRec(\''+escapeHtml(id)+'\',\''+escapeHtml(item.id)+'\')">✏️</button><button class="dl" onclick="delRec(\''+escapeHtml(id)+'\',\''+escapeHtml(item.id)+'\')">🗑️</button></div></div>';
   }).join('')+'</div>';
 }
 
@@ -1896,6 +1902,50 @@ async function delRec(sceneId,id){
     renderDetail(sceneId);
     renderHome();
     showToast('已离线删除，上线同步服务端', 'warn');
+  }
+}
+
+// 批量操作：全选/反选
+function toggleBatchSelectAll(checked){
+  document.querySelectorAll('.batch-check').forEach(function(cb){ cb.checked = checked; });
+  updateBatchCount();
+}
+// 批量操作：更新选中计数和按钮显示
+function updateBatchCount(){
+  var checks = document.querySelectorAll('.batch-check:checked');
+  var count = checks.length;
+  var countEl = document.getElementById('batchCount');
+  if (countEl) countEl.textContent = '已选 ' + count + ' 条';
+  var delBtn = document.getElementById('batchDeleteBtn');
+  if (delBtn) delBtn.style.display = count > 0 ? '' : 'none';
+  var selectAll = document.getElementById('batchSelectAll');
+  var allChecks = document.querySelectorAll('.batch-check');
+  if (selectAll) selectAll.checked = count > 0 && count === allChecks.length;
+}
+// 批量删除
+async function batchDelete(){
+  var checks = document.querySelectorAll('.batch-check:checked');
+  var ids = Array.from(checks).map(function(cb){ return cb.getAttribute('data-id'); });
+  if (ids.length === 0) return;
+  if (!confirm('确定删除选中的 ' + ids.length + ' 条记录？可在回收站30天内恢复')) return;
+  try {
+    var r = await fetch('/api/'+curScene+'/batch-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids })
+    });
+    var d = await r.json();
+    if (d.success) {
+      showToast('已删除 ' + (d.deleted || ids.length) + ' 条记录', 'ok');
+      var idSet = new Set(ids.map(String));
+      dataCache[curScene] = (dataCache[curScene] || []).filter(function(r){ return !idSet.has(String(r.id)); });
+      renderDetail(curScene);
+      renderHome();
+    } else {
+      alert('删除失败：' + (d.message || ''));
+    }
+  } catch(e) {
+    alert('删除失败：' + e.message);
   }
 }
 
@@ -3874,31 +3924,54 @@ function renderRecToday(){
 }
 function filterScenes(q){
   q = (q||'').trim().toLowerCase();
-  if(!q){
-    // 无搜索词时恢复全部显示
+  // 读取筛选条件
+  var dateFrom = (document.getElementById('filterDateFrom')||{}).value || '';
+  var dateTo = (document.getElementById('filterDateTo')||{}).value || '';
+  var category = (document.getElementById('filterCategory')||{}).value || '';
+  var hasFilters = q || dateFrom || dateTo || category;
+  if(!hasFilters){
+    // 无搜索词且无筛选时恢复全部显示
     document.querySelectorAll('.rec-group').forEach(function(g){ g.classList.remove('hidden'); });
     document.querySelectorAll('.scene-card').forEach(function(c){ c.style.display=''; });
     document.getElementById('searchResults') && (document.getElementById('searchResults').style.display='none');
     return;
   }
-  // 全文搜索：遍历所有模块的记录内容
+  // 确定要搜索的模块范围（按分类筛选）
+  var searchMods;
+  if (category) {
+    searchMods = (RECORD_GROUPS[category]||{ids:[]}).ids;
+  } else {
+    searchMods = Object.keys(MODULE_META).concat(['spirit','medical','body','learn']);
+  }
+  // 全文搜索 + 时间范围过滤
   var hits = [];
-  var allMods = Object.keys(MODULE_META).concat(['spirit','medical','body','learn']);
-  allMods.forEach(function(mid){
+  searchMods.forEach(function(mid){
     var recs = dataCache[mid] || [];
     recs.forEach(function(r){
-      var text = JSON.stringify(r).toLowerCase();
-      if(text.indexOf(q) !== -1){
+      // 时间范围过滤
+      var recDate = r.date || (r.created||'').split('T')[0] || '';
+      if (dateFrom && recDate && recDate < dateFrom) return;
+      if (dateTo && recDate && recDate > dateTo) return;
+      // 全文搜索（无搜索词时只按时间/分类过滤）
+      if (q) {
+        var text = JSON.stringify(r).toLowerCase();
+        if(text.indexOf(q) !== -1){
+          hits.push({ mid:mid, name:(MODULE_META[mid]||{name:mid}).name, rec:r });
+        }
+      } else {
         hits.push({ mid:mid, name:(MODULE_META[mid]||{name:mid}).name, rec:r });
       }
     });
   });
   // 同时过滤场景卡
   document.querySelectorAll('.rec-group').forEach(function(g){
+    var cat = g.getAttribute('data-cat');
+    // 如果选了分类，隐藏非该分类的组
+    if (category && cat !== category) { g.classList.add('hidden'); return; }
     var anyVisible = false;
     g.querySelectorAll('.scene-card').forEach(function(card){
       var name = (card.getAttribute('data-name')||'').toLowerCase();
-      var match = name.indexOf(q) !== -1;
+      var match = !q || name.indexOf(q) !== -1;
       card.style.display = match ? '' : 'none';
       if(match) anyVisible = true;
     });
@@ -3908,12 +3981,18 @@ function filterScenes(q){
   var sr = document.getElementById('searchResults');
   if(!sr) return;
   sr.style.display = 'block';
+  // 构建筛选描述
+  var filterDesc = [];
+  if (q) filterDesc.push('"' + q + '"');
+  if (dateFrom || dateTo) filterDesc.push('日期 ' + (dateFrom||'…') + ' ~ ' + (dateTo||'…'));
+  if (category) filterDesc.push((RECORD_GROUPS[category]||{}).title || category);
+  var infoText = filterDesc.length ? filterDesc.join(' · ') : '全部';
   if(hits.length === 0){
-    sr.innerHTML = '<div style="padding:12px;text-align:center;color:#888;font-size:13px;">未找到包含"' + escapeHtml(q) + '"的记录</div>';
+    sr.innerHTML = '<div style="padding:12px;text-align:center;color:#888;font-size:13px;">未找到匹配记录（' + escapeHtml(infoText) + '）</div>';
   } else {
-    sr.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#888;">找到 ' + hits.length + ' 条匹配记录</div>' +
+    sr.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#888;">找到 ' + hits.length + ' 条记录（' + escapeHtml(infoText) + '）</div>' +
       hits.slice(0,50).map(function(h){
-        var title = h.rec.content || h.rec.symptom || h.rec.task || h.rec.person || h.rec.name || h.rec.title || h.rec.note || '(无标题)';
+        var title = h.rec.content || h.rec.food || h.rec.topic || h.rec.symptom || h.rec.task || h.rec.person || h.rec.name || h.rec.title || h.rec.note || h.rec.caption || '(无标题)';
         var date = h.rec.date || (h.rec.created||'').split('T')[0] || '';
         return '<div class="search-hit" data-mid="'+escapeHtml(h.mid)+'" onclick="openScene(\''+escapeHtml(h.mid)+'\')" style="padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;">'+
           '<span style="font-size:12px;color:#999;">'+escapeHtml(date)+'</span> '+
@@ -3921,6 +4000,28 @@ function filterScenes(q){
           '<span style="font-size:12px;color:#aaa;">'+escapeHtml(h.name)+'</span></div>';
       }).join('');
   }
+}
+// 筛选面板展开/收起
+function toggleRecFilters(){
+  var el = document.getElementById('recFilters');
+  var btn = document.getElementById('recFilterBtn');
+  if (!el) return;
+  var isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (btn) btn.textContent = isOpen ? '筛选' : '收起 ▲';
+}
+// 清除所有筛选
+function clearRecFilters(){
+  var df = document.getElementById('filterDateFrom'); if (df) df.value = '';
+  var dt = document.getElementById('filterDateTo'); if (dt) dt.value = '';
+  var cat = document.getElementById('filterCategory'); if (cat) cat.value = '';
+  var search = document.getElementById('recSearch'); if (search) search.value = '';
+  filterScenes('');
+}
+// 应用筛选（日期/分类改变时调用）
+function applyFilters(){
+  var q = (document.getElementById('recSearch')||{value:''}).value;
+  filterScenes(q);
 }
 
 function renderInsight(){

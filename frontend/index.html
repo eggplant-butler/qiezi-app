@@ -105,6 +105,11 @@
 
 <div class="rec-toolbar">
 <input class="rec-search" id="recSearch" placeholder="🔍 搜索记录内容/模块名..." oninput="filterScenes(this.value)">
+<button class="rec-filter-btn" id="recFilterBtn" onclick="toggleRecFilters()">筛选</button>
+</div>
+<div class="rec-filters" id="recFilters" style="display:none;">
+<div class="rf-row"><span class="rf-label">📅 日期</span><input type="date" id="filterDateFrom" class="rf-date" onchange="applyFilters()"><span class="rf-sep">~</span><input type="date" id="filterDateTo" class="rf-date" onchange="applyFilters()"></div>
+<div class="rf-row"><span class="rf-label">🏷️ 分类</span><select id="filterCategory" class="rf-select" onchange="applyFilters()"><option value="">全部分类</option><option value="life">🌱 生活基础</option><option value="growth">📚 成长认知</option><option value="action">💼 行动场景</option><option value="asset">📦 资产管理</option></select><button class="rf-clear" onclick="clearRecFilters()">清除筛选</button></div>
 </div>
 <div id="searchResults" style="display:none;"></div>
 
