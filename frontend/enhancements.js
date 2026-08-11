@@ -38,6 +38,13 @@ var QUICK_TEMPLATES = {
   think: [
     { label: '🤔 决策', fields: { content: '决策：', options: '', conclusion: '' } },
     { label: '💡 灵感', fields: { content: '灵感：', tags: '灵感' } }
+  ],
+  work: [
+    { label: '👥 带班露面', fields: { action: '带班露面', conversionStrategy: '记住学生名字，和家长闲聊建立信任' } },
+    { label: '🎧 试听课', fields: { action: '试听课', trials: '', conversions: '', conversionStrategy: '' } },
+    { label: '📞 家长沟通', fields: { action: '家长沟通', parentStage: '需求挖掘', keyObjection: '', conversionStrategy: '' } },
+    { label: '🎯 转化跟进', fields: { action: '转化跟进', parentStage: '异议处理', keyObjection: '', conversionStrategy: '' } },
+    { label: '📊 每日复盘', fields: { action: '复盘总结', content: '今日复盘：\n做对了什么：\n下次怎么改：\n话术迭代：' } }
   ]
 };
 

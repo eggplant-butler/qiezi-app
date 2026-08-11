@@ -1103,12 +1103,13 @@ function renderDetail(id){
       if(item.topic) l+=' · '+String(item.topic).substring(0,30);
     } else if(id==='work'){
       var workParts=[];
-      if(item.role) workParts.push(item.role);
-      if(item.task) workParts.push(String(item.task).substring(0,30));
+      if(item.phase) workParts.push(item.phase);
+      if(item.action) workParts.push(item.action);
+      if(item.trials||item.conversions) workParts.push((item.conversions||0)+'/'+(item.trials||0)+'转化');
       l=workParts.length?workParts.join(' · '):(item.content||'工作记录');
-      if(item.focusLevel) l+=' · 专注'+item.focusLevel+'/5';
-      if(item.income) l+=' · ¥'+item.income;
-      if(item.meaning) l+=' · 价值'+item.meaning;
+      if(item.revenue) l+=' · ¥'+item.revenue;
+      if(item.focusLevel) l+=' · 专注'+item.focusLevel;
+      if(item.keyObjection) l+=' · 异议:'+String(item.keyObjection).substring(0,15);
     } else if(id==='home'){
       var homeParts=[];
       if(item.space) homeParts.push(item.space);
@@ -1413,12 +1414,16 @@ var MODAL_FORMS = {
   work: {
     title: '工作记录',
     fields: [
-      {key:'role', label:'角色/岗位', type:'text', placeholder:'如：产品经理'},
-      {key:'task', label:'今日任务', type:'textarea', placeholder:'完成了什么任务...'},
+      {key:'phase', label:'期次', type:'select', options:['第1期','第2期','第3期','第4期','其他']},
+      {key:'action', label:'工作类型', type:'select', options:['带班露面','试听课','家长沟通','转化跟进','复盘总结','其他']},
+      {key:'trials', label:'试听人数', type:'number', placeholder:'如 15'},
+      {key:'conversions', label:'转化人数', type:'number', placeholder:'如 3'},
+      {key:'revenue', label:'转化金额(¥)', type:'number', placeholder:'如 12000'},
+      {key:'parentStage', label:'家长阶段', type:'select', options:['未接触','初次破冰','需求挖掘','异议处理','已成交','已流失']},
+      {key:'keyObjection', label:'核心异议', type:'text', placeholder:'家长最担心什么？'},
+      {key:'conversionStrategy', label:'转化策略', type:'textarea', placeholder:'用了什么话术/方法？效果如何？'},
       {key:'focusLevel', label:'专注度', type:'select', options:['1-摸鱼','2-分心','3-正常','4-专注','5-心流']},
-      {key:'income', label:'当日收入', type:'number', placeholder:'可选'},
-      {key:'meaning', label:'价值感 1-5', type:'select', options:['1','2','3','4','5']},
-      {key:'content', label:'总结', type:'textarea', placeholder:'今日工作总结...'},
+      {key:'content', label:'总结复盘', type:'textarea', placeholder:'今日复盘：做对了什么？下次怎么改？'},
       {key:'date', label:'日期', type:'date'}
     ]
   },
@@ -1598,7 +1603,7 @@ var REQUIRED_KEYS = {
   emotion:['rating'], diet:['content'], diary:['content'],
   think:['content'], learn:['subject'], photo:['title'],
   inventory:['name'], space:['name'],
-  work:['task'], home:['space'], travel:['from'],
+  work:['phase','action'], home:['space'], travel:['from'],
   body:[], relation:['person'], time:['duration','category'],
   growth:['type','skill'], spirit:['mood'], pet:['petName','action'],
   medical:['type','symptom'], todo:['title','status'], health:['sceneType']
